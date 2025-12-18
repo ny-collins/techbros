@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2563eb">
+    <title>TechBros Library</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+</head>
+<body>
+    <div id="splash-screen">
+        <div class="splash-content">
+            <img src="/favicon.png" alt="Logo" class="splash-logo">
+            <h2>TechBros</h2>
+            <div class="loading-bar">
+                <div class="bar-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <header class="app-bar">
+        <div class="logo">TechBros 📚</div>
+        <div class="actions">
+            </div>
+    </header>
+
+    <main id="app">
+        
+        <section id="library-view" class="view active">
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Search resources...">
+                
+                <div id="filter-container" class="filter-scroll">
+                    <button class="filter-chip active" data-filter="all">All</button>
+                    <button class="filter-chip" data-filter="Math">Math</button>
+                    <button class="filter-chip" data-filter="Physics">Physics</button>
+                    <button class="filter-chip" data-filter="Exam">Exams</button>
+                    <button class="filter-chip" data-filter="General">General</button>
+                </div>
+            </div>
+            
+            <div id="resource-list" class="resource-grid">
+                </div>
+        </section>
+
+        <section id="viewer-view" class="view hidden">
+            <div class="viewer-toolbar">
+                <button id="back-btn" class="icon-btn">← Back</button>
+                <span id="viewer-title">Document</span>
+                <button id="download-btn" class="icon-btn">⬇</button>
+            </div>
+            
+            <div id="pdf-container" class="scroll-container">
+                </div>
+        </section>
+
+    </main>
+
+    <script type="module" src="app.js"></script>
+    <script>
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(() => console.log('Service Worker Registered'));
+        }
+    </script>
+</body>
+</html>

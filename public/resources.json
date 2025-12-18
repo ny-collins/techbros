@@ -1,0 +1,38 @@
+[
+  {
+    "id": "1766072212124",
+    "title": "SMA 3105: Geometry I - Comprehensive Solutions",
+    "author": "Collins Mwangi",
+    "category": "Math",
+    "description": "Geometry CAT 15/12/2025",
+    "filename": "solutions.pdf",
+    "path": "/resources/solutions.pdf",
+    "size": "0.14 MB",
+    "type": "pdf",
+    "date_added": "2025-12-18"
+  },
+  {
+    "id": "1766072307954",
+    "title": "ny-collins Unwrapped 2025",
+    "author": "Unknown",
+    "category": "Coding",
+    "description": "Collins' GitHub Unwrapped",
+    "filename": "unwrapped-ny-collins.mp4",
+    "path": "/resources/unwrapped-ny-collins.mp4",
+    "size": "14.24 MB",
+    "type": "video",
+    "date_added": "2025-12-18"
+  },
+  {
+    "id": "1766072862744",
+    "title": "Test image",
+    "author": "Unknown",
+    "category": "Test",
+    "description": "Testing image viewing",
+    "filename": "image.webp",
+    "path": "/resources/image.webp",
+    "size": "0.30 MB",
+    "type": "image",
+    "date_added": "2025-12-18"
+  }
+]
