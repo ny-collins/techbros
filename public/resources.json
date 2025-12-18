@@ -38,13 +38,25 @@
   {
     "id": "1766086868400",
     "title": "GEOMETRY CAT UoN 15/12/2025",
-    "author": "Unknown",
+    "author": "Collins Mwangi",
     "category": "Math",
     "description": "Geometry CAT Questions",
     "filename": "questions.pdf",
     "path": "/resources/questions.pdf",
     "size": "0.06 MB",
     "type": "pdf",
+    "date_added": "2025-12-18"
+  },
+  {
+    "id": "1766087625810",
+    "title": "Hans Zimmer   Time (Official Audio) [c56t7upa8Bk]",
+    "author": "Unknown",
+    "category": "Music",
+    "description": "Testing Music out here",
+    "filename": "Hans Zimmer - Time (Official Audio) [c56t7upa8Bk].mp3",
+    "path": "/resources/Hans Zimmer - Time (Official Audio) [c56t7upa8Bk].mp3",
+    "size": "4.46 MB",
+    "type": "audio",
     "date_added": "2025-12-18"
   }
 ]

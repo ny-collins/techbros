@@ -13,6 +13,7 @@ function detectType(filename) {
     const ext = path.extname(filename).toLowerCase();
     if (['.pdf'].includes(ext)) return 'pdf';
     if (['.mp4', '.webm', '.mkv', '.mov'].includes(ext)) return 'video';
+    if (['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac'].includes(ext)) return 'audio';
     if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'].includes(ext)) return 'image';
     if (['.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.txt', '.zip'].includes(ext)) return 'document';
     return 'unknown';
