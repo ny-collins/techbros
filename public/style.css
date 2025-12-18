@@ -18,7 +18,7 @@ body.dark-mode {
     --text: #f1f5f9;
     --text-light: #94a3b8;
     --border: #334155;
-    --card-hover: #1e293b; /* Subtle highlight */
+    --card-hover: #1e293b; 
     --modal-overlay: rgba(0, 0, 0, 0.7);
 }
 
@@ -51,7 +51,7 @@ body {
     z-index: 10;
 }
 
-.logo { font-weight: bold; font-size: 1.2rem; }
+.logo { font-weight: bold; font-size: 1.2rem; display: flex; align-items: center; }
 
 /* --- VIEWS --- */
 #app {
@@ -82,9 +82,25 @@ body {
     transition: background-color 0.3s;
 }
 
+/* New Wrapper for Icon + Input */
+.search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    font-size: 1.2rem;
+    color: var(--text-light);
+    pointer-events: none;
+}
+
 #search-input {
     width: 100%;
     padding: 0.8rem;
+    padding-left: 40px; /* Space for icon */
     border: 1px solid var(--border);
     border-radius: 8px;
     font-size: 1rem;
@@ -138,10 +154,10 @@ body {
 .resource-grid.view-grid .card { flex-direction: column; text-align: center; padding: 1.5rem 1rem; }
 .resource-grid.view-grid .card-icon { width: 80px; height: 80px; font-size: 3rem; margin-bottom: 0.5rem; }
 
-/* 3. VIEW: HYBRID (Default - Thumbnail Left, Text Right) */
+/* 3. VIEW: HYBRID (Default) */
 .resource-grid.view-hybrid { grid-template-columns: 1fr; }
 .resource-grid.view-hybrid .card { flex-direction: row; align-items: flex-start; }
-.resource-grid.view-hybrid .card-icon { width: 70px; height: 90px; font-size: 2.5rem; } /* Tall portrait ratio */
+.resource-grid.view-hybrid .card-icon { width: 70px; height: 90px; font-size: 2.5rem; }
 
 /* CARD BASE STYLES */
 .card {
@@ -172,10 +188,43 @@ body {
     justify-content: center;
     border-radius: 8px;
     border: 1px solid var(--border);
+    transition: border-color 0.3s, background-color 0.3s;
 }
 
 .card-info h3 { font-size: 1rem; margin-bottom: 0.2rem; line-height: 1.4; color: var(--text); }
 .card-info p { font-size: 0.85rem; color: var(--text-light); }
+
+/* --- ICON COLORS --- */
+.icon-red { color: #ef4444; }
+.icon-blue { color: #3b82f6; }
+.icon-purple { color: #a855f7; }
+.icon-green { color: #22c55e; }
+.icon-default { color: var(--text-light); }
+
+/* --- ANIMATIONS --- */
+/* Settings Gear Spin */
+#settings-btn:hover i { animation: spin 2s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* Download Arrow Bob */
+#download-btn:hover i { animation: bob 1s ease-in-out infinite; }
+@keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(3px); }
+}
+
+/* Card Icon Pop */
+.card:hover .card-icon i {
+    transform: scale(1.15);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Audio Pulse */
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 0 rgba(168, 85, 247, 0)); }
+    50% { transform: scale(1.05); opacity: 0.8; filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.5)); }
+    100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 0 rgba(168, 85, 247, 0)); }
+}
 
 /* --- SETTINGS MODAL --- */
 .modal {
@@ -183,7 +232,7 @@ body {
     top: 0; left: 0; width: 100%; height: 100%;
     background: var(--modal-overlay);
     display: flex;
-    align-items: flex-end; /* Bottom sheet on mobile */
+    align-items: flex-end; 
     z-index: 100;
     transition: opacity 0.2s;
 }
@@ -206,7 +255,7 @@ body {
 .setting-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem; }
 .modal-footer { text-align: center; color: var(--text-light); font-size: 0.8rem; margin-top: 1rem; }
 
-/* Segment Control (Toggle Switch) */
+/* Segment Control */
 .segment-control { display: flex; background: var(--bg); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
 .segment-btn {
     flex: 1;
@@ -216,11 +265,11 @@ body {
     border-radius: 6px;
     cursor: pointer;
     font-size: 0.9rem;
+    display: flex; align-items: center; justify-content: center; gap: 6px; /* Icon Gap */
 }
 .segment-btn.active { background: var(--surface); color: var(--primary); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
 /* --- VIEWER & SPLASH --- */
-/* (Kept mostly same, just ensuring variables are used) */
 .viewer-toolbar { background: #1e1e1e; color: white; padding: 0.8rem; display: flex; align-items: center; justify-content: space-between; }
 .icon-btn { background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; padding: 0.5rem; border-radius: 50%; }
 #pdf-container { height: calc(100% - 60px); overflow-y: auto; background: #333; display: flex; flex-direction: column; align-items: center; padding: 1rem 0; }
@@ -236,11 +285,11 @@ audio, video { border-radius: 8px; }
 #splash-screen.fade-out { opacity: 0; visibility: hidden; pointer-events: none; }
 .splash-content { text-align: center; animation: float 2s ease-in-out infinite; }
 .splash-logo { width: 80px; height: 80px; margin-bottom: 1rem; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2)); }
+.splash-content h2 { font-size: 1.5rem; margin-bottom: 1.5rem; font-weight: 600; }
 .loading-bar { width: 150px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; overflow: hidden; margin: 0 auto; }
 .bar-fill { height: 100%; background: white; width: 50%; animation: loading 1.5s infinite linear; }
 
 @keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-@keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }

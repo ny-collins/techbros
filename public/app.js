@@ -108,7 +108,6 @@ function applyLayout(layout) {
 }
 
 function updateSettingsUI() {
-    // Sync the UI buttons with internal state
     themeBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.theme === userSettings.theme));
     layoutBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.layout === userSettings.layout));
 }
@@ -136,7 +135,7 @@ layoutBtns.forEach(btn => {
 });
 
 // ==========================================
-// 4. RENDER LIST (With TV & Audio Support)
+// 4. RENDER LIST (With Phosphor Icons)
 // ==========================================
 function renderList(items) {
     resourceList.innerHTML = ''; 
@@ -152,16 +151,21 @@ function renderList(items) {
         card.setAttribute('tabindex', '0'); 
         card.setAttribute('role', 'button');
 
-        // Determine Icon
-        let icon = '📄'; 
-        if (item.type === 'video') icon = '🎬';
-        if (item.type === 'audio') icon = '🎧'; 
-        if (item.type === 'image') icon = '🖼️';
-        if (item.type === 'document') icon = '💾';
+        // PHOSPHOR ICON MAPPING
+        let iconClass = 'ph-file-text'; // Default
+        let colorClass = 'icon-default';
 
-        // NOTE: In the future, we will put the real thumbnail image here
+        if (item.type === 'pdf') { iconClass = 'ph-file-pdf'; colorClass = 'icon-red'; }
+        if (item.type === 'video') { iconClass = 'ph-film-strip'; colorClass = 'icon-blue'; }
+        if (item.type === 'audio') { iconClass = 'ph-headphones'; colorClass = 'icon-purple'; }
+        if (item.type === 'image') { iconClass = 'ph-image'; colorClass = 'icon-green'; }
+        if (item.type === 'document') { iconClass = 'ph-file-doc'; colorClass = 'icon-blue'; }
+
+        // We use 'ph-duotone' for a stylish two-tone look
+        const iconHtml = `<i class="ph-duotone ${iconClass} ${colorClass}"></i>`;
+
         card.innerHTML = `
-            <div class="card-icon">${icon}</div>
+            <div class="card-icon">${iconHtml}</div>
             <div class="card-info">
                 <h3>${item.title}</h3>
                 <p>${item.category} • ${item.size}</p>
@@ -275,10 +279,12 @@ function renderAudio(item) {
     wrapper.style.color = 'white';
     wrapper.style.marginTop = '2rem';
 
-    const icon = document.createElement('div');
-    icon.textContent = '🎧';
+    // Animated Music Icon
+    const icon = document.createElement('i');
+    icon.className = 'ph-duotone ph-music-notes';
     icon.style.fontSize = '6rem';
     icon.style.marginBottom = '2rem';
+    icon.style.color = '#a855f7'; // Purple
     icon.style.animation = 'pulse 2s infinite'; 
 
     const audio = document.createElement('audio');
@@ -305,9 +311,11 @@ function renderFallback(item) {
     const div = document.createElement('div');
     div.innerHTML = `
         <div style="text-align:center; color:white; padding:2rem;">
-            <div style="font-size:4rem;">💾</div>
+            <i class="ph-duotone ph-warning-circle" style="font-size:4rem; margin-bottom:1rem; color:#fbbf24;"></i>
             <h3>File cannot be previewed.</h3>
-            <button id="dl-btn" style="padding:10px 20px; margin-top:10px; cursor:pointer; background:var(--primary); color:white; border:none; border-radius:6px;">Download</button>
+            <button id="dl-btn" style="padding:10px 20px; margin-top:10px; cursor:pointer; background:var(--primary); color:white; border:none; border-radius:6px; display:inline-flex; align-items:center; gap:8px;">
+                Download File <i class="ph-bold ph-download-simple"></i>
+            </button>
         </div>`;
     pdfContainer.appendChild(div);
     document.getElementById('dl-btn').onclick = () => window.open(item.path, '_blank');
