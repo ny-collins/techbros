@@ -16,6 +16,7 @@
     </script>
 </head>
 <body>
+
     <div id="splash-screen">
         <div class="splash-content">
             <img src="/favicon.png" alt="Logo" class="splash-logo">
@@ -29,7 +30,8 @@
     <header class="app-bar">
         <div class="logo">TechBros 📚</div>
         <div class="actions">
-            </div>
+            <button id="settings-btn" class="icon-btn" aria-label="Settings">⚙️</button>
+        </div>
     </header>
 
     <main id="app">
@@ -47,7 +49,7 @@
                 </div>
             </div>
             
-            <div id="resource-list" class="resource-grid">
+            <div id="resource-list" class="resource-grid view-hybrid">
                 </div>
         </section>
 
@@ -64,9 +66,39 @@
 
     </main>
 
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button id="close-settings" class="icon-btn" style="color:var(--text)">✕</button>
+            </div>
+            
+            <div class="setting-group">
+                <label>Theme</label>
+                <div class="segment-control">
+                    <button class="segment-btn active" data-theme="system">System</button>
+                    <button class="segment-btn" data-theme="light">Light</button>
+                    <button class="segment-btn" data-theme="dark">Dark</button>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <label>Layout</label>
+                <div class="segment-control">
+                    <button class="segment-btn" data-layout="list">List</button>
+                    <button class="segment-btn active" data-layout="hybrid">Hybrid</button>
+                    <button class="segment-btn" data-layout="grid">Grid</button>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <p>TechBros v1.1 • Offline Ready</p>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="app.js"></script>
     <script>
-        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js')
                 .then(() => console.log('Service Worker Registered'));
