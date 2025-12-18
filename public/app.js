@@ -23,11 +23,9 @@ async function init() {
 
     try {
         console.log("Fetching resources...");
-        // Fetch the JSON database
         const response = await fetch('resources.json');
         
         // Optional: Artificial delay to show off splash screen (800ms)
-        // You can remove this line for maximum speed
         await new Promise(r => setTimeout(r, 800));
 
         if (!response.ok) throw new Error("Failed to load database");
@@ -48,21 +46,18 @@ async function init() {
         `;
     } finally {
         // HIDE SPLASH SCREEN
-        // This runs whether the fetch succeeds OR fails
         if (splash) {
             splash.classList.add('fade-out');
-            
-            // Remove it from DOM entirely after animation finishes
             setTimeout(() => splash.remove(), 600);
         }
     }
 }
 
 // ==========================================
-// 3. RENDER THE LIST (The Librarian)
+// 3. RENDER THE LIST (TV-Enabled)
 // ==========================================
 function renderList(items) {
-    resourceList.innerHTML = ''; // Clear current list
+    resourceList.innerHTML = ''; 
 
     if (items.length === 0) {
         resourceList.innerHTML = `
@@ -76,9 +71,15 @@ function renderList(items) {
         const card = document.createElement('div');
         card.className = 'card';
         
+        // TV NAVIGATION ATTRIBUTES
+        // tabindex="0" makes a div focusable (selectable by remote/keyboard)
+        card.setAttribute('tabindex', '0'); 
+        card.setAttribute('role', 'button');
+
         // Determine Icon based on Type
         let icon = '📄'; // Default
         if (item.type === 'video') icon = '🎬';
+        if (item.type === 'audio') icon = '🎧'; // NEW: Audio Icon
         if (item.type === 'image') icon = '🖼️';
         if (item.type === 'document') icon = '💾';
 
@@ -90,9 +91,17 @@ function renderList(items) {
             </div>
         `;
 
-        // Click Event: Open the Viewer
+        // 1. Mouse Click Event
         card.addEventListener('click', () => openViewer(item));
         
+        // 2. TV Remote "Enter" Key Event
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault(); // Prevent scrolling
+                openViewer(item);
+            }
+        });
+
         resourceList.appendChild(card);
     });
 }
@@ -100,44 +109,30 @@ function renderList(items) {
 // ==========================================
 // 4. SEARCH & FILTER LOGIC
 // ==========================================
-
-// A. Text Search Input
 searchInput.addEventListener('input', (e) => {
     const query = e.target.value.toLowerCase();
     const activeCategory = document.querySelector('.filter-chip.active').getAttribute('data-filter');
-    
     runFilter(query, activeCategory);
 });
 
-// B. Category Chips
 filterChips.forEach(chip => {
     chip.addEventListener('click', () => {
-        // Visual Update
         document.querySelector('.filter-chip.active').classList.remove('active');
         chip.classList.add('active');
-        
-        // Logical Update
         const category = chip.getAttribute('data-filter');
         const query = searchInput.value.toLowerCase();
-        
         runFilter(query, category);
     });
 });
 
-// C. The Combined Filter Engine
 function runFilter(query, category) {
     const filtered = allResources.filter(item => {
-        // Check Text Match (Title or Category)
         const matchesText = item.title.toLowerCase().includes(query) || 
                           item.category.toLowerCase().includes(query);
-        
-        // Check Category Match
         const matchesCategory = category === 'all' || 
                               item.category.toLowerCase().includes(category.toLowerCase());
-                              
         return matchesText && matchesCategory;
     });
-    
     renderList(filtered);
 }
 
@@ -145,28 +140,30 @@ function runFilter(query, category) {
 // 5. VIEWER LOGIC (The Projector)
 // ==========================================
 async function openViewer(item) {
-    // A. Update Top Bar
     viewerTitle.textContent = item.title;
     downloadBtn.onclick = () => window.open(item.path, '_blank'); 
     
-    // B. Switch Views (CSS Transitions)
+    // Switch Views
     libraryView.classList.remove('active');
     libraryView.classList.add('hidden');
     viewerView.classList.remove('hidden');
     viewerView.classList.add('active');
 
-    // C. PWA History Magic (Handle Back Button)
+    // PWA History Magic
     history.pushState({ view: 'viewer' }, null, '#viewer');
 
-    // D. Render Content based on File Type
     pdfContainer.innerHTML = ''; // Clear previous content
 
+    // RENDER CONTENT BASED ON TYPE
     if (item.type === 'pdf') {
         renderPDF(item.path);
     } 
     else if (item.type === 'video') {
         renderVideo(item);
     } 
+    else if (item.type === 'audio') {
+        renderAudio(item); // NEW: Calls the audio player
+    }
     else if (item.type === 'image') {
         renderImage(item);
     }
@@ -175,34 +172,23 @@ async function openViewer(item) {
     }
 }
 
-// --- RENDERER: PDF (Mozilla PDF.js) ---
+// --- RENDERER: PDF ---
 async function renderPDF(url) {
     try {
         pdfContainer.innerHTML = '<div style="color:white; padding:20px;">Loading PDF...</div>';
-        
         const loadingTask = pdfjsLib.getDocument(url);
         const pdf = await loadingTask.promise;
-        
-        pdfContainer.innerHTML = ''; // Clear loading text
+        pdfContainer.innerHTML = ''; 
 
-        // Loop through all pages and render canvas for each
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
             const page = await pdf.getPage(pageNum);
-            
-            // Scale: 1.5 is a good balance for mobile quality
             const viewport = page.getViewport({ scale: 1.5 });
-            
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             canvas.height = viewport.height;
             canvas.width = viewport.width;
             
-            const renderContext = {
-                canvasContext: context,
-                viewport: viewport
-            };
-            
-            await page.render(renderContext).promise;
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
             pdfContainer.appendChild(canvas);
         }
     } catch (err) {
@@ -216,13 +202,48 @@ function renderVideo(item) {
     const video = document.createElement('video');
     video.src = item.path;
     video.controls = true;
-    video.playsInline = true; // Important for iOS
+    video.playsInline = true;
     video.style.width = '100%';
     video.style.maxWidth = '800px';
     video.style.borderRadius = '8px';
     video.style.marginTop = '1rem';
     
+    // Auto-focus the video so the remote 'Play' button works immediately
+    setTimeout(() => video.focus(), 500);
+    
     pdfContainer.appendChild(video);
+}
+
+// --- RENDERER: AUDIO (NEW) ---
+function renderAudio(item) {
+    const wrapper = document.createElement('div');
+    wrapper.style.textAlign = 'center';
+    wrapper.style.padding = '2rem';
+    wrapper.style.color = 'white';
+    wrapper.style.marginTop = '2rem';
+
+    // Big Animated Icon
+    const icon = document.createElement('div');
+    icon.textContent = '🎧';
+    icon.style.fontSize = '6rem';
+    icon.style.marginBottom = '2rem';
+    icon.style.animation = 'pulse 2s infinite'; 
+
+    // Audio Element
+    const audio = document.createElement('audio');
+    audio.src = item.path;
+    audio.controls = true;
+    audio.style.width = '100%';
+    audio.style.maxWidth = '500px';
+    
+    // Auto-focus for remote control
+    setTimeout(() => audio.focus(), 500);
+
+    wrapper.appendChild(icon);
+    wrapper.appendChild(document.createElement('br'));
+    wrapper.appendChild(audio);
+    
+    pdfContainer.appendChild(wrapper);
 }
 
 // --- RENDERER: IMAGE ---
@@ -230,39 +251,25 @@ function renderImage(item) {
     const img = document.createElement('img');
     img.src = item.path;
     img.style.maxWidth = '100%';
-    img.style.height = 'auto';
     img.style.borderRadius = '4px';
-    
     pdfContainer.appendChild(img);
 }
 
-// --- RENDERER: FALLBACK (DOCX, ZIP, etc) ---
+// --- RENDERER: FALLBACK ---
 function renderFallback(item) {
     const container = document.createElement('div');
     container.style.textAlign = 'center';
     container.style.color = 'white';
     container.style.padding = '2rem';
-    
     container.innerHTML = `
         <div style="font-size: 4rem; margin-bottom: 1rem;">💾</div>
         <h3>This file cannot be previewed.</h3>
         <p style="color: #ccc; margin-bottom: 2rem;">It is a <b>${item.type.toUpperCase()}</b> file.</p>
-        <button id="fallback-dl-btn" style="
-            padding: 0.8rem 1.5rem; 
-            background: #2563eb; 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
-            font-size: 1rem;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+        <button id="fallback-dl-btn" style="padding: 0.8rem 1.5rem; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer;">
             Download File
         </button>
     `;
-    
     pdfContainer.appendChild(container);
-    
-    // Add event listener to the button
     document.getElementById('fallback-dl-btn').addEventListener('click', () => {
         window.open(item.path, '_blank');
     });
@@ -272,29 +279,19 @@ function renderFallback(item) {
 // 6. NAVIGATION & CLEANUP
 // ==========================================
 function closeViewer() {
-    // Switch Views
     viewerView.classList.remove('active');
     viewerView.classList.add('hidden');
     libraryView.classList.remove('hidden');
     libraryView.classList.add('active');
     
-    // Stop any playing video
-    const video = pdfContainer.querySelector('video');
-    if (video) video.pause();
+    // Stop any playing media (Video or Audio)
+    const media = pdfContainer.querySelector('video, audio');
+    if (media) media.pause();
 
-    // Clear memory (Wait for transition to finish)
     setTimeout(() => { pdfContainer.innerHTML = ''; }, 300);
 }
 
-// Listen for Browser Back Button
-window.addEventListener('popstate', () => {
-    closeViewer();
-});
+window.addEventListener('popstate', closeViewer);
+backBtn.addEventListener('click', () => history.back());
 
-// Listen for App Back Button
-backBtn.addEventListener('click', () => {
-    history.back(); // This triggers 'popstate'
-});
-
-// START THE APP
 init();

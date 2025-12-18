@@ -55,16 +55,10 @@ body {
     transition: transform 0.3s ease-in-out;
 }
 
-.view.hidden {
-    transform: translateX(100%);
-    pointer-events: none;
-}
+.view.hidden { transform: translateX(100%); pointer-events: none; }
+.view.active { transform: translateX(0); }
 
-.view.active {
-    transform: translateX(0);
-}
-
-/* --- LIBRARY LIST & FILTERS --- */
+/* --- LIBRARY LIST --- */
 .search-container {
     padding: 1rem;
     background: var(--surface);
@@ -83,16 +77,15 @@ body {
     background: var(--bg);
 }
 
-/* NEW: Filter Chips Styles */
 .filter-scroll {
     display: flex;
     gap: 0.5rem;
     margin-top: 0.8rem;
     overflow-x: auto;
     padding-bottom: 0.2rem;
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
 }
-.filter-scroll::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+.filter-scroll::-webkit-scrollbar { display: none; }
 
 .filter-chip {
     background: var(--bg);
@@ -116,7 +109,7 @@ body {
     padding: 1rem;
     display: grid;
     gap: 1rem;
-    padding-bottom: 100px; /* Space for scrolling */
+    padding-bottom: 100px;
 }
 
 /* --- CARD COMPONENT --- */
@@ -135,6 +128,15 @@ body {
 
 .card:active { transform: scale(0.98); }
 
+/* --- TV / KEYBOARD NAVIGATION --- */
+/* This is the magic part for your Android TV Remote */
+.card:focus, .filter-chip:focus, #search-input:focus {
+    outline: 4px solid var(--primary); /* Big Blue Ring */
+    outline-offset: 2px;
+    z-index: 2;
+    transform: scale(1.02);
+}
+
 .card-icon {
     font-size: 2rem;
     background: #eff6ff;
@@ -146,17 +148,10 @@ body {
     border-radius: 8px;
 }
 
-.card-info h3 {
-    font-size: 1rem;
-    margin-bottom: 0.2rem;
-}
+.card-info h3 { font-size: 1rem; margin-bottom: 0.2rem; }
+.card-info p { font-size: 0.85rem; color: var(--text-light); }
 
-.card-info p {
-    font-size: 0.85rem;
-    color: var(--text-light);
-}
-
-/* --- DOCUMENT VIEWER --- */
+/* --- VIEWER --- */
 .viewer-toolbar {
     background: #1e1e1e;
     color: white;
@@ -190,15 +185,18 @@ canvas, video, img {
     margin-bottom: 1rem;
 }
 
+/* Rounded players look better on TV */
+audio, video {
+    border-radius: 8px;
+}
+
 /* --- SPLASH SCREEN --- */
 #splash-screen {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: var(--primary); /* Blue background */
-    z-index: 9999; /* Sit on top of everything */
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-color: var(--primary);
+    z-index: 9999;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -206,56 +204,24 @@ canvas, video, img {
     transition: opacity 0.5s ease-out, visibility 0.5s;
 }
 
-/* Helper class to hide it */
 #splash-screen.fade-out {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
 }
 
-.splash-content {
-    text-align: center;
-    animation: float 2s ease-in-out infinite;
-}
+.splash-content { text-align: center; animation: float 2s ease-in-out infinite; }
+.splash-logo { width: 80px; height: 80px; margin-bottom: 1rem; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2)); }
+.splash-content h2 { font-size: 1.5rem; margin-bottom: 1.5rem; font-weight: 600; }
+.loading-bar { width: 150px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; overflow: hidden; margin: 0 auto; }
+.bar-fill { height: 100%; background: white; width: 50%; animation: loading 1.5s infinite linear; }
 
-.splash-logo {
-    width: 80px;
-    height: 80px;
-    margin-bottom: 1rem;
-    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
-}
-
-.splash-content h2 {
-    font-size: 1.5rem;
-    margin-bottom: 1.5rem;
-    font-weight: 600;
-}
-
-/* Loading Bar Animation */
-.loading-bar {
-    width: 150px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 2px;
-    overflow: hidden;
-    margin: 0 auto;
-}
-
-.bar-fill {
-    height: 100%;
-    background: white;
-    width: 50%;
-    animation: loading 1.5s infinite linear;
-    transform-origin: left;
-}
-
-/* Animations */
-@keyframes loading {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(200%); }
-}
-
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
+/* ANIMATIONS */
+@keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+/* New Pulse Animation for Audio */
+@keyframes pulse { 
+    0% { transform: scale(1); opacity: 1; } 
+    50% { transform: scale(1.1); opacity: 0.8; } 
+    100% { transform: scale(1); opacity: 1; } 
 }
