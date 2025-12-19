@@ -1,96 +1,100 @@
 # TechBros Library: Architecture & Design
 
-**Version:** 1.0.0 (Alpha)
+**Version:** 1.3.0 (Production)
 **Author:** Collins Mwangi
 **Date:** December 2025
 
 ## 1. Project Overview
 
-**TechBros Library** is an offline-first Progressive Web Application (PWA) designed to distribute educational resources (PDFs, Videos, Images) to students with limited or intermittent internet connectivity.
+**TechBros Library** is a multimedia, offline-first Progressive Web Application (PWA) designed to distribute educational resources to users with limited internet connectivity.
 
-Unlike traditional web apps that rely on constant server queries, this system operates on a **"Download Once, Read Forever"** philosophy. The entire application logic and database index are lightweight enough to be cached on the client side, allowing for a near-native experience on Android devices without the friction of an app store download.
+It operates on a **"Download Once, Read Forever"** philosophy, effectively turning any device (Phone, Tablet, or Android TV) into a self-contained learning hub. The system now includes a decentralized Peer-to-Peer (P2P) sharing layer, allowing users to distribute content directly between devices without a central server.
 
 ## 2. Technical Stack
 
-We adhere to a **"Vanilla & Verification"** approach—minimizing dependencies to ensure long-term maintainability and performance on low-end devices.
+We adhere to a **"Vanilla & Verification"** approach—minimizing dependencies to ensure long-term maintainability.
 
-* **Frontend:** HTML5, CSS3 (Grid/Flexbox), JavaScript (ES Modules).
-* **State Management:** Vanilla JS objects (No React/Vue/Angular).
-* **Database:** `resources.json` (A flat-file, read-only JSON index).
-* **Rendering Engine:**
-    * **PDFs:** Mozilla PDF.js (Client-side Canvas rendering).
-    * **Video:** HTML5 Native Video Player.
-    * **Images:** Standard DOM rendering.
-* **Offline Capability:** Service Workers (Cache API).
-* **Infrastructure:** Cloudflare Pages (Static Edge Hosting).
+* **Frontend:** HTML5, CSS3 (Variables + Grid), JavaScript (ES Modules).
+* **State Management:** Vanilla JS objects & LocalStorage.
+* **Database:** `resources.json` (Flat-file, read-only index).
+* **Networking:**
+    * **P2P:** WebRTC (via PeerJS) for device-to-device transfers.
+    * **CDN:** Cloudflare Pages for static asset delivery.
+* **Rendering Engines:**
+    * **PDF:** Mozilla PDF.js.
+    * **Audio/Video:** HTML5 Native Media Elements.
+    * **Icons:** Phosphor Icons (SVG/Script).
 
 ## 3. System Architecture
 
 ### 3.1 The "Flat-File" Database Model
-Instead of a SQL database, the "truth" of the application is stored in the file system.
-* **Storage:** Actual binary files (`.pdf`, `.mp4`) reside in `public/resources/`.
-* **Indexing:** A Node.js script scans this folder and generates a static `public/resources.json` file.
-* **Querying:** The frontend fetches this JSON file (approx. 10-50KB) and performs filtering/searching in-memory on the client device.
+The application state is derived entirely from the file system.
+* **Ingestion:** The `scripts/add_resource.js` CLI tool scans the `public/resources/` directory.
+* **Indexing:** It generates a static JSON index containing metadata (Title, Type, Size, Path).
+* **Search:** The client downloads this lightweight index (KB) and performs instant, in-memory fuzzy searching.
 
-**Benefit:** Zero database latency, zero backend maintenance, and instant search response.
+### 3.2 The Offline Strategy (Hybrid Caching)
+We utilize a Service Worker (`sw.js`) with a prioritized caching strategy:
+1.  **App Shell (UI/Logic):** `Cache-First`. Ensures instant load times.
+2.  **Database (`resources.json`):** `Network-First`. Ensures users see new content if connected.
+3.  **Heavy Media:** `Cache-on-Demand`. Files are cached only when opened to conserve device storage.
 
-### 3.2 Data Ingestion Workflow (The Admin Loop)
-We use a custom CLI tool (`scripts/add_resource.js`) to manage the library:
-
-1.  **Ingest:** Admin drops files into `public/resources/`.
-2.  **Scan:** Script detects new files (Diff check against JSON).
-3.  **Metadata:** Script extracts metadata (PDF Author/Title) or prompts Admin.
-4.  **Build:** Script updates `resources.json`.
-5.  **Deploy:** Git push triggers Cloudflare Pages build.
-
-### 3.3 The Offline Strategy (Service Worker)
-We utilize a **Hybrid Caching Strategy**:
-
-* **App Shell (HTML/CSS/JS):** `Cache-First` (Update on reload). This ensures the UI loads instantly.
-* **Database Index (`resources.json`):** `Network-First` (Falls back to cache). This ensures users see new books if they have internet.
-* **Heavy Assets (PDFs/Videos):** `Cache-on-Demand`. Files are only cached *after* the user opens them. This prevents the user's phone storage from filling up with unread books.
+### 3.3 The Connectivity Layer (AirShare)
+To solve the distribution problem in offline environments, we implemented a **No-Auth P2P Protocol**:
+* **Signaling:** Users exchange a short 4-digit PIN to identify each other on a public signaling server.
+* **Transport:** Once the handshake is complete, a direct WebRTC DataChannel is established.
+* **Transfer:** Binary data (Blobs) is streamed directly from Peer A to Peer B. No user accounts or central database are required.
 
 ## 4. Component Design
 
-The application is a Single Page Application (SPA) with a virtual router handled by CSS transitions.
+### 4.1 The Librarian (List View)
+Handles the display and filtering of resources.
+* **Layout Engine:** Supports 3 modes (List, Grid, Hybrid) toggled via CSS classes.
+* **Theme Engine:** Uses CSS Variables to switch between System, Light, and Dark modes instantly.
 
-* **The Librarian (List View):** Responsible for parsing JSON, rendering the DOM list, and handling Search/Filter logic.
-* **The Projector (Viewer View):** A dedicated overlay for consuming content. It manages the `history.pushState` API to intercept the Android "Back" button, preventing the app from closing when a user exits a document.
+### 4.2 The Projector (Viewer)
+A dynamic overlay that selects the correct rendering engine based on MIME type:
+* **PDFs:** Renders to `<canvas>` via PDF.js.
+* **Video:** Native player with auto-focus.
+* **Audio:** Custom visualizer with pulsing animations (`renderAudio`).
+
+### 4.3 The Navigator (Accessibility & TV Mode)
+The app is fully navigable via D-Pad (Android TV) and Keyboard.
+* **Focus Management:** All interactive cards use `tabindex="0"`.
+* **Event Listeners:** Maps the physical `Enter` key to click events.
+* **Visual Feedback:** CSS `outline` and `transform` properties provide a "Focus Ring" for remote control users.
 
 ## 5. Folder Structure
 
 /
-├── public/                 # The "Distribution" folder (Hosted on Web)
-│   ├── resources/          # Binary assets (PDFs, MP4s)
-│   ├── resources.json      # The Generated Database
-│   ├── index.html          # Entry point
-│   ├── app.js              # Core Application Logic
-│   ├── sw.js               # Service Worker (Offline Logic)
-│   └── manifest.json       # PWA Configuration
+├── public/                 # Distribution Folder
+│   ├── resources/          # Binary Assets (PDF, MP3, MP4)
+│   ├── resources.json      # Generated Database
+│   ├── index.html          # Application Shell
+│   ├── app.js              # Business Logic (P2P, UI, Router)
+│   ├── style.css           # Theme Engine & Layouts
+│   ├── sw.js               # Service Worker
+│   └── manifest.json       # PWA Config
 │
-├── scripts/                # Admin Tools (Not deployed)
-│   └── add_resource.js     # CLI for ingesting files
+├── scripts/                # CI/CD Tools
+│   └── add_resource.js     # Ingestion Script (Node.js)
 │
 └── docs/                   # Documentation
-    └── ARCHITECTURE.md     # System Design (This file)
+    └── ARCHITECTURE.md     # System Design
 
-## 6. Future Roadmap
+## 6. Roadmap
 
-We intend to evolve TechBros from a static repository to a dynamic platform, while maintaining the "First Principles" simplicity.
+### Completed Features (v1.3)
+* [x] Universal File Support (PDF, Video, Audio, Doc).
+* [x] Android TV / Remote Navigation.
+* [x] Dark Mode & Layout Customization.
+* [x] P2P "AirShare" System.
+* [x] Visual Polish (Phosphor Icons & Animations).
 
-### Phase 1: UX Refinements (Current)
-* [x] Splash Screen implementation.
-* [x] Filter Chips (Math/Physics/Exam).
-* [ ] "Favorites" list (Local Storage).
-* [ ] Dark Mode toggle.
-
-### Phase 2: Community Features
-* **Peer-to-Peer Sharing:** Implement WebRTC to allow users to share PDFs offline (Bluetooth/Wi-Fi Direct) without using data.
-* **Comments System:** A lightweight, optional comment section for exam papers (likely using a third-party service like Giscus or a serverless function).
-
-### Phase 3: Administrative
-* **Automated Thumbnails:** generating cover images for the PDFs during the build script to make the UI more visual.
-* **Analytics:** Privacy-focused tracking to see which resources are most popular.
+### Future Goals
+* **Automated Thumbnails:** Generating cover images for PDFs/Videos during the build step to enhance the Grid View.
+* **Watch History:** A "Continue Reading" section stored in LocalStorage.
+* **Analytics:** Privacy-focused tracking to identify popular resources.
 
 ---
 *Documentation maintained by Collins Mwangi.*
