@@ -1,4 +1,4 @@
-const CACHE_VERSION = '1.5.0';
+const CACHE_VERSION = '1.5.1';
 const CACHE_NAME = `techbros-v${CACHE_VERSION}-${Date.now()}`;
 const RESOURCES_CACHE = 'techbros-resources';
 
@@ -24,6 +24,10 @@ self.addEventListener('install', (event) => {
         caches.open(CACHE_NAME).then((cache) => {
             console.log('[Service Worker] Caching App Shell');
             return cache.addAll(ASSETS_TO_CACHE);
+        }).then(() => {
+            // Skip waiting to activate immediately
+            console.log('[Service Worker] Skip waiting - activating now');
+            return self.skipWaiting();
         })
     );
 });
@@ -40,9 +44,21 @@ self.addEventListener('activate', (event) => {
                     return caches.delete(key);
                 }
             }));
+        }).then(() => {
+            // Take control of all clients immediately
+            return self.clients.claim();
+        }).then(() => {
+            // Notify all clients that update is complete
+            return self.clients.matchAll().then(clients => {
+                clients.forEach(client => {
+                    client.postMessage({
+                        type: 'SW_UPDATED',
+                        version: CACHE_VERSION
+                    });
+                });
+            });
         })
     );
-    return self.clients.claim();
 });
 
 // 3. FETCH EVENT (Intercept Network Requests)

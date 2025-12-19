@@ -1,6 +1,6 @@
 # TechBros Library: Architecture & Design Documentation
 
-**Version:** 1.5.0  
+**Version:** 1.5.1  
 **Last Updated:** December 19, 2025  
 **Author:** Collins Mwangi
 
@@ -502,10 +502,10 @@ const CACHE_NAME = 'techbros-v1'; // Never changes!
 - Growing cache size (all PDFs cached forever)
 - No cache updates without manual intervention
 
-**After (v1.5.0):**
+**After (v1.5.1):**
 ```javascript
 // Dynamic versioning
-const CACHE_NAME = `techbros-v1.5.0-${Date.now()}`;
+const CACHE_NAME = `techbros-v1.5.1-${Date.now()}`;
 const RESOURCES_CACHE = 'techbros-resources';
 
 // Differential strategies
@@ -589,7 +589,7 @@ return cacheFirstStrategy(); // App shell
 
 ```javascript
 // sw.js (Generated at build time)
-const CACHE_NAME = `techbros-v1.5.0-${Date.now()}`; // Unique!
+const CACHE_NAME = `techbros-v1.5.1-${Date.now()}`; // Unique!
 
 // On activation, delete old caches
 self.addEventListener('activate', (event) => {

@@ -5,6 +5,35 @@ All notable changes to TechBros Library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2025-12-19
+
+### Added
+- **Automatic Update System**: App now checks for updates automatically
+- **Update Notifications**: Beautiful toast notification when updates are available
+- **One-Click Updates**: "Update Now" button for instant updates
+- **Hourly Update Checks**: Automatically checks for new versions every hour
+- **Smooth Update Flow**: Loading overlay during update process
+- **Success Confirmation**: Toast notification after successful update
+- **Immediate Activation**: New Service Worker activates without waiting for tabs to close
+
+### Changed
+- Service Worker now uses `skipWaiting()` for instant activation
+- Service Worker registration uses `updateViaCache: 'none'` for better update detection
+- Update process no longer requires manual cache clearing
+- Users no longer need to close all tabs for updates to apply
+
+### Fixed
+- Users can now receive updates without manual intervention
+- Cache staleness issues resolved with automatic update system
+- No more "hard refresh" needed to see new versions
+
+### Technical
+- Added `setupServiceWorkerUpdates()` function in app.js
+- Service Worker sends `SW_UPDATED` messages to clients
+- Implemented `checkForUpdates()` with hourly interval
+- Added message handler in SW for `SKIP_WAITING` command
+- Update notification UI with purple gradient design
+
 ## [1.5.0] - 2025-12-19
 
 ### Added
@@ -99,6 +128,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Upgrade Guide
 
+### From v1.5.0 to v1.5.1
+
+**Breaking Changes:** None
+
+**Automatic Update:**
+- Users will see an "Update Available" notification automatically
+- One click to update - no manual steps required
+- All cache management handled automatically
+
+**What's New:**
+- App now updates itself when online
+- No more manual cache clearing
+- Beautiful update notifications
+- Hourly update checks
+
 ### From v1.4.0 to v1.5.0
 
 **Breaking Changes:** None
@@ -148,6 +192,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.5.1]: https://github.com/ny-collins/techbros/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/ny-collins/techbros/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/ny-collins/techbros/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/ny-collins/techbros/compare/v1.2.0...v1.3.0

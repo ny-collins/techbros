@@ -1,6 +1,6 @@
 // public/app.js - Main Application Logic
-// TechBros Library v1.5.0
-// Refactored with security fixes, modular design, and improved UX
+// TechBros Library v1.5.1
+// Refactored with security fixes, modular design, improved UX, and auto-update system
 
 import { 
     sanitizeHTML, 
@@ -891,7 +891,7 @@ function getErrorMessage(err) {
 // ==========================================
 function exportSettings() {
     const data = {
-        version: '1.5.0',
+        version: '1.5.1',
         exported: new Date().toISOString(),
         settings: userSettings
     };
@@ -902,7 +902,7 @@ function exportSettings() {
 
 function exportResources() {
     const data = {
-        version: '1.5.0',
+        version: '1.5.1',
         exported: new Date().toISOString(),
         resources: allResources
     };
@@ -1015,6 +1015,169 @@ style.textContent = `
 document.head.appendChild(style);
 
 // ==========================================
-// 13. INITIALIZE APP
+// 13. SERVICE WORKER UPDATE HANDLER
 // ==========================================
+let updateAvailable = false;
+let waitingWorker = null;
+
+function setupServiceWorkerUpdates() {
+    if (!('serviceWorker' in navigator)) return;
+
+    // Listen for SW updates
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (updateAvailable) {
+            console.log('New service worker activated - reloading...');
+            window.location.reload();
+        }
+    });
+
+    // Listen for messages from SW
+    navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'SW_UPDATED') {
+            console.log('Service Worker updated to version:', event.data.version);
+            showNotification(`App updated to v${event.data.version}`, 'success');
+        }
+    });
+
+    // Check for updates on load
+    navigator.serviceWorker.ready.then(registration => {
+        // Check for updates immediately
+        checkForUpdates(registration);
+
+        // Check for updates every hour
+        setInterval(() => {
+            checkForUpdates(registration);
+        }, 60 * 60 * 1000); // 1 hour
+
+        // Listen for new service worker installing
+        registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            console.log('New service worker found, installing...');
+
+            newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New service worker available
+                    waitingWorker = newWorker;
+                    showUpdateNotification();
+                }
+            });
+        });
+    });
+}
+
+function checkForUpdates(registration) {
+    if (!navigator.onLine) return;
+    
+    console.log('Checking for updates...');
+    registration.update().catch(err => {
+        console.error('Failed to check for updates:', err);
+    });
+}
+
+function showUpdateNotification() {
+    updateAvailable = true;
+
+    // Create update notification toast
+    const updateToast = document.createElement('div');
+    updateToast.id = 'update-toast';
+    updateToast.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        z-index: 10001;
+        animation: slideIn 0.3s ease-out;
+        max-width: 320px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
+
+    updateToast.innerHTML = `
+        <div style="display: flex; align-items: start; gap: 1rem;">
+            <i class="ph-fill ph-arrow-clockwise" style="font-size: 1.5rem; margin-top: 2px;"></i>
+            <div style="flex: 1;">
+                <div style="font-weight: 600; margin-bottom: 0.5rem;">Update Available!</div>
+                <div style="font-size: 0.875rem; opacity: 0.95; margin-bottom: 1rem;">
+                    A new version of TechBros is ready. Update now for the latest features and fixes.
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button id="update-now-btn" style="
+                        flex: 1;
+                        padding: 0.5rem 1rem;
+                        background: white;
+                        color: #667eea;
+                        border: none;
+                        border-radius: 6px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        font-size: 0.875rem;
+                    ">Update Now</button>
+                    <button id="update-later-btn" style="
+                        padding: 0.5rem 1rem;
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 0.875rem;
+                    ">Later</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(updateToast);
+
+    // Update now button
+    document.getElementById('update-now-btn').onclick = () => {
+        updateToast.remove();
+        applyUpdate();
+    };
+
+    // Later button
+    document.getElementById('update-later-btn').onclick = () => {
+        updateToast.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => updateToast.remove(), 300);
+    };
+}
+
+function applyUpdate() {
+    if (!waitingWorker) return;
+
+    // Show updating message
+    const updatingToast = document.createElement('div');
+    updatingToast.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 2rem 3rem;
+        background: var(--surface);
+        color: var(--text);
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        z-index: 10002;
+        text-align: center;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
+
+    updatingToast.innerHTML = `
+        <i class="ph ph-spinner ph-spin" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+        <div style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">Updating...</div>
+        <div style="color: var(--text-light); font-size: 0.875rem;">This will only take a moment</div>
+    `;
+
+    document.body.appendChild(updatingToast);
+
+    // Tell the waiting service worker to activate
+    waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+}
+
+// ==========================================
+// 14. INITIALIZE APP
+// ==========================================
+setupServiceWorkerUpdates();
 init();
