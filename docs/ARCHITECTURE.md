@@ -1,14 +1,14 @@
 # TechBros Library: Architecture & Design
 
-**Version:** 1.3.0 (Production)
+**Version:** 1.4.0 (Production)
 **Author:** Collins Mwangi
 **Date:** December 2025
 
 ## 1. Project Overview
 
-**TechBros Library** is a multimedia, offline-first Progressive Web Application (PWA) designed to distribute educational resources to users with limited internet connectivity.
-
-It operates on a **"Download Once, Read Forever"** philosophy, effectively turning any device (Phone, Tablet, or Android TV) into a self-contained learning hub. The system now includes a decentralized Peer-to-Peer (P2P) sharing layer, allowing users to distribute content directly between devices without a central server.
+**TechBros Library** is a multimedia, offline-first Progressive Web Application (PWA) that serves two functions:
+1.  **Educational Hub:** Distributes curated resources (PDFs, Videos, Audio) to users with limited internet connectivity using a "Download Once, Read Forever" model.
+2.  **Universal File Tool:** Acts as a decentralized "AirShare" utility, allowing users to transfer *any* file (including personal local files) between devices without a central server or internet data.
 
 ## 2. Technical Stack
 
@@ -39,11 +39,18 @@ We utilize a Service Worker (`sw.js`) with a prioritized caching strategy:
 2.  **Database (`resources.json`):** `Network-First`. Ensures users see new content if connected.
 3.  **Heavy Media:** `Cache-on-Demand`. Files are cached only when opened to conserve device storage.
 
-### 3.3 The Connectivity Layer (AirShare)
-To solve the distribution problem in offline environments, we implemented a **No-Auth P2P Protocol**:
-* **Signaling:** Users exchange a short 4-digit PIN to identify each other on a public signaling server.
-* **Transport:** Once the handshake is complete, a direct WebRTC DataChannel is established.
-* **Transfer:** Binary data (Blobs) is streamed directly from Peer A to Peer B. No user accounts or central database are required.
+### 3.3 The Connectivity Layer (AirShare v2)
+We implemented a **No-Auth P2P Protocol** that supports two modes:
+
+* **Mode A: Library Sharing:** Users share a file record from the `resources.json` database. The app fetches the blob from the cache/CDN and streams it.
+* **Mode B: Local File Injection:** Users select a file from their device storage (`<input type="file">`). The app creates a direct stream from the device's file system to the Peer connection.
+
+**Security & Browser Constraints:**
+To bypass modern mobile browser security (which blocks programmatic auto-downloads), we utilize a **Manual Handshake Workflow**:
+1.  **Receive:** Data arrives via WebRTC DataChannel.
+2.  **Buffer:** Data is converted to a `Blob` and stored in memory.
+3.  **Trigger:** The UI reveals a "Save to Device" button.
+4.  **Action:** The user physically clicks the button, authorizing the browser to save the file.
 
 ## 4. Component Design
 
@@ -84,15 +91,16 @@ The app is fully navigable via D-Pad (Android TV) and Keyboard.
 
 ## 6. Roadmap
 
-### Completed Features (v1.3)
+### Completed Features (v1.4)
 * [x] Universal File Support (PDF, Video, Audio, Doc).
 * [x] Android TV / Remote Navigation.
 * [x] Dark Mode & Layout Customization.
-* [x] P2P "AirShare" System.
+* [x] P2P "AirShare" (Library Mode).
+* [x] P2P "AirShare" (Local File Mode).
 * [x] Visual Polish (Phosphor Icons & Animations).
 
 ### Future Goals
-* **Automated Thumbnails:** Generating cover images for PDFs/Videos during the build step to enhance the Grid View.
+* **Automated Thumbnails:** Generating cover images for PDFs/Videos during the build step.
 * **Watch History:** A "Continue Reading" section stored in LocalStorage.
 * **Analytics:** Privacy-focused tracking to identify popular resources.
 
