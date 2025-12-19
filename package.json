@@ -27,6 +27,7 @@
   "dependencies": {
     "chalk": "^5.6.2",
     "inquirer": "^13.1.0",
+    "pdf-img-convert": "^2.0.0",
     "pdf-lib": "^1.17.1"
   }
 }

@@ -307,15 +307,30 @@ function renderList(items) {
         card.className = 'card';
         card.setAttribute('tabindex', '0'); 
 
-        let iconClass = 'ph-file-text'; 
-        let colorClass = 'icon-default';
-        if (item.type === 'pdf') { iconClass = 'ph-file-pdf'; colorClass = 'icon-red'; }
-        if (item.type === 'video') { iconClass = 'ph-film-strip'; colorClass = 'icon-blue'; }
-        if (item.type === 'audio') { iconClass = 'ph-headphones'; colorClass = 'icon-purple'; }
-        if (item.type === 'image') { iconClass = 'ph-image'; colorClass = 'icon-green'; }
+        // 1. CONTENT VISUAL (Thumbnail vs Icon)
+        let visualContent = '';
+        
+        if (item.thumbnail) {
+            // If we have a generated cover image, use it!
+            visualContent = `
+                <div class="card-thumbnail" style="background-image: url('${item.thumbnail}');"></div>
+            `;
+            card.classList.add('has-thumbnail'); // Add class for styling
+        } else {
+            // Fallback to Icon
+            let iconClass = 'ph-file-text'; 
+            let colorClass = 'icon-default';
+            if (item.type === 'pdf') { iconClass = 'ph-file-pdf'; colorClass = 'icon-red'; }
+            if (item.type === 'video') { iconClass = 'ph-film-strip'; colorClass = 'icon-blue'; }
+            if (item.type === 'audio') { iconClass = 'ph-headphones'; colorClass = 'icon-purple'; }
+            if (item.type === 'image') { iconClass = 'ph-image'; colorClass = 'icon-green'; }
+            
+            visualContent = `<div class="card-icon"><i class="ph-duotone ${iconClass} ${colorClass}"></i></div>`;
+        }
 
+        // 2. BUILD CARD HTML
         card.innerHTML = `
-            <div class="card-icon"><i class="ph-duotone ${iconClass} ${colorClass}"></i></div>
+            ${visualContent}
             <div class="card-info">
                 <h3>${item.title}</h3>
                 <p>${item.category} • ${item.size}</p>
@@ -325,6 +340,7 @@ function renderList(items) {
             </button>
         `;
 
+        // 3. LISTENERS
         card.addEventListener('click', (e) => {
             if (!e.target.closest('.share-btn')) openViewer(item);
         });
