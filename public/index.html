@@ -34,9 +34,14 @@
     <header class="app-bar">
         <div class="logo">TechBros 📚</div>
         <div class="actions">
+            <button id="send-local-btn" class="icon-btn" aria-label="Send Local File">
+                <i class="ph ph-paper-plane-tilt"></i>
+            </button>
+            
             <button id="receive-btn" class="icon-btn" aria-label="Receive File">
                 <i class="ph ph-broadcast"></i>
             </button>
+            
             <button id="settings-btn" class="icon-btn" aria-label="Settings">
                 <i class="ph ph-gear"></i>
             </button>
@@ -121,7 +126,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <p>TechBros v1.3 • P2P Enabled</p>
+                <p>TechBros v1.4 • P2P Enabled</p>
             </div>
         </div>
     </div>
@@ -139,6 +144,8 @@
                 </div>
         </div>
     </div>
+
+    <input type="file" id="local-file-input" style="display: none;">
 
     <script type="module" src="app.js"></script>
     <script>

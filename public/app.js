@@ -24,8 +24,10 @@ const closeSettingsBtn = document.getElementById('close-settings');
 const themeBtns = document.querySelectorAll('[data-theme]');
 const layoutBtns = document.querySelectorAll('[data-layout]');
 
-// Share/P2P Elements
+// P2P Elements
 const receiveBtn = document.getElementById('receive-btn');
+const sendLocalBtn = document.getElementById('send-local-btn');
+const localFileInput = document.getElementById('local-file-input');
 const shareModal = document.getElementById('share-modal');
 const closeShareBtn = document.getElementById('close-share');
 const shareBody = document.getElementById('share-body');
@@ -38,14 +40,20 @@ async function init() {
     loadSettings();
     const splash = document.getElementById('splash-screen');
     try {
+        console.log("Fetching resources...");
         const response = await fetch('resources.json');
+        
         await new Promise(r => setTimeout(r, 800));
+
         if (!response.ok) throw new Error("Failed to load database");
+        
         allResources = await response.json();
         allResources.sort((a, b) => new Date(b.date_added) - new Date(a.date_added));
+
         renderList(allResources);
     } catch (error) {
         console.error(error);
+        resourceList.innerHTML = `<div style="text-align: center; color: #ef4444; margin-top:2rem;">Error: ${error.message}</div>`;
     } finally {
         if (splash) {
             splash.classList.add('fade-out');
@@ -59,7 +67,9 @@ async function init() {
 // ==========================================
 function loadSettings() {
     const saved = localStorage.getItem('techbros-settings');
-    if (saved) userSettings = JSON.parse(saved);
+    if (saved) {
+        userSettings = JSON.parse(saved);
+    }
     applyTheme(userSettings.theme);
     applyLayout(userSettings.layout);
     updateSettingsUI();
@@ -71,9 +81,11 @@ function saveSettings() {
 
 function applyTheme(theme) {
     themeBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.theme === theme));
-    if (theme === 'dark') document.body.classList.add('dark-mode');
-    else if (theme === 'light') document.body.classList.remove('dark-mode');
-    else {
+    if (theme === 'dark') {
+        document.body.classList.add('dark-mode');
+    } else if (theme === 'light') {
+        document.body.classList.remove('dark-mode');
+    } else {
         const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         if (systemDark) document.body.classList.add('dark-mode');
         else document.body.classList.remove('dark-mode');
@@ -82,7 +94,7 @@ function applyTheme(theme) {
 
 function applyLayout(layout) {
     layoutBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.layout === layout));
-    resourceList.className = 'resource-grid';
+    resourceList.className = 'resource-grid'; 
     resourceList.classList.add(`view-${layout}`);
 }
 
@@ -107,29 +119,61 @@ layoutBtns.forEach(btn => btn.addEventListener('click', () => {
 }));
 
 // ==========================================
-// 4. P2P SHARING LOGIC (WebRTC)
+// 4. P2P SHARING LOGIC (The "AirShare" Engine)
 // ==========================================
 
-// --- SENDER LOGIC ---
-function startHosting(item) {
-    // 1. Generate a 4-digit PIN
+// --- A. HOSTING (SENDING) ---
+
+// Option 1: Send a Library File (From Database)
+function startHostingLibraryFile(item) {
+    // We must fetch the file first to get the Blob
+    fetch(item.path)
+        .then(res => res.blob())
+        .then(blob => {
+            initiateP2P(blob, item.title, item.type);
+        })
+        .catch(err => {
+            alert("Error: Could not load file for sharing.");
+            console.error(err);
+        });
+}
+
+// Option 2: Send a Local File (From Device Storage)
+sendLocalBtn.addEventListener('click', () => {
+    localFileInput.click(); // Trigger the hidden input
+});
+
+localFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Clear input to allow re-selecting same file
+    localFileInput.value = '';
+
+    // Initiate P2P with the File object (which inherits from Blob)
+    initiateP2P(file, file.name, 'local');
+});
+
+// The Core Hosting Logic (Used by both options)
+function initiateP2P(fileBlob, filename, fileType) {
+    // 1. Generate PIN
     const pin = Math.floor(1000 + Math.random() * 9000);
     const peerId = `techbros-${pin}`;
 
-    // 2. Open Modal
-    shareTitle.textContent = "Share File";
+    // 2. Show Modal
+    shareTitle.textContent = "Send File";
     shareBody.innerHTML = `
         <div style="text-align:center;">
-            <p>Tell the receiver to enter this PIN:</p>
+            <p>Sending: <b>${filename}</b></p>
             <div class="pin-display">${pin}</div>
             <p style="font-size:0.8rem; color:var(--text-light); margin-top:1rem;">
-                <i class="ph ph-spinner ph-spin"></i> Waiting for connection...
+                <i class="ph ph-spinner ph-spin"></i> Waiting for receiver...
             </p>
         </div>
     `;
     shareModal.classList.remove('hidden');
 
-    // 3. Initialize Peer (Host)
+    // 3. Start Peer
     if (peer) peer.destroy();
     peer = new Peer(peerId);
 
@@ -139,41 +183,35 @@ function startHosting(item) {
             <div style="text-align:center; color: var(--primary);">
                 <i class="ph-duotone ph-check-circle" style="font-size:3rem;"></i>
                 <p>Connected!</p>
-                <p>Sending <b>${item.title}</b>...</p>
+                <p>Transferring...</p>
             </div>
         `;
 
-        // 4. Fetch the file blob and send
-        fetch(item.path)
-            .then(res => res.blob())
-            .then(blob => {
-                conn.send({
-                    file: blob,
-                    filename: item.filename,
-                    type: item.type
-                });
-                // Success Message
-                setTimeout(() => {
-                    shareBody.innerHTML = `<p style="text-align:center;">Sent Successfully! 🎉</p>`;
-                }, 1000);
-            })
-            .catch(err => {
-                shareBody.innerHTML = `<p style="color:red">Error reading file: ${err.message}</p>`;
+        conn.on('open', () => {
+             conn.send({
+                file: fileBlob,
+                filename: filename,
+                type: fileType
             });
+            
+            setTimeout(() => {
+                shareBody.innerHTML = `<p style="text-align:center;">Sent Successfully! 🎉</p>`;
+            }, 1000);
+        });
     });
 
     peer.on('error', (err) => {
         console.error(err);
-        shareBody.innerHTML = `<p style="color:red">Connection Error. Try again.</p>`;
+        shareBody.innerHTML = `<p style="color:red">Connection Error. Restart app.</p>`;
     });
 }
 
-// --- RECEIVER LOGIC ---
+// --- B. RECEIVING ---
 function startReceiving() {
     shareTitle.textContent = "Receive File";
     shareBody.innerHTML = `
         <div style="text-align:center;">
-            <p>Enter the Sender's PIN:</p>
+            <p>Enter Sender's PIN:</p>
             <input type="number" id="pin-input" placeholder="0000" class="pin-input">
             <button id="connect-btn" class="primary-btn" style="margin-top:1rem; width:100%;">
                 Connect & Download
@@ -181,13 +219,11 @@ function startReceiving() {
         </div>
     `;
     shareModal.classList.remove('hidden');
-
-    // Focus input
     setTimeout(() => document.getElementById('pin-input').focus(), 100);
 
     document.getElementById('connect-btn').onclick = () => {
         const pin = document.getElementById('pin-input').value;
-        if (pin.length < 4) return alert("Invalid PIN");
+        if (pin.length < 4) return;
 
         shareBody.innerHTML = `
             <div style="text-align:center;">
@@ -196,19 +232,18 @@ function startReceiving() {
             </div>
         `;
 
-        // 1. Create Peer (Guest)
         if (peer) peer.destroy();
-        peer = new Peer(); // Random ID for us
+        peer = new Peer(); // Random Guest ID
 
         peer.on('open', () => {
             const conn = peer.connect(`techbros-${pin}`);
 
             conn.on('open', () => {
-                shareBody.innerHTML = `<p style="text-align:center;">Connected! Waiting for file...</p>`;
+                shareBody.innerHTML = `<p style="text-align:center;">Connected! Waiting for data...</p>`;
             });
 
             conn.on('data', (data) => {
-                // 2. File Received!
+                // File Received
                 shareBody.innerHTML = `
                     <div style="text-align:center;">
                         <i class="ph-duotone ph-download-simple" style="font-size:3rem; color:var(--primary);"></i>
@@ -216,7 +251,7 @@ function startReceiving() {
                     </div>
                 `;
                 
-                // 3. Trigger Download
+                // Trigger Download
                 const url = URL.createObjectURL(data.file);
                 const a = document.createElement('a');
                 a.href = url;
@@ -224,7 +259,6 @@ function startReceiving() {
                 a.click();
             });
 
-            // If sender disconnects/error
             peer.on('error', (err) => {
                 shareBody.innerHTML = `<p style="color:red">Peer not found. Check PIN.</p>`;
             });
@@ -235,12 +269,12 @@ function startReceiving() {
 receiveBtn.addEventListener('click', startReceiving);
 closeShareBtn.addEventListener('click', () => {
     shareModal.classList.add('hidden');
-    if (peer) peer.destroy(); // Clean up
+    if (peer) peer.destroy(); // Cleanup
 });
 
 
 // ==========================================
-// 5. RENDER LIST (Updated with Share Button)
+// 5. RENDER LIST
 // ==========================================
 function renderList(items) {
     resourceList.innerHTML = ''; 
@@ -272,21 +306,16 @@ function renderList(items) {
             </button>
         `;
 
-        // Open Viewer (Click Card)
         card.addEventListener('click', (e) => {
-            // Don't trigger if clicked on the share button
-            if (e.target.closest('.share-btn')) return;
-            openViewer(item);
+            if (!e.target.closest('.share-btn')) openViewer(item);
         });
 
-        // Share Action
         const shareBtn = card.querySelector('.share-btn');
         shareBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Stop card click
-            startHosting(item);
+            e.stopPropagation(); 
+            startHostingLibraryFile(item);
         });
         
-        // TV Navigation
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') openViewer(item);
         });
@@ -306,7 +335,6 @@ filterChips.forEach(chip => chip.addEventListener('click', () => {
 }));
 
 function getActiveCategory() { return document.querySelector('.filter-chip.active').getAttribute('data-filter'); }
-
 function runFilter(query, category) {
     const filtered = allResources.filter(item => {
         const matchesText = item.title.toLowerCase().includes(query) || item.category.toLowerCase().includes(query);
@@ -322,10 +350,8 @@ function runFilter(query, category) {
 async function openViewer(item) {
     viewerTitle.textContent = item.title;
     downloadBtn.onclick = () => window.open(item.path, '_blank'); 
-    libraryView.classList.remove('active');
-    libraryView.classList.add('hidden');
-    viewerView.classList.remove('hidden');
-    viewerView.classList.add('active');
+    libraryView.classList.remove('active'); libraryView.classList.add('hidden');
+    viewerView.classList.remove('hidden'); viewerView.classList.add('active');
     history.pushState({ view: 'viewer' }, null, '#viewer');
     pdfContainer.innerHTML = ''; 
 
@@ -355,68 +381,38 @@ async function renderPDF(url) {
     } catch (err) { pdfContainer.innerHTML = `<div style="color:#ef4444;">Error: ${err.message}</div>`; }
 }
 
-function renderVideo(item) {
-    const video = document.createElement('video');
-    video.src = item.path;
-    video.controls = true;
-    video.playsInline = true;
-    video.style.width = '100%';
-    video.style.maxWidth = '800px';
-    video.style.marginTop = '1rem';
-    setTimeout(() => video.focus(), 500); 
-    pdfContainer.appendChild(video);
+function renderVideo(path) {
+    const v = document.createElement('video'); v.src = path; v.controls = true; v.style.maxWidth = '100%'; v.style.marginTop = '1rem';
+    setTimeout(() => v.focus(), 500); 
+    pdfContainer.appendChild(v);
 }
 
-function renderAudio(item) {
+function renderAudio(path) {
     const wrapper = document.createElement('div');
-    wrapper.style.textAlign = 'center';
-    wrapper.style.padding = '2rem';
-    wrapper.style.color = 'white';
-    wrapper.style.marginTop = '2rem';
-    const icon = document.createElement('i');
-    icon.className = 'ph-duotone ph-music-notes';
-    icon.style.fontSize = '6rem';
-    icon.style.marginBottom = '2rem';
-    icon.style.color = '#a855f7'; 
-    icon.style.animation = 'pulse 2s infinite'; 
-    const audio = document.createElement('audio');
-    audio.src = item.path;
-    audio.controls = true;
-    audio.style.width = '100%';
-    audio.style.maxWidth = '500px';
+    wrapper.style.textAlign = 'center'; wrapper.style.padding = '2rem'; wrapper.style.color = 'white'; wrapper.style.marginTop = '2rem';
+    const icon = document.createElement('i'); icon.className = 'ph-duotone ph-music-notes'; icon.style.fontSize = '6rem'; icon.style.marginBottom = '2rem'; icon.style.color = '#a855f7'; icon.style.animation = 'pulse 2s infinite'; 
+    const audio = document.createElement('audio'); audio.src = path; audio.controls = true; audio.style.width = '100%'; audio.style.maxWidth = '500px';
     setTimeout(() => audio.focus(), 500);
-    wrapper.appendChild(icon);
-    wrapper.appendChild(document.createElement('br'));
-    wrapper.appendChild(audio);
+    wrapper.appendChild(icon); wrapper.appendChild(document.createElement('br')); wrapper.appendChild(audio);
     pdfContainer.appendChild(wrapper);
 }
 
-function renderImage(item) {
-    const img = document.createElement('img');
-    img.src = item.path;
-    img.style.maxWidth = '100%';
-    pdfContainer.appendChild(img);
+function renderImage(path) {
+    const i = document.createElement('img'); i.src = path; i.style.maxWidth='100%';
+    pdfContainer.appendChild(i);
 }
 
 function renderFallback(item) {
     const div = document.createElement('div');
-    div.innerHTML = `
-        <div style="text-align:center; color:white; padding:2rem;">
-            <i class="ph-duotone ph-warning-circle" style="font-size:4rem; color:#fbbf24;"></i>
-            <h3>File cannot be previewed.</h3>
-            <button id="dl-btn" class="primary-btn">Download</button>
-        </div>`;
+    div.innerHTML = `<div style="text-align:center; color:white; padding:2rem;"><i class="ph-duotone ph-warning-circle" style="font-size:4rem; color:#fbbf24;"></i><h3>File cannot be previewed.</h3><button id="dl-btn" class="primary-btn">Download</button></div>`;
     pdfContainer.appendChild(div);
     document.getElementById('dl-btn').onclick = () => window.open(item.path, '_blank');
 }
 
 function closeViewer() {
-    viewerView.classList.remove('active');
-    viewerView.classList.add('hidden');
-    libraryView.classList.remove('hidden');
-    libraryView.classList.add('active');
-    const media = pdfContainer.querySelector('video, audio');
-    if (media) media.pause();
+    viewerView.classList.remove('active'); viewerView.classList.add('hidden');
+    libraryView.classList.remove('hidden'); libraryView.classList.add('active');
+    const m = pdfContainer.querySelector('video, audio'); if (m) m.pause();
     setTimeout(() => { pdfContainer.innerHTML = ''; }, 300);
 }
 
