@@ -32,7 +32,15 @@
     </div>
 
     <header class="app-bar">
+        <button id="menu-toggle" class="icon-btn" aria-label="Toggle Menu">
+            <i class="ph ph-list"></i>
+        </button>
         <div class="logo">TechBros 📚</div>
+        <div class="header-status">
+            <span id="online-status" class="status-badge online">
+                <i class="ph ph-wifi-high"></i>
+            </span>
+        </div>
         <div class="actions">
             <button id="send-local-btn" class="icon-btn" aria-label="Send Local File">
                 <i class="ph ph-paper-plane-tilt"></i>
@@ -41,20 +49,59 @@
             <button id="receive-btn" class="icon-btn" aria-label="Receive File">
                 <i class="ph ph-broadcast"></i>
             </button>
-            
-            <button id="settings-btn" class="icon-btn" aria-label="Settings">
-                <i class="ph ph-gear"></i>
-            </button>
         </div>
     </header>
 
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h2>Menu</h2>
+            <button id="sidebar-close" class="icon-btn" aria-label="Close Menu">
+                <i class="ph ph-x"></i>
+            </button>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#library" class="nav-item active" data-view="library">
+                <i class="ph ph-books"></i>
+                <span>Library</span>
+            </a>
+            <a href="#settings" class="nav-item" data-view="settings">
+                <i class="ph ph-gear"></i>
+                <span>Settings</span>
+            </a>
+            <a href="#export" class="nav-item" data-view="export">
+                <i class="ph ph-download-simple"></i>
+                <span>Export Data</span>
+            </a>
+            <a href="#about" class="nav-item" data-view="about">
+                <i class="ph ph-info"></i>
+                <span>About</span>
+            </a>
+            <a href="#help" class="nav-item" data-view="help">
+                <i class="ph ph-question"></i>
+                <span>Help</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <p>TechBros v1.5.0</p>
+            <p class="text-small">P2P Enabled • Offline Ready</p>
+        </div>
+    </aside>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
     <main id="app">
         
+        <!-- Library View -->
         <section id="library-view" class="view active">
             <div class="search-container">
                 <div class="search-wrapper">
                     <i class="ph ph-magnifying-glass search-icon"></i>
-                    <input type="text" id="search-input" placeholder="Search resources...">
+                    <input type="text" id="search-input" placeholder="Search resources..." autocomplete="off">
+                    <button id="clear-search" class="icon-btn clear-btn hidden" aria-label="Clear search">
+                        <i class="ph ph-x"></i>
+                    </button>
                 </div>
                 
                 <div id="filter-container" class="filter-scroll">
@@ -67,9 +114,10 @@
             </div>
             
             <div id="resource-list" class="resource-grid view-hybrid">
-                </div>
+            </div>
         </section>
 
+        <!-- Viewer View -->
         <section id="viewer-view" class="view hidden">
             <div class="viewer-toolbar">
                 <button id="back-btn" class="icon-btn">
@@ -82,7 +130,162 @@
             </div>
             
             <div id="pdf-container" class="scroll-container">
+            </div>
+        </section>
+
+        <!-- Settings View -->
+        <section id="settings-view" class="view hidden">
+            <div class="page-header">
+                <h2>Settings</h2>
+            </div>
+            <div class="page-content">
+                <div class="setting-group">
+                    <label>Theme</label>
+                    <div class="segment-control">
+                        <button class="segment-btn active" data-theme="system">
+                            <i class="ph ph-desktop"></i> System
+                        </button>
+                        <button class="segment-btn" data-theme="light">
+                            <i class="ph ph-sun"></i> Light
+                        </button>
+                        <button class="segment-btn" data-theme="dark">
+                            <i class="ph ph-moon"></i> Dark
+                        </button>
+                    </div>
                 </div>
+
+                <div class="setting-group">
+                    <label>Layout</label>
+                    <div class="segment-control">
+                        <button class="segment-btn" data-layout="list">
+                            <i class="ph ph-list"></i> List
+                        </button>
+                        <button class="segment-btn active" data-layout="hybrid">
+                            <i class="ph ph-cards"></i> Hybrid
+                        </button>
+                        <button class="segment-btn" data-layout="grid">
+                            <i class="ph ph-grid-four"></i> Grid
+                        </button>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label>Cache Management</label>
+                    <button id="clear-cache-btn" class="secondary-btn">
+                        <i class="ph ph-trash"></i> Clear Cache
+                    </button>
+                    <p class="text-small">Free up storage by removing cached files</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Export Data View -->
+        <section id="export-view" class="view hidden">
+            <div class="page-header">
+                <h2>Export Data</h2>
+            </div>
+            <div class="page-content">
+                <div class="export-card">
+                    <i class="ph-duotone ph-database" style="font-size: 3rem; color: var(--primary);"></i>
+                    <h3>Export Settings</h3>
+                    <p>Download your app settings and preferences</p>
+                    <button id="export-settings-btn" class="primary-btn">
+                        <i class="ph ph-download-simple"></i> Export Settings
+                    </button>
+                </div>
+
+                <div class="export-card">
+                    <i class="ph-duotone ph-list-checks" style="font-size: 3rem; color: var(--primary);"></i>
+                    <h3>Export Resource List</h3>
+                    <p>Download the complete resource database as JSON</p>
+                    <button id="export-resources-btn" class="primary-btn">
+                        <i class="ph ph-download-simple"></i> Export Resources
+                    </button>
+                </div>
+
+                <div class="export-card">
+                    <i class="ph-duotone ph-chart-bar" style="font-size: 3rem; color: var(--primary);"></i>
+                    <h3>Storage Info</h3>
+                    <p id="storage-info">Calculating...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- About View -->
+        <section id="about-view" class="view hidden">
+            <div class="page-header">
+                <h2>About TechBros</h2>
+            </div>
+            <div class="page-content">
+                <div class="about-section">
+                    <h3>Mission</h3>
+                    <p>TechBros Library is an offline-first Progressive Web Application designed to distribute educational resources to users with limited internet connectivity. Our "Download Once, Read Forever" model ensures that knowledge is accessible to everyone, everywhere.</p>
+                </div>
+
+                <div class="about-section">
+                    <h3>Features</h3>
+                    <ul class="feature-list">
+                        <li><i class="ph ph-check-circle"></i> Offline-first architecture</li>
+                        <li><i class="ph ph-check-circle"></i> P2P file sharing without internet</li>
+                        <li><i class="ph ph-check-circle"></i> Support for PDFs, Videos, Audio, and Images</li>
+                        <li><i class="ph ph-check-circle"></i> Dark mode and customizable layouts</li>
+                        <li><i class="ph ph-check-circle"></i> Android TV / Remote navigation</li>
+                        <li><i class="ph ph-check-circle"></i> No registration required</li>
+                    </ul>
+                </div>
+
+                <div class="about-section">
+                    <h3>Technology</h3>
+                    <p>Built with vanilla JavaScript, HTML5, and CSS3. Uses WebRTC (PeerJS) for peer-to-peer connections, PDF.js for document rendering, and Service Workers for offline capabilities.</p>
+                </div>
+
+                <div class="about-section">
+                    <h3>Developer</h3>
+                    <p><strong>Collins Mwangi</strong></p>
+                    <p>Version 1.5.0 • December 2025</p>
+                    <a href="https://github.com/ny-collins/techbros" target="_blank" class="link-btn">
+                        <i class="ph ph-github-logo"></i> View on GitHub
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Help View -->
+        <section id="help-view" class="view hidden">
+            <div class="page-header">
+                <h2>Help & FAQ</h2>
+            </div>
+            <div class="page-content">
+                <div class="faq-item">
+                    <h3><i class="ph ph-question"></i> How do I share files?</h3>
+                    <p>Click the paper plane icon to share a local file, or click the share button on any library resource. Share the 4-digit PIN with the receiver.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3><i class="ph ph-question"></i> How do I receive files?</h3>
+                    <p>Click the broadcast icon, enter the 4-digit PIN from the sender, and click "Connect & Download". Once received, click "Save to Device".</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3><i class="ph ph-question"></i> Does this work offline?</h3>
+                    <p>Yes! Once you've visited the app online, it's cached for offline use. Resources are cached as you view them. P2P sharing works without internet.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3><i class="ph ph-question"></i> What file types are supported?</h3>
+                    <p>PDFs, Videos (MP4, WebM), Audio (MP3, M4A, WAV), Images (JPG, PNG, WebP), and Documents. Maximum file size: 500MB.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3><i class="ph ph-question"></i> Is P2P sharing secure?</h3>
+                    <p>P2P connections are established directly between devices using WebRTC. No data passes through our servers. Executable files are blocked for security.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3><i class="ph ph-question"></i> Connection failed - what to do?</h3>
+                    <p>Ensure both devices are on the same network or have internet access for the initial handshake. Check firewall settings and try again.</p>
+                </div>
+            </div>
         </section>
 
     </main>
@@ -90,43 +293,17 @@
     <div id="settings-modal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Settings</h3>
+                <h3>Quick Settings</h3>
                 <button id="close-settings" class="icon-btn" style="color:var(--text)">
                     <i class="ph ph-x"></i>
                 </button>
             </div>
             
-            <div class="setting-group">
-                <label>Theme</label>
-                <div class="segment-control">
-                    <button class="segment-btn active" data-theme="system">
-                        <i class="ph ph-desktop"></i> System
-                    </button>
-                    <button class="segment-btn" data-theme="light">
-                        <i class="ph ph-sun"></i> Light
-                    </button>
-                    <button class="segment-btn" data-theme="dark">
-                        <i class="ph ph-moon"></i> Dark
-                    </button>
-                </div>
-            </div>
-
-            <div class="setting-group">
-                <label>Layout</label>
-                <div class="segment-control">
-                    <button class="segment-btn" data-layout="list">
-                        <i class="ph ph-list"></i> List
-                    </button>
-                    <button class="segment-btn active" data-layout="hybrid">
-                        <i class="ph ph-cards"></i> Hybrid
-                    </button>
-                    <button class="segment-btn" data-layout="grid">
-                        <i class="ph ph-grid-four"></i> Grid
-                    </button>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <p>TechBros v1.4 • P2P Enabled</p>
+            <div class="modal-body">
+                <p style="text-align: center;">Settings have moved to the sidebar menu</p>
+                <button id="go-to-settings" class="primary-btn" style="margin-top: 1rem; width: 100%;">
+                    Open Settings
+                </button>
             </div>
         </div>
     </div>
@@ -147,11 +324,13 @@
 
     <input type="file" id="local-file-input" style="display: none;">
 
+    <script type="module" src="utils.js"></script>
     <script type="module" src="app.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js')
-                .then(() => console.log('Service Worker Registered'));
+                .then(() => console.log('Service Worker Registered'))
+                .catch(err => console.error('SW registration failed:', err));
         }
     </script>
 </body>

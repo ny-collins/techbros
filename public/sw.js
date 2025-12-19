@@ -1,4 +1,6 @@
-const CACHE_NAME = 'techbros-v1';
+const CACHE_VERSION = '1.5.0';
+const CACHE_NAME = `techbros-v${CACHE_VERSION}-${Date.now()}`;
+const RESOURCES_CACHE = 'techbros-resources';
 
 // Files to cache immediately (The App Shell)
 const ASSETS_TO_CACHE = [
@@ -6,9 +8,11 @@ const ASSETS_TO_CACHE = [
     '/index.html',
     '/style.css',
     '/app.js',
+    '/utils.js',
     '/manifest.json',
-    '/resources.json',
     '/favicon.png',
+    'https://unpkg.com/@phosphor-icons/web',
+    'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
 ];
@@ -26,10 +30,13 @@ self.addEventListener('install', (event) => {
 
 // 2. ACTIVATE EVENT (Clean up old caches)
 self.addEventListener('activate', (event) => {
+    console.log('[Service Worker] Activating...');
     event.waitUntil(
         caches.keys().then((keyList) => {
             return Promise.all(keyList.map((key) => {
-                if (key !== CACHE_NAME) {
+                // Delete old caches except current and resources cache
+                if (key !== CACHE_NAME && key !== RESOURCES_CACHE && key.startsWith('techbros')) {
+                    console.log('[Service Worker] Deleting old cache:', key);
                     return caches.delete(key);
                 }
             }));
@@ -40,15 +47,43 @@ self.addEventListener('activate', (event) => {
 
 // 3. FETCH EVENT (Intercept Network Requests)
 self.addEventListener('fetch', (event) => {
+    const url = new URL(event.request.url);
     
-    // Strategy for PDF files: Cache them as we visit them!
-    if (event.request.url.includes('/resources/')) {
+    // Strategy for resources.json: Network-First (to get latest updates)
+    if (url.pathname === '/resources.json') {
         event.respondWith(
-            caches.open(CACHE_NAME).then((cache) => {
-                return cache.match(event.request).then((response) => {
-                    // Return cached PDF if found, OR go to network
-                    return response || fetch(event.request).then((networkResponse) => {
+            fetch(event.request)
+                .then((networkResponse) => {
+                    // Update cache with fresh data
+                    caches.open(CACHE_NAME).then((cache) => {
                         cache.put(event.request, networkResponse.clone());
+                    });
+                    return networkResponse;
+                })
+                .catch(() => {
+                    // Fallback to cache if offline
+                    return caches.match(event.request);
+                })
+        );
+        return;
+    }
+    
+    // Strategy for media files in /resources/: Cache-on-demand with separate cache
+    if (url.pathname.startsWith('/resources/')) {
+        event.respondWith(
+            caches.open(RESOURCES_CACHE).then((cache) => {
+                return cache.match(event.request).then((response) => {
+                    // Return cached version if found
+                    if (response) {
+                        return response;
+                    }
+                    
+                    // Otherwise fetch and cache
+                    return fetch(event.request).then((networkResponse) => {
+                        // Only cache successful responses
+                        if (networkResponse && networkResponse.status === 200) {
+                            cache.put(event.request, networkResponse.clone());
+                        }
                         return networkResponse;
                     });
                 });
@@ -57,10 +92,27 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Strategy for everything else: Cache First, fall back to Network
+    // Strategy for everything else: Cache-First with network fallback
     event.respondWith(
         caches.match(event.request).then((response) => {
-            return response || fetch(event.request);
+            if (response) {
+                return response;
+            }
+            
+            return fetch(event.request).then((networkResponse) => {
+                // Optionally cache new requests for app shell files
+                if (event.request.method === 'GET' && !url.pathname.includes('chrome-extension')) {
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, networkResponse.clone());
+                    });
+                }
+                return networkResponse;
+            });
+        }).catch(() => {
+            // Return offline page if available
+            if (event.request.destination === 'document') {
+                return caches.match('/index.html');
+            }
         })
     );
 });

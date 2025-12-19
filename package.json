@@ -1,13 +1,15 @@
 {
   "name": "techbros",
-  "version": "1.0.0",
-  "description": "A PWA platform for sharing study resources with offline capabilities.",
+  "version": "1.5.0",
+  "description": "A PWA platform for sharing study resources with offline capabilities and P2P file sharing.",
   "keywords": [
     "pwa",
     "education",
     "offline-first",
     "study-resources",
-    "javascript"
+    "javascript",
+    "webrtc",
+    "p2p"
   ],
   "homepage": "https://github.com/ny-collins/techbros#readme",
   "bugs": {
@@ -22,6 +24,9 @@
   "type": "module",
   "main": "scripts/add_resource.js",
   "scripts": {
+    "add": "node scripts/add_resource.js",
+    "serve": "python3 -m http.server 8000 --directory public",
+    "dev": "python3 -m http.server 8000 --directory public",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
