@@ -12,6 +12,8 @@
     
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -30,11 +32,11 @@
     </div>
 
     <header class="app-bar">
-        <div class="logo">
-            <i class="ph-fill ph-books" style="margin-right:8px;"></i>
-            TechBros 📚
-        </div>
+        <div class="logo">TechBros 📚</div>
         <div class="actions">
+            <button id="receive-btn" class="icon-btn" aria-label="Receive File">
+                <i class="ph ph-broadcast"></i>
+            </button>
             <button id="settings-btn" class="icon-btn" aria-label="Settings">
                 <i class="ph ph-gear"></i>
             </button>
@@ -118,10 +120,23 @@
                     </button>
                 </div>
             </div>
-
             <div class="modal-footer">
-                <p>TechBros v1.2 • Offline Ready</p>
+                <p>TechBros v1.3 • P2P Enabled</p>
             </div>
+        </div>
+    </div>
+
+    <div id="share-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="share-title">AirShare</h3>
+                <button id="close-share" class="icon-btn" style="color:var(--text)">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+            
+            <div id="share-body">
+                </div>
         </div>
     </div>
 
