@@ -43,7 +43,7 @@ async function init() {
         console.log("Fetching resources...");
         const response = await fetch('resources.json');
         
-        await new Promise(r => setTimeout(r, 800));
+        await new Promise(r => setTimeout(r, 800)); // Aesthetic delay
 
         if (!response.ok) throw new Error("Failed to load database");
         
@@ -126,7 +126,7 @@ layoutBtns.forEach(btn => btn.addEventListener('click', () => {
 
 // Option 1: Send a Library File (From Database)
 function startHostingLibraryFile(item) {
-    // We must fetch the file first to get the Blob
+    // Fetch file as Blob first
     fetch(item.path)
         .then(res => res.blob())
         .then(blob => {
@@ -140,21 +140,21 @@ function startHostingLibraryFile(item) {
 
 // Option 2: Send a Local File (From Device Storage)
 sendLocalBtn.addEventListener('click', () => {
-    localFileInput.click(); // Trigger the hidden input
+    localFileInput.click(); // Trigger hidden input
 });
 
 localFileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Clear input to allow re-selecting same file
+    // Reset input value to allow selecting the same file again
     localFileInput.value = '';
 
-    // Initiate P2P with the File object (which inherits from Blob)
+    // Initiate P2P with the File object
     initiateP2P(file, file.name, 'local');
 });
 
-// The Core Hosting Logic (Used by both options)
+// The Core Hosting Logic
 function initiateP2P(fileBlob, filename, fileType) {
     // 1. Generate PIN
     const pin = Math.floor(1000 + Math.random() * 9000);
@@ -206,7 +206,7 @@ function initiateP2P(fileBlob, filename, fileType) {
     });
 }
 
-// --- B. RECEIVING ---
+// --- B. RECEIVING (MANUAL SAVE FIX) ---
 function startReceiving() {
     shareTitle.textContent = "Receive File";
     shareBody.innerHTML = `
@@ -243,20 +243,40 @@ function startReceiving() {
             });
 
             conn.on('data', (data) => {
-                // File Received
+                // 1. DATA RECEIVED
+                // Ensure data is treated as a Blob
+                let receivedBlob = data.file;
+                if (receivedBlob instanceof ArrayBuffer) {
+                    receivedBlob = new Blob([receivedBlob]);
+                } else if (! (receivedBlob instanceof Blob)) {
+                    receivedBlob = new Blob([new Uint8Array(data.file)]); 
+                }
+
+                // 2. Create Object URL
+                const url = URL.createObjectURL(receivedBlob);
+
+                // 3. SHOW MANUAL SAVE BUTTON
+                // (Bypasses browser auto-download blocking)
                 shareBody.innerHTML = `
                     <div style="text-align:center;">
-                        <i class="ph-duotone ph-download-simple" style="font-size:3rem; color:var(--primary);"></i>
+                        <i class="ph-duotone ph-file-arrow-down" style="font-size:4rem; color:var(--primary); margin-bottom:1rem;"></i>
                         <p>Received <b>${data.filename}</b></p>
+                        
+                        <button id="manual-save-btn" class="primary-btn" style="margin-top:1rem; width:100%; background-color:#22c55e;">
+                            <i class="ph-bold ph-download-simple"></i> Save to Device
+                        </button>
                     </div>
                 `;
                 
-                // Trigger Download
-                const url = URL.createObjectURL(data.file);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = data.filename;
-                a.click();
+                // 4. TRIGGER DOWNLOAD ON CLICK
+                document.getElementById('manual-save-btn').onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = data.filename;
+                    document.body.appendChild(a); // Required for Firefox
+                    a.click();
+                    document.body.removeChild(a); // Cleanup
+                };
             });
 
             peer.on('error', (err) => {
@@ -271,7 +291,6 @@ closeShareBtn.addEventListener('click', () => {
     shareModal.classList.add('hidden');
     if (peer) peer.destroy(); // Cleanup
 });
-
 
 // ==========================================
 // 5. RENDER LIST
