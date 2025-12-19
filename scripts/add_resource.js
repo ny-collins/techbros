@@ -3,7 +3,10 @@ import path from 'path';
 import { PDFDocument } from 'pdf-lib';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
-import pdf2img from 'pdf-img-convert'; // NEW: Image Generator
+import { createRequire } from 'module'; // NEW: Bring back 'require'
+
+const require = createRequire(import.meta.url);
+const pdf2img = require('pdf-img-convert'); // NEW: Require the library safely
 
 // CONFIGURATION
 const RESOURCES_DIR = './public/resources';
@@ -23,7 +26,7 @@ function detectType(filename) {
 }
 
 async function main() {
-    console.log(chalk.blue.bold('\n--- TechBros Batch Ingest Tool (v2.0) ---\n'));
+    console.log(chalk.blue.bold('\n--- TechBros Batch Ingest Tool (v2.1) ---\n'));
 
     // 1. LOAD DATABASE
     let db = [];
@@ -45,10 +48,9 @@ async function main() {
     }
 
     // 3. DIFF LOGIC
-    // We filter out files that are already in DB OR are thumbnail images themselves
     const newFiles = files.filter(file => {
         if (file.startsWith('.')) return false; 
-        if (file.endsWith('.cover.jpg')) return false; // Ignore generated thumbnails
+        if (file.endsWith('.cover.jpg')) return false; // Ignore thumbnails
         
         const existsInDb = db.some(entry => entry.filename === file);
         const type = detectType(file);
@@ -117,37 +119,34 @@ async function processSingleFile(selectedFile, db) {
 
     let metaTitle = '';
     let metaAuthor = '';
-    let thumbnailUrl = ''; // New Field
+    let thumbnailUrl = ''; 
 
-    // --- PDF SPECIFIC LOGIC (Metadata + Thumbnail) ---
+    // --- PDF SPECIFIC LOGIC ---
     if (fileType === 'pdf') {
         process.stdout.write(chalk.gray(`Processing PDF... `));
         
-        // A. Metadata
+        // Metadata
         try {
             const fileBuffer = await fs.readFile(filePath);
             const pdfDoc = await PDFDocument.load(fileBuffer);
             metaTitle = pdfDoc.getTitle();
             metaAuthor = pdfDoc.getAuthor();
-        } catch (e) { /* Ignore encryption errors */ }
+        } catch (e) { /* Ignore */ }
 
-        // B. Thumbnail Generation
+        // Thumbnail Generation
         try {
             process.stdout.write(chalk.gray(`Generating Cover... `));
             
-            // Convert Page 1 to Image
             const outputImages = await pdf2img.convert(filePath, {
-                width: 400, // Reasonable size for mobile grid
+                width: 400,
                 height: 600,
-                page_numbers: [1], // Only first page
+                page_numbers: [1],
                 base64: false
             });
 
-            // Save the image
             const thumbnailName = selectedFile + '.cover.jpg';
             const thumbnailPath = path.join(RESOURCES_DIR, thumbnailName);
             
-            // pdf-img-convert returns a Uint8Array, we write it to disk
             await fs.writeFile(thumbnailPath, outputImages[0]);
             
             thumbnailUrl = `/resources/${thumbnailName}`;
@@ -174,7 +173,7 @@ async function processSingleFile(selectedFile, db) {
         description: answers.description || '',
         filename: selectedFile,
         path: `/resources/${selectedFile}`,
-        thumbnail: thumbnailUrl, // <--- New Field
+        thumbnail: thumbnailUrl,
         size: sizeMB,
         type: fileType,
         date_added: new Date().toISOString().split('T')[0]

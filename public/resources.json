@@ -1,62 +1,67 @@
 [
   {
-    "id": "1766072212124",
+    "id": "1766152428094",
+    "title": "Time - Hans Zimmer",
+    "author": "Unknown",
+    "category": "Music",
+    "description": "Music testing",
+    "filename": "Hans Zimmer - Time (Official Audio) [c56t7upa8Bk].mp3",
+    "path": "/resources/Hans Zimmer - Time (Official Audio) [c56t7upa8Bk].mp3",
+    "thumbnail": "",
+    "size": "4.46 MB",
+    "type": "audio",
+    "date_added": "2025-12-19"
+  },
+  {
+    "id": "1766152458119",
+    "title": "Test Image",
+    "author": "Unknown",
+    "category": "Image",
+    "description": "Testing images",
+    "filename": "image.webp",
+    "path": "/resources/image.webp",
+    "thumbnail": "",
+    "size": "0.30 MB",
+    "type": "image",
+    "date_added": "2025-12-19"
+  },
+  {
+    "id": "1766154653903",
+    "title": "Geometry CAT questions UoN 15/12/2025",
+    "author": "Unknown",
+    "category": "Math",
+    "description": "Questions only of Geometry CAT",
+    "filename": "questions.pdf",
+    "path": "/resources/questions.pdf",
+    "thumbnail": "/resources/questions.pdf.cover.jpg",
+    "size": "0.06 MB",
+    "type": "pdf",
+    "date_added": "2025-12-19"
+  },
+  {
+    "id": "1766154682169",
     "title": "SMA 3105: Geometry I - Comprehensive Solutions",
     "author": "Collins Mwangi",
     "category": "Math",
-    "description": "Geometry CAT 15/12/2025",
+    "description": "Geometry Questions with answers and workings",
     "filename": "solutions.pdf",
     "path": "/resources/solutions.pdf",
+    "thumbnail": "/resources/solutions.pdf.cover.jpg",
     "size": "0.14 MB",
     "type": "pdf",
-    "date_added": "2025-12-18"
+    "date_added": "2025-12-19"
   },
   {
-    "id": "1766072307954",
-    "title": "ny-collins Unwrapped 2025",
+    "id": "1766154713939",
+    "title": "ny-collins GitHub Unwrapped 2025",
     "author": "Unknown",
     "category": "Coding",
-    "description": "Collins' GitHub Unwrapped",
+    "description": "Video testing",
     "filename": "unwrapped-ny-collins.mp4",
     "path": "/resources/unwrapped-ny-collins.mp4",
+    "thumbnail": "",
     "size": "14.24 MB",
     "type": "video",
-    "date_added": "2025-12-18"
-  },
-  {
-    "id": "1766072862744",
-    "title": "Test image",
-    "author": "Unknown",
-    "category": "Test",
-    "description": "Testing image viewing",
-    "filename": "image.webp",
-    "path": "/resources/image.webp",
-    "size": "0.30 MB",
-    "type": "image",
-    "date_added": "2025-12-18"
-  },
-  {
-    "id": "1766086868400",
-    "title": "GEOMETRY CAT UoN 15/12/2025",
-    "author": "Collins Mwangi",
-    "category": "Math",
-    "description": "Geometry CAT Questions",
-    "filename": "questions.pdf",
-    "path": "/resources/questions.pdf",
-    "size": "0.06 MB",
-    "type": "pdf",
-    "date_added": "2025-12-18"
-  },
-  {
-    "id": "1766087625810",
-    "title": "Hans Zimmer   Time (Official Audio) [c56t7upa8Bk]",
-    "author": "Unknown",
-    "category": "Music",
-    "description": "Testing Music out here",
-    "filename": "Hans Zimmer - Time (Official Audio) [c56t7upa8Bk].mp3",
-    "path": "/resources/Hans Zimmer - Time (Official Audio) [c56t7upa8Bk].mp3",
-    "size": "4.46 MB",
-    "type": "audio",
-    "date_added": "2025-12-18"
+    "date_added": "2025-12-19"
   }
 ]
