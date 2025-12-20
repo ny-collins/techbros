@@ -1,4 +1,4 @@
-const CACHE_VERSION = '1.5.2';
+const CACHE_VERSION = '1.5.3';
 const CACHE_NAME = `techbros-v${CACHE_VERSION}-${Date.now()}`;
 const RESOURCES_CACHE = 'techbros-resources';
 
@@ -11,10 +11,10 @@ const ASSETS_TO_CACHE = [
     '/utils.js',
     '/manifest.json',
     '/favicon.png',
+    '/vendor/pdf.worker.min.js',
     'https://unpkg.com/@phosphor-icons/web',
     'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
 ];
 
 // 1. INSTALL EVENT (Cache the Shell)

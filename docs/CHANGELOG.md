@@ -5,6 +5,35 @@ All notable changes to TechBros Library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.3] - 2025-12-20
+
+### Added
+- **Local PDF.js Worker**: Downloaded pdf.worker.min.js (1.1MB) to `/public/vendor/`
+  - Ensures PDF rendering works 100% offline without CDN dependency
+  - Eliminates risk of blocked CDN in restricted regions
+  - Worker cached by Service Worker on first load
+- **Enhanced .gitignore**: Added comprehensive OS and IDE exclusions
+  - macOS: .DS_Store, .AppleDouble, .LSOverride
+  - Windows: Thumbs.db, Desktop.ini
+  - IDEs: .vscode, .idea, vim swap files
+
+### Changed
+- **Worker Path**: Updated `pdfjsLib.GlobalWorkerOptions.workerSrc` from CDN to local path
+- **Service Worker Cache**: Replaced CDN worker URL with `/vendor/pdf.worker.min.js`
+- **True Offline Capability**: App now functions completely offline after first visit
+
+### Technical
+- Created `/public/vendor/` directory for vendored dependencies
+- Worker file integrity verified (SHA-384 from CDN download)
+- No build process changes - still static file deployment
+
+### Performance
+- Worker loads from local cache instead of network request
+- Reduces dependency on external CDN availability
+- Faster PDF rendering on subsequent visits
+
+---
+
 ## [1.5.2] - 2025-12-20
 
 ### Added
