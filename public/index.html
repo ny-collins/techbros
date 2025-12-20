@@ -147,28 +147,25 @@
                 <h2>P2P File Sharing</h2>
             </div>
             <div class="page-content">
-                <div class="share-card">
-                    <i class="ph-duotone ph-paper-plane-tilt" style="font-size: 3rem; color: var(--primary);"></i>
-                    <h3>Send File</h3>
-                    <p>Share a local file from your device to another user via P2P connection</p>
-                    <button id="send-local-file-btn" class="primary-btn">
+                <div class="about-section">
+                    <h3><i class="ph-duotone ph-paper-plane-tilt"></i> Send File</h3>
+                    <p>Share a local file from your device to another user via P2P connection. Click below to select a file and generate a unique PIN code.</p>
+                    <button id="send-local-file-btn" class="primary-btn" style="margin-top: 0.5rem;">
                         <i class="ph ph-paper-plane-tilt"></i> Send Local File
                     </button>
                 </div>
 
-                <div class="share-card">
-                    <i class="ph-duotone ph-broadcast" style="font-size: 3rem; color: var(--primary);"></i>
-                    <h3>Receive File</h3>
-                    <p>Connect to a sender using their 4-digit PIN and download the shared file</p>
-                    <button id="receive-file-btn" class="primary-btn">
+                <div class="about-section">
+                    <h3><i class="ph-duotone ph-broadcast"></i> Receive File</h3>
+                    <p>Connect to a sender using their 4-digit PIN and download the shared file directly to your device.</p>
+                    <button id="receive-file-btn" class="primary-btn" style="margin-top: 0.5rem;">
                         <i class="ph ph-broadcast"></i> Receive File
                     </button>
                 </div>
 
-                <div class="share-card">
-                    <i class="ph-duotone ph-info" style="font-size: 3rem; color: var(--primary);"></i>
-                    <h3>How it Works</h3>
-                    <ul class="feature-list" style="text-align: left;">
+                <div class="about-section">
+                    <h3><i class="ph-duotone ph-shield-check"></i> How it Works</h3>
+                    <ul class="feature-list">
                         <li><i class="ph ph-check-circle"></i> Direct device-to-device transfer (P2P)</li>
                         <li><i class="ph ph-check-circle"></i> No data passes through servers</li>
                         <li><i class="ph ph-check-circle"></i> Works on same network or over internet</li>
@@ -185,28 +182,25 @@
                 <h2>Export Data</h2>
             </div>
             <div class="page-content">
-                <div class="export-card">
-                    <i class="ph-duotone ph-database" style="font-size: 3rem; color: var(--primary);"></i>
-                    <h3>Export Settings</h3>
-                    <p>Download your app settings and preferences</p>
-                    <button id="export-settings-btn" class="primary-btn">
+                <div class="about-section">
+                    <h3><i class="ph-duotone ph-database"></i> Export Settings</h3>
+                    <p>Download your app settings and preferences as a JSON file. This includes your theme choice, layout preference, and other customizations.</p>
+                    <button id="export-settings-btn" class="primary-btn" style="margin-top: 0.5rem;">
                         <i class="ph ph-download-simple"></i> Export Settings
                     </button>
                 </div>
 
-                <div class="export-card">
-                    <i class="ph-duotone ph-list-checks" style="font-size: 3rem; color: var(--primary);"></i>
-                    <h3>Export Resource List</h3>
-                    <p>Download the complete resource database as JSON</p>
-                    <button id="export-resources-btn" class="primary-btn">
+                <div class="about-section">
+                    <h3><i class="ph-duotone ph-list-checks"></i> Export Resource List</h3>
+                    <p>Download the complete resource database as JSON. This includes all metadata, URLs, and file information from the library.</p>
+                    <button id="export-resources-btn" class="primary-btn" style="margin-top: 0.5rem;">
                         <i class="ph ph-download-simple"></i> Export Resources
                     </button>
                 </div>
 
-                <div class="export-card">
-                    <i class="ph-duotone ph-chart-bar" style="font-size: 3rem; color: var(--primary);"></i>
-                    <h3>Storage Info</h3>
-                    <p id="storage-info">Calculating...</p>
+                <div class="about-section">
+                    <h3><i class="ph-duotone ph-chart-bar"></i> Storage Usage</h3>
+                    <p id="storage-info" style="margin-top: 0.5rem;">Calculating...</p>
                 </div>
             </div>
         </section>
@@ -256,32 +250,32 @@
                 <h2>Help & FAQ</h2>
             </div>
             <div class="page-content">
-                <div class="faq-item">
+                <div class="about-section">
                     <h3><i class="ph ph-question"></i> How do I share files?</h3>
                     <p>Click the paper plane icon to share a local file, or click the share button on any library resource. Share the 4-digit PIN with the receiver.</p>
                 </div>
 
-                <div class="faq-item">
+                <div class="about-section">
                     <h3><i class="ph ph-question"></i> How do I receive files?</h3>
                     <p>Click the broadcast icon, enter the 4-digit PIN from the sender, and click "Connect & Download". Once received, click "Save to Device".</p>
                 </div>
 
-                <div class="faq-item">
+                <div class="about-section">
                     <h3><i class="ph ph-question"></i> Does this work offline?</h3>
                     <p>Yes! Once you've visited the app online, it's cached for offline use. Resources are cached as you view them. P2P sharing works without internet.</p>
                 </div>
 
-                <div class="faq-item">
+                <div class="about-section">
                     <h3><i class="ph ph-question"></i> What file types are supported?</h3>
                     <p>PDFs, Videos (MP4, WebM), Audio (MP3, M4A, WAV), Images (JPG, PNG, WebP), and Documents. Maximum file size: 500MB.</p>
                 </div>
 
-                <div class="faq-item">
+                <div class="about-section">
                     <h3><i class="ph ph-question"></i> Is P2P sharing secure?</h3>
                     <p>P2P connections are established directly between devices using WebRTC. No data passes through our servers. Executable files are blocked for security.</p>
                 </div>
 
-                <div class="faq-item">
+                <div class="about-section">
                     <h3><i class="ph ph-question"></i> Connection failed - what to do?</h3>
                     <p>Ensure both devices are on the same network or have internet access for the initial handshake. Check firewall settings and try again.</p>
                 </div>

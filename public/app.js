@@ -1,5 +1,5 @@
 // public/app.js - Main Application Logic
-// TechBros Library v1.5.8
+// TechBros Library v1.5.9
 // Refactored with security fixes, modular design, improved UX, and auto-update system
 
 import { 
@@ -856,9 +856,21 @@ function startReceiving() {
     
     shareBody.innerHTML = '';
     shareBody.style.textAlign = 'center';
+    shareBody.style.padding = '2rem 1rem';
+    
+    const icon = document.createElement('i');
+    icon.className = 'ph-duotone ph-broadcast';
+    icon.style.fontSize = '4rem';
+    icon.style.color = 'var(--primary)';
+    icon.style.marginBottom = '1.5rem';
+    icon.style.display = 'block';
     
     const label = document.createElement('p');
     label.textContent = "Enter Sender's PIN:";
+    label.style.fontSize = '1.1rem';
+    label.style.fontWeight = '500';
+    label.style.marginBottom = '1rem';
+    label.style.color = 'var(--text)';
     
     const input = document.createElement('input');
     input.type = 'number';
@@ -866,14 +878,15 @@ function startReceiving() {
     input.placeholder = '0000';
     input.className = 'pin-input';
     input.maxLength = 4;
+    input.style.marginBottom = '1.5rem';
     
     const button = document.createElement('button');
     button.id = 'connect-btn';
     button.className = 'primary-btn';
-    button.style.marginTop = '1rem';
     button.style.width = '100%';
-    button.textContent = 'Connect & Download';
+    button.innerHTML = '<i class=\"ph ph-plug\"></i> Connect & Download';
     
+    shareBody.appendChild(icon);
     shareBody.appendChild(label);
     shareBody.appendChild(input);
     shareBody.appendChild(button);

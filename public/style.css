@@ -467,6 +467,8 @@ body {
 .modal-content {
     background: var(--surface);
     width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
     border-radius: 20px 20px 0 0;
     padding: 1.5rem;
     animation: slideUp 0.3s ease-out;
@@ -477,8 +479,9 @@ body {
 @media (min-width: 600px) {
     .modal { align-items: center; justify-content: center; }
     .modal-content { 
-        width: 400px; 
-        border-radius: 12px; 
+        width: 450px; 
+        max-height: 85vh;
+        border-radius: 16px; 
         animation: popIn 0.2s ease-out; 
     }
 }
@@ -537,27 +540,39 @@ body {
    ========================================= */
 .pin-display {
     font-size: 3rem;
-    font-weight: bold;
-    letter-spacing: 5px;
-    margin: 1rem 0;
+    font-weight: 700;
+    letter-spacing: 8px;
+    margin: 1.5rem 0;
     color: var(--primary);
     background: var(--bg);
-    padding: 1rem;
-    border-radius: 12px;
-    border: 2px dashed var(--border);
+    padding: 1.5rem 2rem;
+    border-radius: 16px;
+    border: 3px dashed var(--primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    user-select: all;
 }
 
 .pin-input {
     font-size: 2rem;
-    letter-spacing: 5px;
+    font-weight: 600;
+    letter-spacing: 8px;
     text-align: center;
     width: 100%;
-    padding: 10px;
-    border: 2px solid var(--primary);
-    border-radius: 8px;
+    max-width: 280px;
+    padding: 1rem 1.5rem;
+    border: 3px solid var(--primary);
+    border-radius: 12px;
     background: var(--bg);
     color: var(--text);
     outline: none;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.pin-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    transform: scale(1.02);
 }
 
 .primary-btn {
@@ -688,58 +703,6 @@ audio, video { border-radius: 8px; }
     margin: 0 auto;
 }
 
-/* Export Cards */
-.export-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 2rem;
-    text-align: center;
-    margin-bottom: 1.5rem;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.export-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.export-card h3 {
-    margin: 1rem 0 0.5rem;
-    color: var(--text);
-}
-
-.export-card p {
-    color: var(--text-light);
-    margin-bottom: 1.5rem;
-}
-
-/* Share Cards (P2P) */
-.share-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 2rem;
-    text-align: center;
-    margin-bottom: 1.5rem;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.share-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.share-card h3 {
-    margin: 1rem 0 0.5rem;
-    color: var(--text);
-}
-
-.share-card p {
-    color: var(--text-light);
-    margin-bottom: 1.5rem;
-}
-
 /* Audio Player Enhancements */
 .audio-player-wrapper {
     background: var(--surface);
@@ -782,6 +745,14 @@ audio, video { border-radius: 8px; }
 .about-section h3 {
     color: var(--primary);
     margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.about-section h3 i {
+    font-size: 1.5rem;
 }
 
 .about-section p {
@@ -825,29 +796,6 @@ audio, video { border-radius: 8px; }
     transform: translateY(-2px);
 }
 
-/* FAQ Items */
-.faq-item {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-}
-
-.faq-item h3 {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--primary);
-    margin-bottom: 0.75rem;
-    font-size: 1.1rem;
-}
-
-.faq-item p {
-    line-height: 1.6;
-    color: var(--text);
-}
-
 /* Secondary Button */
 .secondary-btn {
     background: var(--surface);
@@ -883,6 +831,14 @@ audio, video { border-radius: 8px; }
     padding: 1rem 0;
 }
 
+#share-body {
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
 /* =========================================
    15. RESPONSIVE IMPROVEMENTS
    ========================================= */
@@ -897,10 +853,6 @@ audio, video { border-radius: 8px; }
 
     .page-content {
         padding: 1rem;
-    }
-
-    .export-card, .faq-item {
-        padding: 1.25rem;
     }
 }
 
