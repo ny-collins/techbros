@@ -2,7 +2,7 @@
   "name": "TechBros Library",
   "short_name": "TechBros",
   "description": "Offline-first educational resource library with P2P file sharing",
-  "version": "1.5.4",
+  "version": "1.5.5",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#2563eb",

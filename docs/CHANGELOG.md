@@ -5,6 +5,27 @@ All notable changes to TechBros Library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.5] - 2025-12-20
+
+### Fixed
+- **Duotone Icon Fonts**: Added missing Phosphor-Duotone font files
+  - Phosphor-Duotone.woff2 (164KB)
+  - Phosphor-Duotone.woff (568KB)
+  - Phosphor-Duotone.ttf (568KB)
+  - File type icons now display correctly (audio, video, image, PDF)
+  - Fixed "two rectangles" placeholder issue for duotone icons
+
+### Added
+- Service Worker now caches duotone font files
+- Complete icon coverage for all file types
+
+### Technical
+- Duotone CSS requires separate font family "Phosphor-Duotone"
+- Regular icons use "Phosphor" font, duotone icons use "Phosphor-Duotone"
+- Both font families now properly vendored and cached
+
+---
+
 ## [1.5.4] - 2025-12-20
 
 ### Added

@@ -1,4 +1,4 @@
-const CACHE_VERSION = '1.5.4';
+const CACHE_VERSION = '1.5.5';
 const CACHE_NAME = `techbros-v${CACHE_VERSION}-${Date.now()}`;
 const RESOURCES_CACHE = 'techbros-resources';
 
@@ -17,6 +17,9 @@ const ASSETS_TO_CACHE = [
     '/vendor/phosphor/Phosphor.woff2',
     '/vendor/phosphor/Phosphor.woff',
     '/vendor/phosphor/Phosphor.ttf',
+    '/vendor/phosphor/Phosphor-Duotone.woff2',
+    '/vendor/phosphor/Phosphor-Duotone.woff',
+    '/vendor/phosphor/Phosphor-Duotone.ttf',
     'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
 ];
