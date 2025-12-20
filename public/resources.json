@@ -63,5 +63,18 @@
     "size": "14.24 MB",
     "type": "video",
     "date_added": "2025-12-19"
+  },
+  {
+    "id": "1766228048314",
+    "title": "Foundations of Mathematics: A Rigorous Introduction",
+    "author": "Collins Mwangi",
+    "category": "Math",
+    "description": "Sample textbook",
+    "filename": "main.pdf",
+    "path": "/resources/main.pdf",
+    "thumbnail": "/resources/main.pdf.cover.jpg",
+    "size": "1.25 MB",
+    "type": "pdf",
+    "date_added": "2025-12-20"
   }
 ]
