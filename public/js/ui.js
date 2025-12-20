@@ -136,9 +136,14 @@ class UI {
             const card = document.createElement('div');
             card.className = 'audio-player-card';
             const coverSrc = resource.cover ? resource.cover : ''; 
+            
+            // Updated Placeholder Logic:
+            // If cover exists, render <img>.
+            // If not, render a <div> with the SAME class 'player-cover-art' so it inherits CSS size/shadows.
+            // We use inline flex style just for centering the icon content.
             const imgHTML = coverSrc 
                 ? `<img src="${coverSrc}" class="player-cover-art" alt="Cover">`
-                : `<div class="player-cover-art" style="display:flex;align-items:center;justify-content:center;font-size:4rem;color:var(--text-secondary);background:var(--bg-input);width:250px;height:250px;border-radius:12px;"><i class="ph ph-music-note"></i></div>`;
+                : `<div class="player-cover-art" style="display:flex;align-items:center;justify-content:center;font-size:4rem;color:var(--text-secondary);"><i class="ph ph-music-note"></i></div>`;
 
             card.innerHTML = `
                 ${imgHTML}
