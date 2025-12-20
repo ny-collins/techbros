@@ -1,6 +1,10 @@
 node_modules/
 .wrangler/
 
+# Backup files
+*.backup
+*~
+
 # macOS
 .DS_Store
 .AppleDouble

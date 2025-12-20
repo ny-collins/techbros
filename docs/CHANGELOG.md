@@ -5,6 +5,66 @@ All notable changes to TechBros Library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.9] - 2025-12-20
+
+### Changed
+- **Unified Page Styling**: All pages now use consistent section-based layout
+  - P2P Share page converted from cards to sections (like About)
+  - Export page converted from cards to sections
+  - Help page converted from card boxes to sections
+  - Content feels integrated into page, not hoisted in boxes
+  - Added duotone icons to all section headers
+  
+### Improved
+- **Receive File Modal**: Complete redesign
+  - Large broadcast icon (4rem) for visual hierarchy
+  - Better spacing with 2rem padding
+  - Enhanced PIN input styling (3px border, 8px letter spacing)
+  - Focus scale effect and shadow
+  - Max-width constraint for better proportions
+  - Professional appearance with icons
+  - Fixed overlap issues with scrollable content (max-height: 90vh)
+
+- **PIN Display**: Better visual styling
+  - Larger letter spacing (8px)
+  - Thicker dashed border (3px)
+  - Box shadow for depth
+  - User-select: all for easy copying
+  - Font weight 700
+
+### Removed
+- `.export-card`, `.share-card`, `.faq-item` CSS (no longer used)
+- Card-based styling in favor of unified sections
+- Responsive rules for removed classes
+
+## [1.5.8] - 2025-12-20
+
+### Fixed
+- **Navigation Bug**: Complete settingsView removal
+  - Fixed viewMap still referencing 'settings': settingsView
+  - Updated allViews array in openViewer() function
+  - Removed ALL remaining settingsView references
+  - Navigation now works correctly for all pages
+
+### Changed
+- All pages now properly mapped to their views
+- Click navigation no longer shows empty pages
+- Can return to Library after clicking nav items
+
+## [1.5.7] - 2025-12-20
+
+### Fixed
+- **Cache Version Strategy**: Removed Date.now() from cache name
+  - Changed from `techbros-v1.5.6-${Date.now()}` to `techbros-v1.5.7`
+  - Static version number forces proper cache invalidation
+  - Ensures all users get bug fixes
+  - Browser now detects version changes correctly
+
+### Technical
+- Service Worker cache naming simplified
+- Better update detection across all browsers
+- Forced deployment of all bug fixes from v1.5.6
+
 ## [1.5.6] - 2025-12-20
 
 ### Changed
