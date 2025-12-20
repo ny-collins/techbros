@@ -5,6 +5,53 @@ All notable changes to TechBros Library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2025-12-20
+
+### Added
+- **Dynamic Version Management**: Version now loaded from manifest.json
+  - Single source of truth for app version
+  - Auto-updates sidebar footer and About page
+  - No manual HTML updates required
+  - Fallback mechanism for offline scenarios
+
+- **Dynamic Category Filters**: Auto-generated from resources.json
+  - Extracts unique categories from database
+  - No hardcoded category buttons
+  - Automatically adapts when new categories added
+  - Event listeners attached dynamically
+  - Always shows 'All' filter first
+
+- **Dynamic Year Display**: Current date in About page
+  - Uses JavaScript Date API
+  - Shows "Month Year" format (e.g., "December 2025")
+  - Always current, no maintenance needed
+
+- **Statistics Section**: New About page section
+  - Total resource count
+  - Number of categories
+  - Total content size (MB/GB)
+  - Parses size from resource metadata
+  - Updates after resources loaded
+
+### Changed
+- HTML templates now use placeholder elements
+- Filter chips generated at runtime
+- Version displayed from manifest.json
+
+### Technical
+- Added `loadDynamicContent()` function
+- Added `generateCategoryFilters()` function
+- Added `updateStatistics()` function
+- Modified `init()` workflow
+- Removed static `filterChips` querySelector
+
+### Benefits
+- ✅ Less manual maintenance
+- ✅ Single source of truth for version
+- ✅ Categories auto-adapt to database
+- ✅ More scalable architecture
+- ✅ Better data-driven approach
+
 ## [1.5.9] - 2025-12-20
 
 ### Changed
