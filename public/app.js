@@ -1047,8 +1047,14 @@ async function clearCache() {
             cacheNames.map(cacheName => caches.delete(cacheName))
         );
         
+        // Unregister service worker to prevent update loops
+        if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map(reg => reg.unregister()));
+        }
+        
         showNotification('Cache cleared successfully. Reloading...', 'success');
-        setTimeout(() => window.location.reload(), 1500);
+        setTimeout(() => window.location.reload(true), 1500);
     } catch (err) {
         console.error('Failed to clear cache:', err);
         showNotification('Failed to clear cache', 'error');
