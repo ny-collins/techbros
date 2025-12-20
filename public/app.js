@@ -28,7 +28,7 @@ let totalPages = 0;
 // Main Views
 const libraryView = document.getElementById('library-view');
 const viewerView = document.getElementById('viewer-view');
-const settingsView = document.getElementById('settings-view');
+const shareView = document.getElementById('share-view');
 const exportView = document.getElementById('export-view');
 const aboutView = document.getElementById('about-view');
 const helpView = document.getElementById('help-view');
@@ -191,7 +191,7 @@ function closeSidebar() {
 
 function navigateToView(viewName) {
     // Hide all views
-    const allViews = [libraryView, viewerView, settingsView, exportView, aboutView, helpView];
+    const allViews = [libraryView, viewerView, shareView, exportView, aboutView, helpView];
     allViews.forEach(view => {
         view.classList.remove('active');
         view.classList.add('hidden');

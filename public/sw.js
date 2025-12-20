@@ -77,9 +77,11 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(
             fetch(event.request)
                 .then((networkResponse) => {
+                    // Clone before using to update cache
+                    const clonedResponse = networkResponse.clone();
                     // Update cache with fresh data
                     caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, networkResponse.clone());
+                        cache.put(event.request, clonedResponse);
                     });
                     return networkResponse;
                 })
@@ -125,8 +127,9 @@ self.addEventListener('fetch', (event) => {
             return fetch(event.request).then((networkResponse) => {
                 // Optionally cache new requests for app shell files
                 if (event.request.method === 'GET' && !url.pathname.includes('chrome-extension')) {
+                    const clonedResponse = networkResponse.clone();
                     caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, networkResponse.clone());
+                        cache.put(event.request, clonedResponse);
                     });
                 }
                 return networkResponse;
