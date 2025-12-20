@@ -5,6 +5,40 @@ All notable changes to TechBros Library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.4] - 2025-12-20
+
+### Added
+- **Vendored Phosphor Icons**: Downloaded all icon assets to `/public/vendor/phosphor/`
+  - Regular icon CSS (78KB)
+  - Duotone icon CSS (231KB)
+  - Font files: woff2 (147KB), woff (489KB), ttf (489KB)
+  - Ensures icons display without CDN dependency
+  - Works completely offline after first visit
+  - Eliminates unpkg.com dependency
+
+### Changed
+- **Icon Loading**: Replaced CDN script with local CSS files
+  - Removed: `<script src="https://unpkg.com/@phosphor-icons/web@2.1.1">`
+  - Added: `<link rel="stylesheet" href="/vendor/phosphor/regular.css">`
+  - Added: `<link rel="stylesheet" href="/vendor/phosphor/duotone.css">`
+- **Service Worker Cache**: Added all icon assets to ASSETS_TO_CACHE
+- **Performance**: Icons load from local cache instead of network request
+
+### Fixed
+- **Missing Icons**: Icons now display correctly on all pages
+  - Hamburger menu icon (ph-list)
+  - Send/Receive icons (ph-paper-plane-tilt, ph-broadcast)
+  - All sidebar navigation icons
+  - All sub-page icons
+- **CDN Reliability**: No longer affected by unpkg.com availability or blocks
+
+### Technical
+- Total icon assets: ~1.5MB (compressed efficiently by Cloudflare)
+- Font format priority: woff2 → woff → ttf for broad browser support
+- CSS references use relative paths for proper font loading
+
+---
+
 ## [1.5.3] - 2025-12-20
 
 ### Added
