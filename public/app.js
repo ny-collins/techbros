@@ -37,7 +37,7 @@ const helpView = document.getElementById('help-view');
 const searchInput = document.getElementById('search-input');
 const clearSearchBtn = document.getElementById('clear-search');
 const resourceList = document.getElementById('resource-list');
-const filterChips = document.querySelectorAll('.filter-chip');
+// filterChips now generated dynamically
 
 // Viewer Elements
 const pdfContainer = document.getElementById('pdf-container');
@@ -81,6 +81,7 @@ async function init() {
     loadSettings();
     setupEventListeners();
     updateOnlineStatus();
+    await loadDynamicContent(); // Load version, categories, stats
     
     const splash = document.getElementById('splash-screen');
     
@@ -95,7 +96,9 @@ async function init() {
         allResources = await response.json();
         allResources.sort((a, b) => new Date(b.date_added) - new Date(a.date_added));
 
+        generateCategoryFilters(); // Generate filters from actual categories
         renderList(allResources);
+        updateStatistics(); // Update stats after resources loaded
     } catch (error) {
         console.error(error);
         showError(`Error loading resources: ${error.message}`);
@@ -105,6 +108,95 @@ async function init() {
             setTimeout(() => splash.remove(), 600);
         }
     }
+}
+
+// Load dynamic content (version, year)
+async function loadDynamicContent() {
+    try {
+        // Load version from manifest.json
+        const manifest = await fetch('/manifest.json').then(r => r.json());
+        const version = manifest.version || '1.5.9';
+        
+        // Update version displays
+        const appVersionEl = document.getElementById('app-version');
+        const aboutVersionEl = document.getElementById('about-version');
+        if (appVersionEl) appVersionEl.textContent = version;
+        if (aboutVersionEl) aboutVersionEl.textContent = version;
+        
+        // Update year dynamically
+        const yearEl = document.getElementById('about-year');
+        const currentDate = new Date();
+        const monthYear = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        if (yearEl) yearEl.textContent = monthYear;
+    } catch (error) {
+        console.error('Failed to load dynamic content:', error);
+        // Fallback to default values
+        const appVersionEl = document.getElementById('app-version');
+        const aboutVersionEl = document.getElementById('about-version');
+        if (appVersionEl) appVersionEl.textContent = '1.5.9';
+        if (aboutVersionEl) aboutVersionEl.textContent = '1.5.9';
+    }
+}
+
+// Generate category filters from resources
+function generateCategoryFilters() {
+    const filterContainer = document.getElementById('filter-container');
+    if (!filterContainer) return;
+    
+    // Extract unique categories from resources
+    const categories = ['all', ...new Set(allResources.map(r => r.category).filter(Boolean))];
+    
+    // Clear existing filters
+    filterContainer.innerHTML = '';
+    
+    // Create filter chips
+    categories.forEach((category, index) => {
+        const chip = document.createElement('button');
+        chip.className = 'filter-chip' + (index === 0 ? ' active' : '');
+        chip.dataset.filter = category;
+        chip.textContent = category === 'all' ? 'All' : category;
+        
+        chip.addEventListener('click', handleFilterChange);
+        filterContainer.appendChild(chip);
+    });
+}
+
+// Update statistics
+function updateStatistics() {
+    const statsEl = document.getElementById('app-stats');
+    if (!statsEl) return;
+    
+    const totalResources = allResources.length;
+    const categories = new Set(allResources.map(r => r.category).filter(Boolean));
+    const categoriesCount = categories.size;
+    
+    // Calculate total size (if available)
+    let totalSize = 0;
+    allResources.forEach(resource => {
+        if (resource.size) {
+            // Parse size string (e.g., "2.5 MB" -> bytes)
+            const sizeMatch = resource.size.match(/([0-9.]+)\s*(KB|MB|GB)/i);
+            if (sizeMatch) {
+                const value = parseFloat(sizeMatch[1]);
+                const unit = sizeMatch[2].toUpperCase();
+                const multiplier = unit === 'GB' ? 1024*1024*1024 : unit === 'MB' ? 1024*1024 : 1024;
+                totalSize += value * multiplier;
+            }
+        }
+    });
+    
+    // Format total size
+    let sizeText = '';
+    if (totalSize > 0) {
+        const sizeGB = totalSize / (1024*1024*1024);
+        const sizeMB = totalSize / (1024*1024);
+        sizeText = sizeGB >= 1 ? `${sizeGB.toFixed(2)} GB` : `${sizeMB.toFixed(2)} MB`;
+    }
+    
+    statsEl.innerHTML = `
+        <strong>${totalResources}</strong> resources across <strong>${categoriesCount}</strong> categories
+        ${sizeText ? `<br><small style="color: var(--text-light);">Total content size: ${sizeText}</small>` : ''}
+    `;
 }
 
 // ==========================================
@@ -129,8 +221,7 @@ function setupEventListeners() {
     searchInput.addEventListener('input', debounce(handleSearch, CONSTANTS.DEBOUNCE_DELAY));
     clearSearchBtn.addEventListener('click', clearSearch);
     
-    // Filters
-    filterChips.forEach(chip => chip.addEventListener('click', handleFilterChange));
+    // Filters (will be dynamically added in generateCategoryFilters)
     
     // Viewer
     backBtn.addEventListener('click', () => {
