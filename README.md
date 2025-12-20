@@ -7,7 +7,7 @@
 ### Offline-First Educational Resource Platform with P2P File Sharing
 
 [![Live Site](https://img.shields.io/badge/🌐_Live-techbros.pages.dev-blue?style=for-the-badge)](https://techbros.pages.dev)
-[![Version](https://img.shields.io/badge/version-1.5.5-green?style=for-the-badge)](https://github.com/ny-collins/techbros)
+[![Version](https://img.shields.io/badge/version-1.5.6-green?style=for-the-badge)](https://github.com/ny-collins/techbros)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](LICENSE)
 [![PWA](https://img.shields.io/badge/PWA-Ready-purple?style=for-the-badge)](https://web.dev/progressive-web-apps/)
 

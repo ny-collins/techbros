@@ -714,6 +714,60 @@ audio, video { border-radius: 8px; }
     margin-bottom: 1.5rem;
 }
 
+/* Share Cards (P2P) */
+.share-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.share-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.share-card h3 {
+    margin: 1rem 0 0.5rem;
+    color: var(--text);
+}
+
+.share-card p {
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+}
+
+/* Audio Player Enhancements */
+.audio-player-wrapper {
+    background: var(--surface);
+}
+
+.audio-cover-art {
+    position: relative;
+}
+
+.audio-cover-art::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, 
+        rgba(168, 85, 247, 0.2) 0%, 
+        transparent 50%, 
+        rgba(59, 130, 246, 0.2) 100%);
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
 /* About Sections */
 .about-section {
     margin-bottom: 2rem;

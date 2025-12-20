@@ -46,12 +46,16 @@
             </span>
         </div>
         <div class="actions">
-            <button id="send-local-btn" class="icon-btn" aria-label="Send Local File">
-                <i class="ph ph-paper-plane-tilt"></i>
+            <button id="theme-toggle-btn" class="icon-btn" aria-label="Toggle Theme">
+                <i class="ph ph-sun"></i>
             </button>
             
-            <button id="receive-btn" class="icon-btn" aria-label="Receive File">
-                <i class="ph ph-broadcast"></i>
+            <button id="layout-toggle-btn" class="icon-btn" aria-label="Toggle Layout">
+                <i class="ph ph-cards"></i>
+            </button>
+            
+            <button id="cache-clear-btn" class="icon-btn" aria-label="Clear Cache">
+                <i class="ph ph-trash"></i>
             </button>
         </div>
     </header>
@@ -69,9 +73,9 @@
                 <i class="ph ph-books"></i>
                 <span>Library</span>
             </a>
-            <a href="#settings" class="nav-item" data-view="settings">
-                <i class="ph ph-gear"></i>
-                <span>Settings</span>
+            <a href="#share" class="nav-item" data-view="share">
+                <i class="ph ph-share-network"></i>
+                <span>P2P Share</span>
             </a>
             <a href="#export" class="nav-item" data-view="export">
                 <i class="ph ph-download-simple"></i>
@@ -87,7 +91,7 @@
             </a>
         </nav>
         <div class="sidebar-footer">
-            <p>TechBros v1.5.5</p>
+            <p>TechBros v1.5.6</p>
             <p class="text-small">P2P Enabled • Offline Ready</p>
         </div>
     </aside>
@@ -137,48 +141,40 @@
             </div>
         </section>
 
-        <!-- Settings View -->
-        <section id="settings-view" class="view hidden">
+        <!-- P2P Share View -->
+        <section id="share-view" class="view hidden">
             <div class="page-header">
-                <h2>Settings</h2>
+                <h2>P2P File Sharing</h2>
             </div>
             <div class="page-content">
-                <div class="setting-group">
-                    <label>Theme</label>
-                    <div class="segment-control">
-                        <button class="segment-btn active" data-theme="system">
-                            <i class="ph ph-desktop"></i> System
-                        </button>
-                        <button class="segment-btn" data-theme="light">
-                            <i class="ph ph-sun"></i> Light
-                        </button>
-                        <button class="segment-btn" data-theme="dark">
-                            <i class="ph ph-moon"></i> Dark
-                        </button>
-                    </div>
-                </div>
-
-                <div class="setting-group">
-                    <label>Layout</label>
-                    <div class="segment-control">
-                        <button class="segment-btn" data-layout="list">
-                            <i class="ph ph-list"></i> List
-                        </button>
-                        <button class="segment-btn active" data-layout="hybrid">
-                            <i class="ph ph-cards"></i> Hybrid
-                        </button>
-                        <button class="segment-btn" data-layout="grid">
-                            <i class="ph ph-grid-four"></i> Grid
-                        </button>
-                    </div>
-                </div>
-
-                <div class="setting-group">
-                    <label>Cache Management</label>
-                    <button id="clear-cache-btn" class="secondary-btn">
-                        <i class="ph ph-trash"></i> Clear Cache
+                <div class="share-card">
+                    <i class="ph-duotone ph-paper-plane-tilt" style="font-size: 3rem; color: var(--primary);"></i>
+                    <h3>Send File</h3>
+                    <p>Share a local file from your device to another user via P2P connection</p>
+                    <button id="send-local-file-btn" class="primary-btn">
+                        <i class="ph ph-paper-plane-tilt"></i> Send Local File
                     </button>
-                    <p class="text-small">Free up storage by removing cached files</p>
+                </div>
+
+                <div class="share-card">
+                    <i class="ph-duotone ph-broadcast" style="font-size: 3rem; color: var(--primary);"></i>
+                    <h3>Receive File</h3>
+                    <p>Connect to a sender using their 4-digit PIN and download the shared file</p>
+                    <button id="receive-file-btn" class="primary-btn">
+                        <i class="ph ph-broadcast"></i> Receive File
+                    </button>
+                </div>
+
+                <div class="share-card">
+                    <i class="ph-duotone ph-info" style="font-size: 3rem; color: var(--primary);"></i>
+                    <h3>How it Works</h3>
+                    <ul class="feature-list" style="text-align: left;">
+                        <li><i class="ph ph-check-circle"></i> Direct device-to-device transfer (P2P)</li>
+                        <li><i class="ph ph-check-circle"></i> No data passes through servers</li>
+                        <li><i class="ph ph-check-circle"></i> Works on same network or over internet</li>
+                        <li><i class="ph ph-check-circle"></i> 4-digit PIN for secure connection</li>
+                        <li><i class="ph ph-check-circle"></i> Maximum file size: 500MB</li>
+                    </ul>
                 </div>
             </div>
         </section>
@@ -246,7 +242,7 @@
                 <div class="about-section">
                     <h3>Developer</h3>
                     <p><strong>Collins Mwangi</strong></p>
-                    <p>Version 1.5.5 • December 2025</p>
+                    <p>Version 1.5.6 • December 2025</p>
                     <a href="https://github.com/ny-collins/techbros" target="_blank" class="link-btn">
                         <i class="ph ph-github-logo"></i> View on GitHub
                     </a>

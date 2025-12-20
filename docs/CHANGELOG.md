@@ -5,6 +5,52 @@ All notable changes to TechBros Library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.6] - 2025-12-20
+
+### Changed
+- **Header Actions**: Replaced Send/Receive buttons with Settings controls
+  - Theme toggle icon (cycles: system → light → dark)
+  - Layout toggle icon (cycles: list → hybrid → grid)
+  - Clear cache icon for quick storage management
+  - Icons show visual feedback and toast notifications
+  
+- **Settings Page Removed**: Shallow settings page eliminated
+  - Settings now accessible directly from header icons
+  - Faster access to theme/layout switching
+  - Cleaner navigation structure
+
+### Added
+- **P2P Share Subpage**: Dedicated page for file sharing
+  - "Send File" card with local file selection
+  - "Receive File" card for PIN-based receiving
+  - "How it Works" informational card
+  - Better UX than header-only buttons
+  - Centralized P2P functionality
+
+- **Enhanced Audio Player**: Complete styling overhaul
+  - 250x250px cover art with gradient background
+  - Animated music icon with pulse effect
+  - Larger, more visible audio controls (60px height)
+  - Gradient wrapper with modern card design
+  - Shimmer animation effect on cover art
+  - Improved title typography
+  - Better spacing and visual hierarchy
+
+### Improved
+- **Navigation**: Sidebar now shows Library → P2P Share → Export → About → Help
+- **UX**: One-click theme/layout cycling vs multi-step navigation
+- **Audio Playback**: More prominent controls, professional player design
+- **Visual Consistency**: Share cards match export card styling
+
+### Technical
+- Added `cycleTheme()` and `cycleLayout()` functions
+- Header icons dynamically update to reflect current state
+- Toast notifications for setting changes
+- Updated event listeners for new button IDs
+- CSS animations for audio player effects
+
+---
+
 ## [1.5.5] - 2025-12-20
 
 ### Fixed

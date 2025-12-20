@@ -1,5 +1,5 @@
 // public/app.js - Main Application Logic
-// TechBros Library v1.5.5
+// TechBros Library v1.5.6
 // Refactored with security fixes, modular design, improved UX, and auto-update system
 
 import { 
@@ -58,11 +58,11 @@ const onlineStatus = document.getElementById('online-status');
 // Settings Elements (now in view)
 const themeBtns = document.querySelectorAll('[data-theme]');
 const layoutBtns = document.querySelectorAll('[data-layout]');
-const clearCacheBtn = document.getElementById('clear-cache-btn');
+const cacheHeaderBtn = document.getElementById('cache-clear-btn');
 
 // P2P Elements
-const receiveBtn = document.getElementById('receive-btn');
-const sendLocalBtn = document.getElementById('send-local-btn');
+const sendLocalFileBtn = document.getElementById('send-local-file-btn');
+const receiveFileBtn = document.getElementById('receive-file-btn');
 const localFileInput = document.getElementById('local-file-input');
 const shareModal = document.getElementById('share-modal');
 const closeShareBtn = document.getElementById('close-share');
@@ -138,20 +138,33 @@ function setupEventListeners() {
         navigateToView('library');
     });
     
-    // Theme & Layout
+    // Theme & Layout (Header Icons)
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    const layoutToggleBtn = document.getElementById('layout-toggle-btn');
+    
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', cycleTheme);
+    }
+    if (layoutToggleBtn) {
+        layoutToggleBtn.addEventListener('click', cycleLayout);
+    }
+    if (cacheHeaderBtn) {
+        cacheHeaderBtn.addEventListener('click', clearCache);
+    }
+    
+    // Legacy theme/layout buttons (if any remain in modals/pages)
     themeBtns.forEach(btn => btn.addEventListener('click', () => changeTheme(btn.dataset.theme)));
     layoutBtns.forEach(btn => btn.addEventListener('click', () => changeLayout(btn.dataset.layout)));
     
-    // P2P
-    receiveBtn.addEventListener('click', startReceiving);
-    sendLocalBtn.addEventListener('click', () => localFileInput.click());
+    // P2P (from Share subpage)
+    if (receiveFileBtn) receiveFileBtn.addEventListener('click', startReceiving);
+    if (sendLocalFileBtn) sendLocalFileBtn.addEventListener('click', () => localFileInput.click());
     localFileInput.addEventListener('change', handleLocalFileSelect);
     closeShareBtn.addEventListener('click', closeShareModal);
     
     // Export
     exportSettingsBtn.addEventListener('click', exportSettings);
     exportResourcesBtn.addEventListener('click', exportResources);
-    clearCacheBtn.addEventListener('click', clearCache);
     
     // Online/Offline
     window.addEventListener('online', updateOnlineStatus);
@@ -268,8 +281,51 @@ function changeLayout(layout) {
     saveSettings();
 }
 
+// Cycle through themes for header icon button
+function cycleTheme() {
+    const themes = ['system', 'light', 'dark'];
+    const currentIndex = themes.indexOf(userSettings.theme);
+    const nextTheme = themes[(currentIndex + 1) % themes.length];
+    
+    changeTheme(nextTheme);
+    
+    // Update icon
+    const icon = document.querySelector('#theme-toggle-btn i');
+    if (icon) {
+        icon.className = nextTheme === 'dark' ? 'ph ph-moon' : 
+                        nextTheme === 'light' ? 'ph ph-sun' : 'ph ph-desktop';
+    }
+    
+    showToast(`Theme: ${nextTheme.charAt(0).toUpperCase() + nextTheme.slice(1)}`, 'info');
+}
+
+// Cycle through layouts for header icon button
+function cycleLayout() {
+    const layouts = ['list', 'hybrid', 'grid'];
+    const currentIndex = layouts.indexOf(userSettings.layout);
+    const nextLayout = layouts[(currentIndex + 1) % layouts.length];
+    
+    changeLayout(nextLayout);
+    
+    // Update icon
+    const icon = document.querySelector('#layout-toggle-btn i');
+    if (icon) {
+        icon.className = nextLayout === 'list' ? 'ph ph-list' :
+                        nextLayout === 'grid' ? 'ph ph-grid-four' : 'ph ph-cards';
+    }
+    
+    showToast(`Layout: ${nextLayout.charAt(0).toUpperCase() + nextLayout.slice(1)}`, 'info');
+}
+
 function applyTheme(theme) {
     themeBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.theme === theme));
+    
+    // Update header icon
+    const headerIcon = document.querySelector('#theme-toggle-btn i');
+    if (headerIcon) {
+        headerIcon.className = theme === 'dark' ? 'ph ph-moon' : 
+                              theme === 'light' ? 'ph ph-sun' : 'ph ph-desktop';
+    }
     
     if (theme === 'dark') {
         document.body.classList.add('dark-mode');
@@ -283,6 +339,14 @@ function applyTheme(theme) {
 
 function applyLayout(layout) {
     layoutBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.layout === layout));
+    
+    // Update header icon
+    const headerIcon = document.querySelector('#layout-toggle-btn i');
+    if (headerIcon) {
+        headerIcon.className = layout === 'list' ? 'ph ph-list' :
+                              layout === 'grid' ? 'ph ph-grid-four' : 'ph ph-cards';
+    }
+    
     resourceList.className = 'resource-grid';
     resourceList.classList.add(`view-${layout}`);
 }
@@ -562,30 +626,79 @@ function renderVideo(item) {
 
 function renderAudio(item) {
     const wrapper = document.createElement('div');
-    wrapper.style.textAlign = 'center';
-    wrapper.style.padding = '2rem';
-    wrapper.style.color = 'white';
+    wrapper.className = 'audio-player-wrapper';
+    wrapper.style.cssText = `
+        max-width: 600px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1));
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    `;
     
+    // Cover Art Container
+    const coverArt = document.createElement('div');
+    coverArt.className = 'audio-cover-art';
+    coverArt.style.cssText = `
+        width: 250px;
+        height: 250px;
+        margin: 0 auto 2rem;
+        border-radius: 1rem;
+        background: linear-gradient(135deg, #a855f7, #3b82f6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 16px rgba(168, 85, 247, 0.3);
+        position: relative;
+        overflow: hidden;
+    `;
+    
+    // Animated icon in cover art
     const icon = document.createElement('i');
     icon.className = 'ph-duotone ph-music-notes';
-    icon.style.fontSize = '6rem';
-    icon.style.marginBottom = '2rem';
-    icon.style.color = '#a855f7';
-    icon.style.animation = 'pulse 2s infinite';
+    icon.style.cssText = `
+        font-size: 8rem;
+        color: white;
+        animation: pulse 2s infinite;
+        opacity: 0.9;
+    `;
     
-    const title = document.createElement('h3');
+    coverArt.appendChild(icon);
+    
+    // Title
+    const title = document.createElement('h2');
     title.textContent = item.title;
-    title.style.marginBottom = '2rem';
+    title.style.cssText = `
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text);
+        text-align: center;
+    `;
+    
+    // Audio Element Container
+    const audioContainer = document.createElement('div');
+    audioContainer.style.cssText = `
+        background: var(--surface);
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    `;
     
     const audio = document.createElement('audio');
     audio.src = item.path;
     audio.controls = true;
-    audio.style.width = '100%';
-    audio.style.maxWidth = '500px';
+    audio.style.cssText = `
+        width: 100%;
+        height: 60px;
+        border-radius: 0.5rem;
+    `;
     
-    wrapper.appendChild(icon);
+    audioContainer.appendChild(audio);
+    
+    wrapper.appendChild(coverArt);
     wrapper.appendChild(title);
-    wrapper.appendChild(audio);
+    wrapper.appendChild(audioContainer);
     pdfContainer.appendChild(wrapper);
     
     setTimeout(() => audio.focus(), 500);

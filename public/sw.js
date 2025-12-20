@@ -1,4 +1,4 @@
-const CACHE_VERSION = '1.5.5';
+const CACHE_VERSION = '1.5.6';
 const CACHE_NAME = `techbros-v${CACHE_VERSION}-${Date.now()}`;
 const RESOURCES_CACHE = 'techbros-resources';
 
