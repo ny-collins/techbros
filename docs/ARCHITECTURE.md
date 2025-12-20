@@ -150,6 +150,59 @@ Our architectural decisions are guided by three core principles:
 
 ---
 
+### Development Dependencies
+
+The project uses Node.js dependencies for development tooling, specifically for the resource management CLI tool (`scripts/add_resource.js`).
+
+#### Dependencies Overview
+
+| Package | Version | Purpose | Usage |
+|---------|---------|---------|-------|
+| **chalk** | 5.6.2 | Terminal string styling | Provides colored output in CLI (success in green, errors in red, info in blue) |
+| **inquirer** | 13.1.0 | Interactive CLI prompts | Creates user-friendly command-line interface for adding resources |
+| **pdf-img-convert** | 2.0.0 | PDF to image conversion | Generates thumbnail previews from PDF first page |
+| **pdf-lib** | 1.17.1 | PDF metadata extraction | Reads PDF metadata (page count, size, title) for resource database |
+
+#### Use Case: Resource Addition Workflow
+
+```bash
+npm run add
+```
+
+**What happens:**
+1. **Inquirer** prompts for: title, category, filename, tags, etc.
+2. **pdf-lib** reads PDF metadata (pages, file size)
+3. **pdf-img-convert** generates thumbnail from first page
+4. **chalk** displays colored success/error messages
+5. Updates `resources.json` with new entry
+
+**Code Example:**
+```javascript
+import chalk from 'chalk';
+import inquirer from 'inquirer';
+import { pdfToPng } from 'pdf-img-convert';
+import { PDFDocument } from 'pdf-lib';
+
+// Colored output
+console.log(chalk.green('✓ Resource added successfully!'));
+
+// Interactive prompts
+const answers = await inquirer.prompt([
+  { type: 'input', name: 'title', message: 'Resource title:' }
+]);
+
+// PDF metadata extraction
+const pdfDoc = await PDFDocument.load(pdfBytes);
+const pageCount = pdfDoc.getPageCount();
+
+// Thumbnail generation
+const images = await pdfToPng(pdfBytes, { pagesToProcess: [0] });
+```
+
+**Note:** These dependencies are NOT bundled into the production app. They only run during development when adding resources to the database.
+
+---
+
 ### Why PDF.js with Lazy Loading?
 
 **Decision:** PDF.js with custom pagination instead of full-page rendering
