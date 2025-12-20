@@ -1,5 +1,5 @@
 // public/app.js - Main Application Logic
-// TechBros Library v1.5.1
+// TechBros Library v1.5.2
 // Refactored with security fixes, modular design, improved UX, and auto-update system
 
 import { 

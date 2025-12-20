@@ -1,7 +1,7 @@
 # TechBros Library: Architecture & Design Documentation
 
-**Version:** 1.5.1  
-**Last Updated:** December 19, 2025  
+**Version:** 1.5.2  
+**Last Updated:** December 20, 2025  
 **Author:** Collins Mwangi
 
 ---

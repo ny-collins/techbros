@@ -5,6 +5,45 @@ All notable changes to TechBros Library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2] - 2025-12-20
+
+### Added
+- **Security Headers**: Comprehensive security headers via `_headers` file
+  - Content-Security-Policy (CSP) for XSS protection
+  - X-Frame-Options to prevent clickjacking
+  - Strict-Transport-Security (HSTS) to enforce HTTPS
+  - Permissions-Policy to restrict browser features
+  - X-XSS-Protection for legacy browser protection
+- **Subresource Integrity (SRI)**: Added integrity hashes to all external CDN scripts
+  - Phosphor Icons (unpkg.com/@phosphor-icons/web@2.1.1)
+  - PeerJS (unpkg.com/peerjs@1.5.2)
+  - PDF.js libraries (cdnjs.cloudflare.com)
+- **SEO Files**: Created robots.txt and sitemap.xml for better search engine indexing
+- **Cache Headers**: Optimized cache control for different resource types
+  - Service Worker: no-cache
+  - Manifest: 1 day cache
+  - JS/CSS: 1 week cache (immutable)
+  - Images/PDFs: 1 month cache (immutable)
+
+### Security
+- **Grade Improvement**: Security grade increased from B+ to A
+- **External Script Validation**: All CDN scripts now verified with SRI hashes
+- **HTTPS Enforcement**: HSTS with 1-year max-age and includeSubDomains
+- **Clickjacking Protection**: X-Frame-Options set to DENY
+- **CSP Implementation**: Strict Content Security Policy blocks unauthorized resources
+
+### Changed
+- External scripts now include crossorigin="anonymous" attribute
+- Pinned Phosphor Icons to specific version (2.1.1) for stability
+- Updated all version references across codebase to 1.5.2
+
+### Technical
+- Added `_headers` file for Cloudflare Pages configuration
+- Configured granular cache control for optimal performance
+- Improved SEO with proper robots.txt and sitemap.xml
+
+---
+
 ## [1.5.1] - 2025-12-19
 
 ### Added

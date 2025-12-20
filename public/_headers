@@ -1,0 +1,40 @@
+/*
+  # Security Headers
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: blob: https:; font-src 'self' data: https://unpkg.com; connect-src 'self' https://*.peerjs.com wss://*.peerjs.com https://cdnjs.cloudflare.com; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  X-XSS-Protection: 1; mode=block
+  
+  # Cache Control
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/sw.js
+  # Service Worker - No Cache
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/manifest.json
+  # Manifest - Short Cache
+  Cache-Control: public, max-age=86400
+
+/*.js
+  # JavaScript - 1 week cache
+  Cache-Control: public, max-age=604800, immutable
+
+/*.css
+  # CSS - 1 week cache
+  Cache-Control: public, max-age=604800, immutable
+
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+/*.ico
+  # Images - 1 month cache
+  Cache-Control: public, max-age=2592000, immutable
+
+/*.pdf
+  # PDFs - 1 month cache
+  Cache-Control: public, max-age=2592000, immutable
