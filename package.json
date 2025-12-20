@@ -1,6 +1,6 @@
 {
   "name": "techbros",
-  "version": "1.5.9",
+  "version": "1.6.0",
   "description": "A PWA platform for sharing study resources with offline capabilities and P2P file sharing.",
   "keywords": [
     "pwa",
