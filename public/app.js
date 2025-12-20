@@ -1,5 +1,5 @@
 // public/app.js - Main Application Logic
-// TechBros Library v1.5.6
+// TechBros Library v1.5.8
 // Refactored with security fixes, modular design, improved UX, and auto-update system
 
 import { 
@@ -205,7 +205,7 @@ function navigateToView(viewName) {
     // Show selected view
     const viewMap = {
         'library': libraryView,
-        'settings': settingsView,
+        'share': shareView,
         'export': exportView,
         'about': aboutView,
         'help': helpView
@@ -498,7 +498,7 @@ async function openViewer(item) {
     downloadBtn.onclick = () => downloadFile(item.path, item.filename);
     
     // Hide all other views
-    const allViews = [libraryView, settingsView, exportView, aboutView, helpView];
+    const allViews = [libraryView, shareView, exportView, aboutView, helpView];
     allViews.forEach(view => {
         view.classList.remove('active');
         view.classList.add('hidden');

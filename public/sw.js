@@ -1,5 +1,5 @@
-const CACHE_VERSION = '1.5.6';
-const CACHE_NAME = `techbros-v${CACHE_VERSION}-${Date.now()}`;
+const CACHE_VERSION = '1.5.8';
+const CACHE_NAME = `techbros-v${CACHE_VERSION}`;
 const RESOURCES_CACHE = 'techbros-resources';
 
 // Files to cache immediately (The App Shell)
