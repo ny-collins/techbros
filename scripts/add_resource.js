@@ -1,187 +1,211 @@
-import fs from 'fs/promises';
+import fs from 'fs';
 import path from 'path';
-import { PDFDocument } from 'pdf-lib';
+import { fileURLToPath } from 'url';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
-import { createRequire } from 'module'; // NEW: Bring back 'require'
+import { createRequire } from 'module';
+import { parseFile } from 'music-metadata'; 
 
+// Use 'require' for legacy CJS libraries
 const require = createRequire(import.meta.url);
-const pdf2img = require('pdf-img-convert'); // NEW: Require the library safely
+const { PDFDocument } = require('pdf-lib'); 
 
-// CONFIGURATION
-const RESOURCES_DIR = './public/resources';
-const DB_FILE = './public/resources.json';
+// --- Configuration ---
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Helper: robust type detection
-function detectType(filename) {
-    const ext = path.extname(filename).toLowerCase();
-    
-    if (['.pdf'].includes(ext)) return 'pdf';
-    if (['.mp4', '.webm', '.mkv', '.mov'].includes(ext)) return 'video';
-    if (['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac'].includes(ext)) return 'audio';
-    if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'].includes(ext)) return 'image';
-    if (['.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.txt', '.zip'].includes(ext)) return 'document';
-    
-    return 'unknown';
-}
+const RESOURCES_DIR = path.join(__dirname, '../public/resources');
+const DB_PATH = path.join(__dirname, '../public/resources.json');
+
+// Supported Mime Types Map
+const TYPE_MAP = {
+    '.pdf': 'pdf',
+    '.mp4': 'video', '.webm': 'video', '.mkv': 'video',
+    '.mp3': 'audio', '.wav': 'audio', '.m4a': 'audio', '.ogg': 'audio',
+    '.jpg': 'image', '.jpeg': 'image', '.png': 'image', '.webp': 'image', '.gif': 'image'
+};
+
+// --- Helpers ---
+
+const formatSize = (bytes) => {
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let i = 0;
+    while (bytes >= 1024 && i < units.length - 1) {
+        bytes /= 1024;
+        i++;
+    }
+    return `${bytes.toFixed(2)} ${units[i]}`;
+};
+
+const getPdfMetadata = async (filePath) => {
+    try {
+        const dataBuffer = fs.readFileSync(filePath);
+        const pdfDoc = await PDFDocument.load(dataBuffer, { updateMetadata: false });
+        const title = pdfDoc.getTitle();
+        return { Title: title, title: title };
+    } catch (err) {
+        return null;
+    }
+};
+
+const getAudioMetadata = async (filePath, filename) => {
+    try {
+        const metadata = await parseFile(filePath);
+        const title = metadata.common.title;
+        const picture = metadata.common.picture ? metadata.common.picture[0] : null;
+        let coverUrl = null;
+
+        if (picture) {
+            const coverFilename = `${filename}.cover.jpg`;
+            const coverPath = path.join(RESOURCES_DIR, coverFilename);
+            fs.writeFileSync(coverPath, picture.data);
+            coverUrl = `/resources/${coverFilename}`;
+        }
+
+        return { title, coverUrl };
+    } catch (err) {
+        return { title: null, coverUrl: null };
+    }
+};
+
+// --- Main Logic ---
 
 async function main() {
-    console.log(chalk.blue.bold('\n--- TechBros Batch Ingest Tool (v2.1) ---\n'));
+    console.clear();
+    console.log(chalk.cyan.bold('📚  TechBros Resource Manager v2.0'));
+    console.log(chalk.gray('    Offline-First Library Management System'));
+    console.log(chalk.gray('    ---------------------------------------\n'));
 
-    // 1. LOAD DATABASE
+    // 1. Database Check
     let db = [];
-    try {
-        const dbContent = await fs.readFile(DB_FILE, 'utf-8');
-        db = JSON.parse(dbContent);
-        console.log(chalk.gray(`Loaded ${db.length} existing resources.`));
-    } catch (error) {
-        db = [];
+    if (fs.existsSync(DB_PATH)) {
+        try {
+            db = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
+            console.log(chalk.green(`✓ Database loaded (${db.length} resources)`));
+        } catch (e) {
+            console.log(chalk.red('✘ Database corrupted. Starting new.'));
+        }
+    } else {
+        console.log(chalk.yellow('! No database found. Creating new.'));
     }
 
-    // 2. SCAN DIRECTORY
-    let files = [];
-    try {
-        files = await fs.readdir(RESOURCES_DIR);
-    } catch (err) {
-        console.log(chalk.red(`Error: Could not read directory ${RESOURCES_DIR}`));
-        return;
+    // 2. Scan Directory
+    if (!fs.existsSync(RESOURCES_DIR)) {
+        console.log(chalk.red('✘ Resources directory missing!'));
+        process.exit(1);
     }
 
-    // 3. DIFF LOGIC
-    const newFiles = files.filter(file => {
-        if (file.startsWith('.')) return false; 
-        if (file.endsWith('.cover.jpg')) return false; // Ignore thumbnails
-        
-        const existsInDb = db.some(entry => entry.filename === file);
-        const type = detectType(file);
-        return !existsInDb && type !== 'unknown';
-    });
+    const files = fs.readdirSync(RESOURCES_DIR).filter(f => !f.startsWith('.') && !f.includes('.cover.'));
+    const dbUrls = new Set(db.map(entry => entry.url));
+    const newFiles = files.filter(f => !dbUrls.has(`/resources/${f}`));
 
     if (newFiles.length === 0) {
-        console.log(chalk.green('✔ No new resources found.'));
+        console.log(chalk.green('\n✓ All files are indexed. No action needed.'));
         return;
     }
 
-    console.log(chalk.yellow(`\nFound ${newFiles.length} new file(s) to process.`));
-
-    // 4. ASK USER
-    const { mode } = await inquirer.prompt([
+    // 3. Selection Step (Checkbox Style)
+    console.log(chalk.blue(`\n🔎 Found ${newFiles.length} new unindexed file(s).`));
+    
+    const { selectedFiles } = await inquirer.prompt([
         {
-            type: 'list',
-            name: 'mode',
-            message: 'How do you want to proceed?',
-            choices: [
-                { name: `Process ALL ${newFiles.length} files (Batch Mode)`, value: 'batch' },
-                { name: 'Select specific files', value: 'select' },
-                { name: 'Exit', value: 'exit' }
-            ]
+            type: 'checkbox',
+            name: 'selectedFiles',
+            message: 'Select files to add to the library:',
+            choices: newFiles.map(file => ({ name: file, value: file, checked: true })),
+            pageSize: 15
         }
     ]);
 
-    if (mode === 'exit') return;
+    if (selectedFiles.length === 0) {
+        console.log(chalk.yellow('\nNo files selected. Exiting.'));
+        return;
+    }
 
-    let queue = [];
-    if (mode === 'batch') {
-        queue = newFiles;
-    } else {
-        const { selection } = await inquirer.prompt([
+    console.log(chalk.gray('\n---------------------------------------'));
+
+    // 4. Process Selected Files
+    const updates = [];
+
+    for (const file of selectedFiles) {
+        const filePath = path.join(RESOURCES_DIR, file);
+        const stats = fs.statSync(filePath);
+        const ext = path.extname(file).toLowerCase();
+        const detectedType = TYPE_MAP[ext] || 'file';
+        
+        let detectedTitle = path.basename(file, ext).replace(/_/g, ' ');
+        let detectedCover = null;
+
+        process.stdout.write(chalk.gray(`\nProcessing: ${file}... `));
+
+        // PDF Metadata
+        if (detectedType === 'pdf') {
+            const pdfInfo = await getPdfMetadata(filePath);
+            if (pdfInfo) {
+                const candidate = pdfInfo.Title || pdfInfo.title;
+                if (candidate && candidate.trim() !== '' && candidate !== 'Untitled') {
+                    detectedTitle = candidate.trim();
+                }
+            }
+        }
+        // Audio Metadata
+        else if (detectedType === 'audio') {
+            const audioData = await getAudioMetadata(filePath, file);
+            if (audioData.title) detectedTitle = audioData.title;
+            if (audioData.coverUrl) detectedCover = audioData.coverUrl;
+        }
+
+        console.log(chalk.cyan('Done'));
+
+        // Confirm details for this file (Optional: Remove this if you want zero-touch)
+        // Keeping it allows you to fix bad titles even after batch selection.
+        const answers = await inquirer.prompt([
             {
-                type: 'checkbox',
-                name: 'selection',
-                message: 'Select files to process:',
-                choices: newFiles
+                type: 'input',
+                name: 'title',
+                message: `   Display Title [${detectedTitle}]:`,
+                default: detectedTitle
+            },
+            {
+                type: 'list',
+                name: 'type',
+                message: '   Resource Type:',
+                choices: ['pdf', 'video', 'audio', 'image', 'file'],
+                default: detectedType
             }
         ]);
-        queue = selection;
+
+        // Check for existing cover on disk
+        const coverName = `${file}.cover.jpg`;
+        let coverUrl = fs.existsSync(path.join(RESOURCES_DIR, coverName)) 
+            ? `/resources/${coverName}` 
+            : detectedCover;
+
+        const entry = {
+            id: Math.random().toString(36).substr(2, 9),
+            title: answers.title.trim(),
+            type: answers.type,
+            url: `/resources/${file}`,
+            size: stats.size,
+            cover: coverUrl,
+            added: new Date().toISOString()
+        };
+
+        db.push(entry);
+        updates.push(entry.title);
+        console.log(chalk.green(`   ✓ Added`));
     }
 
-    if (queue.length === 0) return;
-
-    // 5. BATCH LOOP
-    console.log(chalk.bold(`\nStarting Batch Processing...`));
-    
-    for (let i = 0; i < queue.length; i++) {
-        const filename = queue[i];
-        console.log(chalk.white.bold(`\n--- FILE ${i + 1}/${queue.length}: ${filename} ---`));
-        await processSingleFile(filename, db);
+    // 5. Save Database
+    if (updates.length > 0) {
+        fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+        console.log(chalk.green(`\n\n💾 Database saved successfully! (${updates.length} new items)`));
+        updates.forEach(t => console.log(chalk.gray(`   + ${t}`)));
+    } else {
+        console.log(chalk.yellow('\nNo changes made to database.'));
     }
-
-    console.log(chalk.green.bold(`\n✨ Batch Complete!`));
 }
 
-// 6. INDIVIDUAL PROCESSOR
-async function processSingleFile(selectedFile, db) {
-    const filePath = path.join(RESOURCES_DIR, selectedFile);
-    const fileType = detectType(selectedFile);
-    
-    const stats = await fs.stat(filePath);
-    const sizeMB = (stats.size / (1024 * 1024)).toFixed(2) + ' MB';
-
-    let metaTitle = '';
-    let metaAuthor = '';
-    let thumbnailUrl = ''; 
-
-    // --- PDF SPECIFIC LOGIC ---
-    if (fileType === 'pdf') {
-        process.stdout.write(chalk.gray(`Processing PDF... `));
-        
-        // Metadata
-        try {
-            const fileBuffer = await fs.readFile(filePath);
-            const pdfDoc = await PDFDocument.load(fileBuffer);
-            metaTitle = pdfDoc.getTitle();
-            metaAuthor = pdfDoc.getAuthor();
-        } catch (e) { /* Ignore */ }
-
-        // Thumbnail Generation
-        try {
-            process.stdout.write(chalk.gray(`Generating Cover... `));
-            
-            const outputImages = await pdf2img.convert(filePath, {
-                width: 400,
-                height: 600,
-                page_numbers: [1],
-                base64: false
-            });
-
-            const thumbnailName = selectedFile + '.cover.jpg';
-            const thumbnailPath = path.join(RESOURCES_DIR, thumbnailName);
-            
-            await fs.writeFile(thumbnailPath, outputImages[0]);
-            
-            thumbnailUrl = `/resources/${thumbnailName}`;
-            console.log(chalk.green('Done! 🖼️'));
-
-        } catch (e) {
-            console.log(chalk.red(`Thumbnail Failed: ${e.message}`));
-        }
-    }
-
-    const defaultTitle = metaTitle || selectedFile.replace(/\.[^/.]+$/, "").replace(/-/g, ' ');
-
-    const answers = await inquirer.prompt([
-        { type: 'input', name: 'title', message: 'Title:', default: defaultTitle },
-        { type: 'input', name: 'category', message: 'Category:', default: 'General' },
-        { type: 'input', name: 'description', message: 'Description (Optional):' }
-    ]);
-
-    const newResource = {
-        id: Date.now().toString(),
-        title: answers.title,
-        author: metaAuthor || 'Unknown',
-        category: answers.category,
-        description: answers.description || '',
-        filename: selectedFile,
-        path: `/resources/${selectedFile}`,
-        thumbnail: thumbnailUrl,
-        size: sizeMB,
-        type: fileType,
-        date_added: new Date().toISOString().split('T')[0]
-    };
-
-    db.push(newResource);
-    await fs.writeFile(DB_FILE, JSON.stringify(db, null, 2));
-    console.log(chalk.green(`✔ Saved.`));
-}
-
-main().catch(err => console.error(chalk.red(err)));
+main().catch(err => {
+    console.error(chalk.red('Fatal Error:'), err);
+});

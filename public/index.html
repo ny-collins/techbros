@@ -1,336 +1,277 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#2563eb">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TechBros Library</title>
-    <link rel="icon" type="image/png" href="/favicon.png">
     
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="theme-color" content="#1a1a1a">
+
+    <link rel="stylesheet" href="/style.css">
+    
+    <!-- Phosphor Icons -->
     <link rel="stylesheet" href="/vendor/phosphor/regular.css">
+    <link rel="stylesheet" href="/vendor/phosphor/bold.css">
+    <link rel="stylesheet" href="/vendor/phosphor/fill.css">
     <link rel="stylesheet" href="/vendor/phosphor/duotone.css">
 
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js" 
-            integrity="sha384-PMNj1TmCgXfW24/rfIyxYSAWwj2mffkMfguUWv08iNFcy0kTC0JN7E/tE+pJ7+fa" 
-            crossorigin="anonymous"></script>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" 
-            integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" 
-            crossorigin="anonymous"></script>
-    <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdf.worker.min.js';
-    </script>
+    <script src="/vendor/peerjs.min.js"></script>
 </head>
 <body>
 
+    <!-- Custom Splash Screen -->
     <div id="splash-screen">
         <div class="splash-content">
-            <img src="/favicon.png" alt="Logo" class="splash-logo">
-            <h2>TechBros</h2>
-            <div class="loading-bar">
-                <div class="bar-fill"></div>
-            </div>
+            <img src="/favicon.png" alt="TechBros Logo" class="splash-logo">
+            <h1 class="splash-title">TechBros</h1>
+            <p class="splash-subtitle">Offline Library</p>
         </div>
     </div>
 
-    <header class="app-bar">
-        <button id="menu-toggle" class="icon-btn" aria-label="Toggle Menu">
-            <i class="ph ph-list"></i>
-        </button>
-        <div class="logo">TechBros 📚</div>
-        <div class="header-status">
-            <span id="online-status" class="status-badge online">
-                <i class="ph ph-wifi-high"></i>
-            </span>
-        </div>
-        <div class="actions">
-            <button id="theme-toggle-btn" class="icon-btn" aria-label="Toggle Theme">
-                <i class="ph ph-sun"></i>
-            </button>
-            
-            <button id="layout-toggle-btn" class="icon-btn" aria-label="Toggle Layout">
-                <i class="ph ph-cards"></i>
-            </button>
-            
-            <button id="cache-clear-btn" class="icon-btn" aria-label="Clear Cache">
-                <i class="ph ph-trash"></i>
-            </button>
-        </div>
-    </header>
-
-    <!-- Sidebar Navigation -->
-    <aside id="sidebar" class="sidebar">
-        <div class="sidebar-header">
-            <h2>Menu</h2>
-            <button id="sidebar-close" class="icon-btn" aria-label="Close Menu">
-                <i class="ph ph-x"></i>
-            </button>
-        </div>
-        <nav class="sidebar-nav">
-            <a href="#library" class="nav-item active" data-view="library">
-                <i class="ph ph-books"></i>
-                <span>Library</span>
-            </a>
-            <a href="#share" class="nav-item" data-view="share">
-                <i class="ph ph-share-network"></i>
-                <span>P2P Share</span>
-            </a>
-            <a href="#export" class="nav-item" data-view="export">
-                <i class="ph ph-download-simple"></i>
-                <span>Export Data</span>
-            </a>
-            <a href="#about" class="nav-item" data-view="about">
-                <i class="ph ph-info"></i>
-                <span>About</span>
-            </a>
-            <a href="#help" class="nav-item" data-view="help">
-                <i class="ph ph-question"></i>
-                <span>Help</span>
-            </a>
-        </nav>
-        <div class="sidebar-footer">
-            <p>TechBros v<span id="app-version">...</span></p>
-            <p class="text-small">P2P Enabled • Offline Ready</p>
-        </div>
-    </aside>
-
-    <!-- Sidebar Overlay -->
-    <div id="sidebar-overlay" class="sidebar-overlay"></div>
-
-    <main id="app">
+    <div class="app-container">
         
-        <!-- Library View -->
-        <section id="library-view" class="view active">
-            <div class="search-container">
-                <div class="search-wrapper">
-                    <i class="ph ph-magnifying-glass search-icon"></i>
-                    <input type="text" id="search-input" placeholder="Search resources..." autocomplete="off">
-                    <button id="clear-search" class="icon-btn clear-btn hidden" aria-label="Clear search">
-                        <i class="ph ph-x"></i>
+        <!-- Sidebar Navigation -->
+        <aside id="main-sidebar" class="sidebar">
+            <div class="brand-wrapper">
+                <!-- Brand acts as Toggle -->
+                <div id="brand-toggle" class="brand" role="button" tabindex="0" aria-label="Toggle Sidebar">
+                    <img src="/favicon.png" alt="Logo" class="logo">
+                    <h1>TechBros</h1>
+                </div>
+                <!-- Close Button -->
+                <button id="sidebar-close" class="btn-icon sidebar-close-btn" aria-label="Close Sidebar">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="#library" class="nav-link active">
+                    <i class="ph ph-books"></i> <span>Library</span>
+                </a>
+                <a href="#p2p" class="nav-link">
+                    <i class="ph ph-share-network"></i> <span>P2P Share</span>
+                </a>
+                <a href="#export" class="nav-link">
+                    <i class="ph ph-download"></i> <span>Export Data</span>
+                </a>
+                <a href="#about" class="nav-link">
+                    <i class="ph ph-info"></i> <span>About</span>
+                </a>
+                <a href="#help" class="nav-link">
+                    <i class="ph ph-question"></i> <span>Help</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div id="p2p-status" class="status-indicator neutral">
+                    <span class="dot"></span> <span class="text">Offline</span>
+                </div>
+                <small>v2.0.0 Alpha</small>
+            </div>
+        </aside>
+
+        <!-- Overlay for Mobile/Click-away -->
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- Header -->
+            <header id="main-header" class="top-bar">
+                <div class="top-bar-left">
+                    <div class="search-container">
+                        <i class="ph ph-magnifying-glass"></i>
+                        <input type="text" id="search-input" placeholder="Search resources...">
+                    </div>
+                </div>
+                
+                <div class="actions">
+                    <button id="btn-clear-cache" class="btn-icon tooltip" data-tooltip="Clear local storage & cache" aria-label="Clear Cache">
+                        <i class="ph ph-trash"></i>
+                    </button>
+                    <button id="theme-toggle" class="btn-icon" aria-label="Toggle Theme">
+                        <i class="ph ph-moon"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- VIEW: Library -->
+            <section id="library-view" class="view-section active">
+                <div class="section-header">
+                    <h2>Library Resources</h2>
+                    <div class="header-actions">
+                        <button id="view-grid" class="btn-icon active" title="Grid View"><i class="ph ph-squares-four"></i></button>
+                        <button id="view-list" class="btn-icon" title="List View"><i class="ph ph-list-dashes"></i></button>
+                    </div>
+                </div>
+                
+                <div id="resource-list" class="resource-grid">
+                    <!-- Skeleton Loader -->
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                </div>
+            </section>
+
+            <!-- VIEW: Resource Player -->
+            <section id="resource-view" class="view-section">
+                <div class="player-header">
+                    <button id="btn-back-library" class="btn-back">
+                        <i class="ph ph-arrow-left"></i> Back to Library
                     </button>
                 </div>
                 
-                <div id="filter-container" class="filter-scroll">
-                    <!-- Categories will be dynamically generated from resources -->
+                <div id="player-container" class="player-container">
+                    <!-- Injected Content Goes Here -->
                 </div>
-            </div>
-            
-            <div id="resource-list" class="resource-grid view-hybrid">
-            </div>
-        </section>
+            </section>
 
-        <!-- Viewer View -->
-        <section id="viewer-view" class="view hidden">
-            <div class="viewer-toolbar">
-                <button id="back-btn" class="icon-btn">
-                    <i class="ph ph-arrow-left"></i> Back
-                </button>
-                <span id="viewer-title">Document</span>
-                <button id="download-btn" class="icon-btn">
-                    <i class="ph ph-download-simple"></i>
-                </button>
-            </div>
-            
-            <div id="pdf-container" class="scroll-container">
-            </div>
-        </section>
+            <!-- VIEW: P2P Sharing -->
+            <section id="p2p-view" class="view-section">
+                <div class="p2p-container">
+                    
+                    <div class="p2p-section center-text">
+                        <h3>My Identity</h3>
+                        <p style="margin-bottom: 1rem; color: var(--text-secondary);">Share this unique PIN with others on your local network to receive files directly.</p>
+                        <div class="pin-display">
+                            <span class="label">MY PIN</span>
+                            <span id="my-pin-display" class="code">....</span>
+                        </div>
+                    </div>
 
-        <!-- P2P Share View -->
-        <section id="share-view" class="view hidden">
-            <div class="page-header">
-                <h2>P2P File Sharing</h2>
-            </div>
-            <div class="page-content">
-                <div class="about-section">
-                    <h3><i class="ph-duotone ph-paper-plane-tilt"></i> Send File</h3>
-                    <p>Share a local file from your device to another user via P2P connection. Click below to select a file and generate a unique PIN code.</p>
-                    <button id="send-local-file-btn" class="primary-btn" style="margin-top: 0.5rem;">
-                        <i class="ph ph-paper-plane-tilt"></i> Send Local File
-                    </button>
+                    <div class="p2p-grid">
+                        <div class="p2p-col">
+                            <div class="p2p-header">
+                                <div class="icon-circle"><i class="ph ph-paper-plane-right"></i></div>
+                                <h4>Send File</h4>
+                            </div>
+                            <div class="p2p-body">
+                                <p>To send a file, make sure the receiving device is on the "P2P Share" page. Ask for their 4-digit PIN.</p>
+                                <div class="input-group">
+                                    <input type="number" id="remote-pin" placeholder="0000" maxlength="4">
+                                    <button id="btn-connect" class="btn primary">Connect</button>
+                                </div>
+                                <p style="font-size:0.9rem; color:var(--text-secondary)">Once connected, a "Select File" button will appear.</p>
+                                <input type="file" id="file-upload" hidden>
+                                <button id="btn-send-file" class="btn secondary full-width" style="display:none">
+                                    <i class="ph ph-file-plus"></i> Select File
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="p2p-col">
+                            <div class="p2p-header">
+                                <div class="icon-circle"><i class="ph ph-download-simple"></i></div>
+                                <h4>Receive Queue</h4>
+                            </div>
+                            <div class="p2p-body">
+                                <p>Incoming connection requests and file transfers will appear here automatically. Keep this page open.</p>
+                                <div id="transfer-status" class="transfer-log">
+                                    <em>Waiting for connection...</em>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
+            </section>
 
-                <div class="about-section">
-                    <h3><i class="ph-duotone ph-broadcast"></i> Receive File</h3>
-                    <p>Connect to a sender using their 4-digit PIN and download the shared file directly to your device.</p>
-                    <button id="receive-file-btn" class="primary-btn" style="margin-top: 0.5rem;">
-                        <i class="ph ph-broadcast"></i> Receive File
-                    </button>
-                </div>
-
-                <div class="about-section">
-                    <h3><i class="ph-duotone ph-shield-check"></i> How it Works</h3>
-                    <ul class="feature-list">
-                        <li><i class="ph ph-check-circle"></i> Direct device-to-device transfer (P2P)</li>
-                        <li><i class="ph ph-check-circle"></i> No data passes through servers</li>
-                        <li><i class="ph ph-check-circle"></i> Works on same network or over internet</li>
-                        <li><i class="ph ph-check-circle"></i> 4-digit PIN for secure connection</li>
-                        <li><i class="ph ph-check-circle"></i> Maximum file size: 500MB</li>
-                    </ul>
-                </div>
-            </div>
-        </section>
-
-        <!-- Export Data View -->
-        <section id="export-view" class="view hidden">
-            <div class="page-header">
+            <!-- VIEW: Export Data -->
+            <section id="export-view" class="view-section">
                 <h2>Export Data</h2>
-            </div>
-            <div class="page-content">
-                <div class="about-section">
-                    <h3><i class="ph-duotone ph-database"></i> Export Settings</h3>
-                    <p>Download your app settings and preferences as a JSON file. This includes your theme choice, layout preference, and other customizations.</p>
-                    <button id="export-settings-btn" class="primary-btn" style="margin-top: 0.5rem;">
-                        <i class="ph ph-download-simple"></i> Export Settings
-                    </button>
+                
+                <div class="info-section">
+                    <h3>Export Settings</h3>
+                    <p>Download your current application preferences, including theme choices and layout settings. You can import this JSON file on another device to restore your configuration.</p>
+                    <button class="btn secondary">Download Settings JSON</button>
                 </div>
 
-                <div class="about-section">
-                    <h3><i class="ph-duotone ph-list-checks"></i> Export Resource List</h3>
-                    <p>Download the complete resource database as JSON. This includes all metadata, URLs, and file information from the library.</p>
-                    <button id="export-resources-btn" class="primary-btn" style="margin-top: 0.5rem;">
-                        <i class="ph ph-download-simple"></i> Export Resources
-                    </button>
+                <div class="info-section">
+                    <h3>Export Resource List</h3>
+                    <p>Generate a complete manifest of all resources currently indexed in your library. This includes file names, sizes, and media types. Useful for backing up your catalog structure or sharing your library index with others.</p>
+                    <button class="btn secondary">Download Catalog JSON</button>
                 </div>
+            </section>
 
-                <div class="about-section">
-                    <h3><i class="ph-duotone ph-chart-bar"></i> Storage Usage</h3>
-                    <p id="storage-info" style="margin-top: 0.5rem;">Calculating...</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- About View -->
-        <section id="about-view" class="view hidden">
-            <div class="page-header">
+            <!-- VIEW: About -->
+            <section id="about-view" class="view-section">
                 <h2>About TechBros</h2>
-            </div>
-            <div class="page-content">
-                <div class="about-section">
+                
+                <div class="info-section">
                     <h3>Mission</h3>
-                    <p>TechBros Library is an offline-first Progressive Web Application designed to distribute educational resources to users with limited internet connectivity. Our "Download Once, Read Forever" model ensures that knowledge is accessible to everyone, everywhere.</p>
+                    <p>TechBros Library is an offline-first Progressive Web Application designed to democratize access to educational resources to users with limited internet connectivity. Our "Download Once, Read Forever" model ensures that knowledge is accessible to everyone, everywhere, regardless of infrastructure.</p>
                 </div>
 
-                <div class="about-section">
+                <div class="info-section">
                     <h3>Features</h3>
-                    <ul class="feature-list">
-                        <li><i class="ph ph-check-circle"></i> Offline-first architecture</li>
-                        <li><i class="ph ph-check-circle"></i> P2P file sharing without internet</li>
-                        <li><i class="ph ph-check-circle"></i> Support for PDFs, Videos, Audio, and Images</li>
-                        <li><i class="ph ph-check-circle"></i> Dark mode and customizable layouts</li>
-                        <li><i class="ph ph-check-circle"></i> Android TV / Remote navigation</li>
-                        <li><i class="ph ph-check-circle"></i> No registration required</li>
+                    <ul>
+                        <li><strong>Offline-First Architecture:</strong> Resources are cached immediately upon access.</li>
+                        <li><strong>P2P AirShare:</strong> Transfer files between devices without internet using WebRTC.</li>
+                        <li><strong>Universal Viewer:</strong> Integrated support for PDFs, MP4 Videos, and Audio files.</li>
+                        <li><strong>Responsive Design:</strong> Optimized for Mobile, Tablet, and Desktop environments.</li>
                     </ul>
                 </div>
 
-                <div class="about-section">
-                    <h3>Technology</h3>
-                    <p>Built with vanilla JavaScript, HTML5, and CSS3. Uses WebRTC (PeerJS) for peer-to-peer connections, PDF.js for document rendering, and Service Workers for offline capabilities.</p>
-                </div>
-
-                <div class="about-section">
-                    <h3>Statistics</h3>
-                    <p id="app-stats">Loading statistics...</p>
-                </div>
-
-                <div class="about-section">
-                    <h3>Developer</h3>
-                    <p><strong>Collins Mwangi</strong></p>
-                    <p>Version <span id="about-version">...</span> • <span id="about-year">...</span></p>
-                    <a href="https://github.com/ny-collins/techbros" target="_blank" class="link-btn">
-                        <i class="ph ph-github-logo"></i> View on GitHub
+                <div class="info-section">
+                    <h3>Open Source</h3>
+                    <p>This project is open source and available for contribution.</p>
+                    <a href="https://github.com/ny-collins/techbros" target="_blank" class="btn secondary">
+                        <i class="ph ph-github-logo"></i> View Source on GitHub
                     </a>
                 </div>
-            </div>
-        </section>
 
-        <!-- Help View -->
-        <section id="help-view" class="view hidden">
-            <div class="page-header">
+                <div class="info-section">
+                    <h3>Developer</h3>
+                    <p><strong>Collins Mwangi</strong></p>
+                    <p>Version 2.0.0 Alpha</p>
+                </div>
+            </section>
+
+             <!-- VIEW: Help -->
+             <section id="help-view" class="view-section">
                 <h2>Help & FAQ</h2>
-            </div>
-            <div class="page-content">
-                <div class="about-section">
-                    <h3><i class="ph ph-question"></i> How do I share files?</h3>
-                    <p>Click the paper plane icon to share a local file, or click the share button on any library resource. Share the 4-digit PIN with the receiver.</p>
+                
+                <div class="info-section">
+                    <h3>How do I share files?</h3>
+                    <ol style="margin-left: 1.5rem; color: var(--text-secondary); line-height: 1.8;">
+                        <li>Navigate to the <strong>P2P Share</strong> tab.</li>
+                        <li>Ensure the person you want to send to is also on the P2P Share tab on their device.</li>
+                        <li>Ask them for their <strong>4-digit PIN</strong> displayed at the top of their screen.</li>
+                        <li>Enter that PIN in the "Receiver's PIN" box on your screen.</li>
+                        <li>Click <strong>Connect</strong>.</li>
+                        <li>Once the connection is established (you'll see a green notification), click <strong>Select File</strong>.</li>
+                        <li>Choose the file you want to send. The transfer will begin immediately.</li>
+                    </ol>
                 </div>
 
-                <div class="about-section">
-                    <h3><i class="ph ph-question"></i> How do I receive files?</h3>
-                    <p>Click the broadcast icon, enter the 4-digit PIN from the sender, and click "Connect & Download". Once received, click "Save to Device".</p>
+                <div class="info-section">
+                    <h3>How do I receive files?</h3>
+                    <p>Simply open the <strong>P2P Share</strong> tab. Your unique 4-digit PIN is displayed prominently at the top. Share this number verbally or visually with the person sending the file. You don't need to do anything else; the transfer will appear in your "Receive Queue" automatically.</p>
                 </div>
 
-                <div class="about-section">
-                    <h3><i class="ph ph-question"></i> Does this work offline?</h3>
-                    <p>Yes! Once you've visited the app online, it's cached for offline use. Resources are cached as you view them. P2P sharing works without internet.</p>
+                <div class="info-section">
+                    <h3>Does this really work offline?</h3>
+                    <p>Yes. The first time you visit this website, it installs itself onto your device. After that, you can turn off your Wi-Fi and data, and the app will still load. Any PDF or video you have opened previously is stored in a special "Cache" on your device, making it available without internet.</p>
                 </div>
 
-                <div class="about-section">
-                    <h3><i class="ph ph-question"></i> What file types are supported?</h3>
-                    <p>PDFs, Videos (MP4, WebM), Audio (MP3, M4A, WAV), Images (JPG, PNG, WebP), and Documents. Maximum file size: 500MB.</p>
+                <div class="info-section">
+                    <h3>Troubleshooting Connections</h3>
+                    <p>If P2P connection fails:</p>
+                    <ul>
+                        <li>Ensure both devices are on the same Wi-Fi network (preferred) or have some internet access for the initial handshake.</li>
+                        <li>Check if a firewall or VPN is blocking WebRTC.</li>
+                        <li>Refresh the page on both devices to generate new PINs and try again.</li>
+                    </ul>
                 </div>
+            </section>
 
-                <div class="about-section">
-                    <h3><i class="ph ph-question"></i> Is P2P sharing secure?</h3>
-                    <p>P2P connections are established directly between devices using WebRTC. No data passes through our servers. Executable files are blocked for security.</p>
-                </div>
-
-                <div class="about-section">
-                    <h3><i class="ph ph-question"></i> Connection failed - what to do?</h3>
-                    <p>Ensure both devices are on the same network or have internet access for the initial handshake. Check firewall settings and try again.</p>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <div id="settings-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Quick Settings</h3>
-                <button id="close-settings" class="icon-btn" style="color:var(--text)">
-                    <i class="ph ph-x"></i>
-                </button>
-            </div>
-            
-            <div class="modal-body">
-                <p style="text-align: center;">Settings have moved to the sidebar menu</p>
-                <button id="go-to-settings" class="primary-btn" style="margin-top: 1rem; width: 100%;">
-                    Open Settings
-                </button>
-            </div>
-        </div>
+        </main>
     </div>
 
-    <div id="share-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="share-title">AirShare</h3>
-                <button id="close-share" class="icon-btn" style="color:var(--text)">
-                    <i class="ph ph-x"></i>
-                </button>
-            </div>
-            
-            <div id="share-body">
-                </div>
-        </div>
-    </div>
+    <div id="notification-area"></div>
+    <script type="module" src="/app.js"></script>
 
-    <input type="file" id="local-file-input" style="display: none;">
-
-    <script type="module" src="utils.js"></script>
-    <script type="module" src="app.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
-                .then(reg => {
-                    console.log('Service Worker Registered');
-                    // Check for updates on page load
-                    reg.update();
-                })
-                .catch(err => console.error('SW registration failed:', err));
-        }
-    </script>
 </body>
 </html>

@@ -1,144 +1,144 @@
-const CACHE_VERSION = '1.6.0';
-const CACHE_NAME = `techbros-v${CACHE_VERSION}`;
-const RESOURCES_CACHE = 'techbros-resources';
+// --- Configuration ---
+const CACHE_VERSION = 'v2.1.2'; // Bumped for Navigation Logic Fix
+const APP_CACHE = `techbros-app-${CACHE_VERSION}`;       // Code (Wiped on update)
+const RESOURCE_CACHE = 'techbros-resources-v1';          // Data (Persists across updates)
 
-// Files to cache immediately (The App Shell)
-const ASSETS_TO_CACHE = [
+const ASSETS = [
     '/',
     '/index.html',
     '/style.css',
     '/app.js',
-    '/utils.js',
+    '/js/store.js',
+    '/js/p2p.js',
+    '/js/ui.js',
     '/manifest.json',
+    '/resources.json',
     '/favicon.png',
+    
+    // Vendor Libraries
+    '/vendor/peerjs.min.js',
     '/vendor/pdf.worker.min.js',
+    
+    // Icons
     '/vendor/phosphor/regular.css',
+    '/vendor/phosphor/bold.css',
+    '/vendor/phosphor/fill.css',
     '/vendor/phosphor/duotone.css',
-    '/vendor/phosphor/Phosphor.woff2',
-    '/vendor/phosphor/Phosphor.woff',
     '/vendor/phosphor/Phosphor.ttf',
-    '/vendor/phosphor/Phosphor-Duotone.woff2',
-    '/vendor/phosphor/Phosphor-Duotone.woff',
+    '/vendor/phosphor/Phosphor.woff',
+    '/vendor/phosphor/Phosphor.woff2',
     '/vendor/phosphor/Phosphor-Duotone.ttf',
-    'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+    '/vendor/phosphor/Phosphor-Duotone.woff',
+    '/vendor/phosphor/Phosphor-Duotone.woff2'
 ];
 
-// 1. INSTALL EVENT (Cache the Shell)
-self.addEventListener('install', (event) => {
-    console.log('[Service Worker] Installing...');
+// --- Install Event ---
+self.addEventListener('install', event => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            console.log('[Service Worker] Caching App Shell');
-            return cache.addAll(ASSETS_TO_CACHE);
-        }).then(() => {
-            // Skip waiting to activate immediately
-            console.log('[Service Worker] Skip waiting - activating now');
-            return self.skipWaiting();
-        })
-    );
-});
-
-// 2. ACTIVATE EVENT (Clean up old caches)
-self.addEventListener('activate', (event) => {
-    console.log('[Service Worker] Activating...');
-    event.waitUntil(
-        caches.keys().then((keyList) => {
-            return Promise.all(keyList.map((key) => {
-                // Delete old caches except current and resources cache
-                if (key !== CACHE_NAME && key !== RESOURCES_CACHE && key.startsWith('techbros')) {
-                    console.log('[Service Worker] Deleting old cache:', key);
-                    return caches.delete(key);
-                }
-            }));
-        }).then(() => {
-            // Take control of all clients immediately
-            return self.clients.claim();
-        }).then(() => {
-            // Notify all clients that update is complete
-            return self.clients.matchAll().then(clients => {
-                clients.forEach(client => {
-                    client.postMessage({
-                        type: 'SW_UPDATED',
-                        version: CACHE_VERSION
-                    });
-                });
-            });
-        })
-    );
-});
-
-// 3. FETCH EVENT (Intercept Network Requests)
-self.addEventListener('fetch', (event) => {
-    const url = new URL(event.request.url);
-    
-    // Strategy for resources.json: Network-First (to get latest updates)
-    if (url.pathname === '/resources.json') {
-        event.respondWith(
-            fetch(event.request)
-                .then((networkResponse) => {
-                    // Clone before using to update cache
-                    const clonedResponse = networkResponse.clone();
-                    // Update cache with fresh data
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, clonedResponse);
-                    });
-                    return networkResponse;
-                })
-                .catch(() => {
-                    // Fallback to cache if offline
-                    return caches.match(event.request);
-                })
-        );
-        return;
-    }
-    
-    // Strategy for media files in /resources/: Cache-on-demand with separate cache
-    if (url.pathname.startsWith('/resources/')) {
-        event.respondWith(
-            caches.open(RESOURCES_CACHE).then((cache) => {
-                return cache.match(event.request).then((response) => {
-                    // Return cached version if found
-                    if (response) {
-                        return response;
-                    }
-                    
-                    // Otherwise fetch and cache
-                    return fetch(event.request).then((networkResponse) => {
-                        // Only cache successful responses
-                        if (networkResponse && networkResponse.status === 200) {
-                            cache.put(event.request, networkResponse.clone());
-                        }
-                        return networkResponse;
-                    });
-                });
+        caches.open(APP_CACHE)
+            .then(cache => {
+                console.log(`[SW] Installing App Shell: ${CACHE_VERSION}`);
+                return cache.addAll(ASSETS);
             })
-        );
+            .then(() => self.skipWaiting())
+    );
+});
+
+// --- Activate Event ---
+self.addEventListener('activate', event => {
+    event.waitUntil(
+        caches.keys().then(keys => {
+            return Promise.all(
+                keys.map(key => {
+                    if (key !== APP_CACHE && key !== RESOURCE_CACHE) {
+                        console.log(`[SW] Cleaning old cache: ${key}`);
+                        return caches.delete(key);
+                    }
+                })
+            );
+        }).then(() => self.clients.claim())
+    );
+});
+
+// --- Fetch Event ---
+self.addEventListener('fetch', event => {
+    const url = new URL(event.request.url);
+
+    // 1. Handle Range Requests (Video/Audio seeking)
+    if (event.request.headers.get('range')) {
+        event.respondWith(handleRangeRequest(event.request));
         return;
     }
 
-    // Strategy for everything else: Cache-First with network fallback
+    // 2. Handle Navigation (HTML) - Cache First
+    // FIX: Only return index.html if we are NOT navigating to a resource file.
+    // This allows window.open('/resources/file.mp3') to actually open the file.
+    if (event.request.mode === 'navigate') {
+        const isResource = url.pathname.includes('/resources/');
+        
+        if (!isResource) {
+            event.respondWith(
+                caches.match('/index.html').then(response => {
+                    return response || fetch(event.request);
+                })
+            );
+            return;
+        }
+        // If it IS a resource, fall through to Step 3
+    }
+
+    // 3. Default Strategy: Cache First, Fallback to Network
     event.respondWith(
-        caches.match(event.request).then((response) => {
-            if (response) {
-                return response;
-            }
-            
-            return fetch(event.request).then((networkResponse) => {
-                // Optionally cache new requests for app shell files
-                if (event.request.method === 'GET' && !url.pathname.includes('chrome-extension')) {
-                    const clonedResponse = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, clonedResponse);
-                    });
+        caches.match(event.request).then(cachedRes => {
+            if (cachedRes) return cachedRes;
+
+            return fetch(event.request).then(networkRes => {
+                if (!networkRes || networkRes.status !== 200 || networkRes.type !== 'basic') {
+                    return networkRes;
                 }
-                return networkResponse;
+
+                const targetCache = url.pathname.includes('/resources/') 
+                    ? RESOURCE_CACHE 
+                    : APP_CACHE;
+
+                const responseToCache = networkRes.clone();
+                caches.open(targetCache).then(cache => {
+                    cache.put(event.request, responseToCache);
+                });
+
+                return networkRes;
             });
-        }).catch(() => {
-            // Return offline page if available
-            if (event.request.destination === 'document') {
-                return caches.match('/index.html');
-            }
         })
     );
 });
+
+// --- Helper: Range Request Handler ---
+async function handleRangeRequest(request) {
+    const cachedResponse = await caches.match(request);
+    
+    if (cachedResponse) {
+        const blob = await cachedResponse.blob();
+        const header = request.headers.get('range');
+        const range = header.match(/bytes=(\d+)-(\d+)?/);
+        
+        const start = parseInt(range[1]);
+        const end = range[2] ? parseInt(range[2]) : blob.size - 1;
+        
+        if (start >= blob.size) {
+            return new Response('Requested range not satisfiable', { status: 416 });
+        }
+
+        const slicedBlob = blob.slice(start, end + 1);
+        const headers = new Headers(cachedResponse.headers);
+        headers.set('Content-Range', `bytes ${start}-${end}/${blob.size}`);
+        headers.set('Content-Length', slicedBlob.size);
+        
+        return new Response(slicedBlob, {
+            status: 206,
+            statusText: 'Partial Content',
+            headers: headers
+        });
+    }
+
+    return fetch(request);
+}

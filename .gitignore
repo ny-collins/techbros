@@ -1,21 +1,2 @@
 node_modules/
 .wrangler/
-
-# Backup files
-*.backup
-*~
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Windows
-Thumbs.db
-Desktop.ini
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
