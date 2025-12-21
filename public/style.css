@@ -147,7 +147,41 @@ body {
         transform: translateX(0);
     }
     
-    .sidebar.collapsed { width: 280px; }
+    /* Force Sidebar Expansion on Mobile */
+    .sidebar.collapsed { 
+        width: 280px; 
+        transform: translateX(-100%); /* Start hidden */
+    }
+    .sidebar.open {
+        transform: translateX(0);
+        box-shadow: 4px 0 15px rgba(0,0,0,0.5); /* Add shadow for overlay effect */
+    }
+    
+    /* Override desktop collapsed hiding rules */
+    .sidebar.collapsed .brand h1, 
+    .sidebar.collapsed .nav-link span, 
+    .sidebar.collapsed .sidebar-footer small,
+    .sidebar.collapsed .status-indicator span.text,
+    .sidebar.collapsed .sidebar-close-btn {
+        display: inline-block; /* Restore text visibility */
+    }
+    .sidebar.collapsed .brand { 
+        justify-content: flex-start; 
+        padding: 0;
+    }
+    .sidebar.collapsed .nav-link { 
+        justify-content: flex-start; 
+        padding: 0.75rem 1rem; 
+    }
+    .sidebar.collapsed .sidebar-footer { 
+        align-items: flex-start; 
+        justify-content: flex-start; 
+    }
+    .sidebar.collapsed .status-indicator {
+        justify-content: flex-start;
+    }
+
+    .p2p-grid { grid-template-columns: 1fr; }
 }
 
 /* Sidebar Branding & Toggle */
