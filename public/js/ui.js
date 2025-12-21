@@ -52,6 +52,27 @@ class UI {
         this.renderLibrary(store.getResources());
         this.updateTheme(store.getSettings().theme);
         
+        // Handle Browser Back Button
+        window.addEventListener('popstate', (event) => {
+            const state = event.state;
+            if (state && state.view) {
+                this.navigateTo(state.view, false); // false = don't push to history again
+            } else {
+                // If no state (e.g. initial load or hash change), fallback to hash or default
+                const hash = window.location.hash.substring(1);
+                this.navigateTo(hash || 'library', false);
+            }
+        });
+
+        // Handle Initial Hash on Load
+        const initialHash = window.location.hash.substring(1);
+        if (initialHash) {
+            this.navigateTo(initialHash, false);
+        } else {
+            // Replace current history entry to have a state object for the initial view
+            history.replaceState({ view: 'library' }, '', '#library');
+        }
+        
         // Dynamic Version Injection
         const version = store.getVersion();
         const sidebarVer = document.getElementById('app-version-sidebar');
@@ -340,7 +361,7 @@ class UI {
         }
     }
 
-    navigateTo(viewId) {
+    navigateTo(viewId, addToHistory = true) {
         if (this.elements.views) {
             this.elements.views.forEach(el => el.classList.remove('active'));
         }
@@ -359,6 +380,12 @@ class UI {
                     link.classList.remove('active');
                     if (link.getAttribute('href') === `#${viewId}`) link.classList.add('active');
                 });
+            }
+
+            // History API Management
+            if (addToHistory) {
+                const url = viewId === 'library' ? '/' : `#${viewId}`;
+                history.pushState({ view: viewId }, '', url);
             }
         }
     }
