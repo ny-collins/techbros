@@ -78,7 +78,7 @@ self.addEventListener('fetch', event => {
         if (!isResource) {
             event.respondWith(
                 caches.match('/index.html').then(response => {
-                    return response || fetch(event.request);
+                    return response || safeFetch(event.request);
                 })
             );
             return;
@@ -106,34 +106,21 @@ self.addEventListener('fetch', event => {
         caches.match(event.request).then(cachedRes => {
             if (cachedRes) return cachedRes;
 
-            return fetch(event.request).then(networkRes => {
+            return safeFetch(event.request).then(networkRes => {
                 if (!networkRes || networkRes.status !== 200 || networkRes.type !== 'basic') {
                     return networkRes;
-                }
-
-                // FIX: "redirected response" error on navigation/reload
-                // If the response was redirected, we must create a clean copy
-                // to satisfy the browser's security checks for navigation requests.
-                let responseToReturn = networkRes;
-                if (networkRes.redirected) {
-                    responseToReturn = new Response(networkRes.body, {
-                        status: networkRes.status,
-                        statusText: networkRes.statusText,
-                        headers: networkRes.headers
-                    });
                 }
 
                 const targetCache = url.pathname.includes('/resources/') 
                     ? RESOURCE_CACHE 
                     : APP_CACHE;
 
-                // Clone the (potentially cleaned) response for the cache
-                const responseToCache = responseToReturn.clone();
+                const responseToCache = networkRes.clone();
                 caches.open(targetCache).then(cache => {
                     cache.put(event.request, responseToCache);
                 });
 
-                return responseToReturn;
+                return networkRes;
             });
         })
     );
@@ -168,4 +155,26 @@ async function handleRangeRequest(request) {
     }
 
     return fetch(request);
+}
+
+/**
+ * Wraps fetch to handle redirected responses gracefully.
+ * Creates a clean response copy to satisfy strict mode checks (e.g. navigation).
+ */
+async function safeFetch(request) {
+    try {
+        const response = await fetch(request);
+        if (response && response.redirected) {
+            const body = response.body;
+            return new Response(body, {
+                status: response.status,
+                statusText: response.statusText,
+                headers: response.headers
+            });
+        }
+        return response;
+    } catch (e) {
+        // If fetch fails (offline), throw so catch blocks can handle it
+        throw e;
+    }
 }
