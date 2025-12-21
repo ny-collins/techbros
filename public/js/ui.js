@@ -20,6 +20,7 @@ class UI {
             sidebar: document.getElementById('main-sidebar'),
             brandToggle: document.getElementById('brand-toggle'),
             sidebarClose: document.getElementById('sidebar-close'),
+            mobileMenuToggle: document.getElementById('mobile-menu-toggle'),
             overlay: document.getElementById('sidebar-overlay'),
             topBar: document.getElementById('main-header'),
             
@@ -235,6 +236,9 @@ class UI {
 
         if (this.elements.brandToggle) {
             this.elements.brandToggle.addEventListener('click', () => this.toggleSidebar());
+        }
+        if (this.elements.mobileMenuToggle) {
+            this.elements.mobileMenuToggle.addEventListener('click', () => this.toggleSidebar());
         }
         if (this.elements.sidebarClose) {
             this.elements.sidebarClose.addEventListener('click', () => this.closeSidebar());
