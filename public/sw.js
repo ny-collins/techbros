@@ -1,5 +1,5 @@
 // --- Configuration ---
-const CACHE_VERSION = 'v2.1.2'; // Bumped for Navigation Logic Fix
+const CACHE_VERSION = 'v2.0.0'; // Bumped for Navigation Logic Fix
 const APP_CACHE = `techbros-app-${CACHE_VERSION}`;       // Code (Wiped on update)
 const RESOURCE_CACHE = 'techbros-resources-v1';          // Data (Persists across updates)
 
