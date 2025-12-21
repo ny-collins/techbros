@@ -111,16 +111,29 @@ self.addEventListener('fetch', event => {
                     return networkRes;
                 }
 
+                // FIX: "redirected response" error on navigation/reload
+                // If the response was redirected, we must create a clean copy
+                // to satisfy the browser's security checks for navigation requests.
+                let responseToReturn = networkRes;
+                if (networkRes.redirected) {
+                    responseToReturn = new Response(networkRes.body, {
+                        status: networkRes.status,
+                        statusText: networkRes.statusText,
+                        headers: networkRes.headers
+                    });
+                }
+
                 const targetCache = url.pathname.includes('/resources/') 
                     ? RESOURCE_CACHE 
                     : APP_CACHE;
 
-                const responseToCache = networkRes.clone();
+                // Clone the (potentially cleaned) response for the cache
+                const responseToCache = responseToReturn.clone();
                 caches.open(targetCache).then(cache => {
                     cache.put(event.request, responseToCache);
                 });
 
-                return networkRes;
+                return responseToReturn;
             });
         })
     );
