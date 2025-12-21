@@ -30,7 +30,7 @@
     --bg-input: #f1f3f5;
     
     --text-primary: #212529;
-    --text-secondary: #6c757d;
+    --text-secondary: #596066; /* Darkened for 4.6:1 Contrast Ratio (WCAG AA) */
     --text-accent: #007bff;
     
     /* Revert to Blue for Light Mode */
@@ -157,7 +157,7 @@ body {
     justify-content: space-between;
     margin-bottom: 2rem;
     padding: 0 0.5rem;
-    height: 40px; 
+    height: 48px; /* Matched to touch target */
 }
 
 .brand {
@@ -205,6 +205,8 @@ body {
     cursor: pointer;
     padding: 4px;
     font-size: 1.2rem;
+    min-width: 48px; /* Touch target */
+    min-height: 48px;
 }
 
 @media (max-width: 768px) {
@@ -242,6 +244,7 @@ body {
     border-radius: var(--border-radius);
     transition: var(--transition);
     white-space: nowrap;
+    min-height: 48px; /* Accessibility: Touch Target */
 }
 
 .nav-link:hover, .nav-link.active {
@@ -286,7 +289,7 @@ body {
 }
 
 .top-bar {
-    height: 60px;
+    height: 70px; /* Increased for accessibility */
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -314,10 +317,11 @@ body {
     color: var(--text-secondary);
 }
 .search-container input {
-    width: 100%; padding: 8px 12px 8px 36px;
+    width: 100%; padding: 12px 12px 12px 36px; /* Larger hit area */
     border-radius: 20px; border: 1px solid var(--border-color);
     background: transparent; color: var(--text-primary);
     outline: none;
+    font-size: 1rem;
 }
 .search-container input:focus { border-color: var(--primary-color); }
 
@@ -328,25 +332,27 @@ body {
     background: none; border: 1px solid transparent; color: var(--text-primary);
     cursor: pointer; padding: 0; border-radius: 50%;
     transition: var(--transition); display: inline-flex; align-items: center;
-    justify-content: center; position: relative; width: 40px; height: 40px;
+    justify-content: center; position: relative; 
+    width: 48px; height: 48px; /* 48px Touch Target */
 }
 .btn-icon:hover, .btn-icon.active { background-color: var(--bg-input); border-color: var(--border-color); }
-.btn-icon i { font-size: 1.25rem; }
+.btn-icon i { font-size: 1.4rem; }
 
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 10px 20px;
+    padding: 12px 24px; /* Larger padding */
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-weight: 600;
     transition: var(--transition);
-    font-size: 0.95rem;
+    font-size: 1rem;
     line-height: 1;
     text-decoration: none;
+    min-height: 48px; /* Touch Target */
 }
 
 .btn.primary { background-color: var(--primary-color); color: var(--primary-text); }
@@ -453,6 +459,19 @@ body {
     align-items: center;
     justify-content: center;
     overflow: hidden; 
+}
+
+/* Sticky Header for Viewer */
+.player-header {
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 1rem;
+    background-color: var(--bg-body);
+    z-index: 50;
+    display: flex;
+    align-items: center;
 }
 
 .audio-player-card {

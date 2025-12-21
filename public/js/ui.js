@@ -90,7 +90,11 @@ class UI {
     // --- Rendering Logic ---
     renderLibrary(resources) {
         if (!this.elements.libraryList) return;
+        
+        // If we have resources, clear the container (removing skeletons)
+        // If resources is empty, we show empty state.
         this.elements.libraryList.innerHTML = ''; 
+        
         const fragment = document.createDocumentFragment();
 
         if (resources.length === 0) {
@@ -114,14 +118,24 @@ class UI {
         div.className = 'resource-card';
         div.addEventListener('click', () => this.openResource(data));
         
+        // Sanitize title to prevent XSS
+        const safeTitle = this._sanitize(data.title);
+
         div.innerHTML = `
             <div class="card-icon">${this._getIconForType(data.type)}</div>
             <div class="card-content">
-                <h3>${data.title}</h3>
+                <h3>${safeTitle}</h3>
                 <span class="meta">${data.type.toUpperCase()} • ${this._formatBytes(data.size || 0)}</span>
             </div>
         `;
         return div;
+    }
+    
+    _sanitize(str) {
+        if (!str) return '';
+        const temp = document.createElement('div');
+        temp.textContent = str;
+        return temp.innerHTML;
     }
 
     openResource(resource) {
@@ -137,18 +151,15 @@ class UI {
             card.className = 'audio-player-card';
             const coverSrc = resource.cover ? resource.cover : ''; 
             
-            // Updated Placeholder Logic:
-            // If cover exists, render <img>.
-            // If not, render a <div> with the SAME class 'player-cover-art' so it inherits CSS size/shadows.
-            // We use inline flex style just for centering the icon content.
+            // Image with Error Handling
             const imgHTML = coverSrc 
-                ? `<img src="${coverSrc}" class="player-cover-art" alt="Cover">`
+                ? `<img src="${coverSrc}" class="player-cover-art" alt="Cover" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'player-cover-art\\' style=\\'display:flex;align-items:center;justify-content:center;font-size:4rem;color:var(--text-secondary);\\'><i class=\\'ph ph-music-note\\'></i></div>'">`
                 : `<div class="player-cover-art" style="display:flex;align-items:center;justify-content:center;font-size:4rem;color:var(--text-secondary);"><i class="ph ph-music-note"></i></div>`;
 
             card.innerHTML = `
                 ${imgHTML}
                 <div class="player-meta">
-                    <h2>${resource.title}</h2>
+                    <h2>${this._sanitize(resource.title)}</h2>
                 </div>
                 <audio controls autoplay src="${resource.url}"></audio>
             `;
@@ -157,6 +168,7 @@ class UI {
             const video = document.createElement('video');
             video.className = 'full-viewer';
             video.controls = true; video.autoplay = true; video.src = resource.url;
+            video.onerror = () => this.showToast('Error loading video', 'error');
             if(container) container.appendChild(video);
         } else if (resource.type === 'pdf') {
             const iframe = document.createElement('iframe');
@@ -167,6 +179,10 @@ class UI {
              const img = document.createElement('img');
              img.src = resource.url;
              img.style.maxWidth = '100%'; img.style.maxHeight = '90vh';
+             img.onerror = () => {
+                 img.style.display = 'none';
+                 this.showToast('Error loading image', 'error');
+             };
              if(container) container.appendChild(img);
         }
         this.navigateTo('resource');
@@ -272,6 +288,28 @@ class UI {
             this.showToast('Peer connected!', 'success');
             if (this.elements.btnSend) this.elements.btnSend.style.display = 'inline-flex';
         });
+
+        // Handle incoming files
+        p2p.addEventListener('file-received', (e) => {
+            const { blob, name, mime } = e.detail;
+            console.log(`[UI] File received: ${name}`);
+            
+            // Create object URL
+            const url = URL.createObjectURL(blob);
+            
+            // Create a "Download" toast/notification
+            // We use a persistent element or a special toast that requires interaction
+            const downloadBtn = document.createElement('a');
+            downloadBtn.href = url;
+            downloadBtn.download = name;
+            downloadBtn.className = 'btn primary small';
+            downloadBtn.textContent = 'Save to Device';
+            downloadBtn.style.marginTop = '0.5rem';
+            
+            // Auto-click if allowed? No, browsers block it.
+            // We append this to the notification area or a modal
+            this._showFileNotification(name, downloadBtn);
+        });
         
         if (this.elements.btnConnect) {
             this.elements.btnConnect.addEventListener('click', () => {
@@ -332,6 +370,42 @@ class UI {
             requestAnimationFrame(() => toast.classList.add('show'));
             setTimeout(() => toast.remove(), 3300);
         }
+    }
+
+    _showFileNotification(filename, actionBtn) {
+        const toast = document.createElement('div');
+        toast.className = 'toast toast-success';
+        toast.style.flexDirection = 'column';
+        toast.style.alignItems = 'flex-start';
+        
+        const text = document.createElement('div');
+        text.innerHTML = `Received <b>${this._sanitize(filename)}</b>`;
+        
+        toast.appendChild(text);
+        toast.appendChild(actionBtn); // The download button
+        
+        const container = document.getElementById('toast-container'); // Ensure this exists in HTML or create it
+        
+        // If container doesn't exist (it wasn't in original analysis), create it dynamically
+        let validContainer = container;
+        if (!validContainer) {
+            validContainer = document.createElement('div');
+            validContainer.id = 'toast-container';
+            validContainer.style.position = 'fixed';
+            validContainer.style.bottom = '20px';
+            validContainer.style.right = '20px';
+            validContainer.style.display = 'flex';
+            validContainer.style.flexDirection = 'column';
+            validContainer.style.gap = '10px';
+            validContainer.style.zIndex = '1000';
+            document.body.appendChild(validContainer);
+        }
+
+        validContainer.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.add('show'));
+        
+        // Don't auto-dismiss valuable file transfers immediately, give them time or wait for click
+        setTimeout(() => toast.remove(), 10000); 
     }
 
     updateTheme(theme) { document.documentElement.setAttribute('data-theme', theme); }

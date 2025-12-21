@@ -87,16 +87,79 @@ class Store {
     }
 
     /**
-     * Search resources by query string
+     * Search resources using Fuzzy Search (Levenshtein Distance)
      * @param {string} query 
      */
     search(query) {
         if (!query) return this.state.resources;
         const lowerQ = query.toLowerCase();
-        return this.state.resources.filter(item => 
-            item.title.toLowerCase().includes(lowerQ) ||
-            (item.description && item.description.toLowerCase().includes(lowerQ))
-        );
+        
+        // Configuration
+        const MAX_DISTANCE = 3; // Maximum allowed typos
+
+        return this.state.resources.filter(item => {
+            const title = item.title.toLowerCase();
+            
+            // 1. Direct Substring Match (Fastest & Most Common)
+            if (title.includes(lowerQ)) return true;
+            if (item.description && item.description.toLowerCase().includes(lowerQ)) return true;
+
+            // 2. Fuzzy Match (Typo Tolerance)
+            // We only check if the query is at least 3 chars long to avoid noise
+            if (lowerQ.length > 2) {
+                // Check Levenshtein distance against the Title
+                // Optimization: We check against individual words in the title too? 
+                // For now, let's check against the whole title string truncated to query length
+                // or just the whole title if it's short.
+                
+                const dist = this._levenshtein(lowerQ, title);
+                
+                // We normalize: if distance is small relative to length
+                if (dist <= MAX_DISTANCE) return true;
+            }
+
+            return false;
+        });
+    }
+
+    /**
+     * Levenshtein Distance Algorithm
+     * Calculates the minimum number of single-character edits to change a into b.
+     */
+    _levenshtein(a, b) {
+        if (a.length === 0) return b.length;
+        if (b.length === 0) return a.length;
+
+        const matrix = [];
+
+        // Increment along the first column of each row
+        for (let i = 0; i <= b.length; i++) {
+            matrix[i] = [i];
+        }
+
+        // Increment each column in the first row
+        for (let j = 0; j <= a.length; j++) {
+            matrix[0][j] = j;
+        }
+
+        // Fill in the rest of the matrix
+        for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+                if (b.charAt(i - 1) == a.charAt(j - 1)) {
+                    matrix[i][j] = matrix[i - 1][j - 1];
+                } else {
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j - 1] + 1, // substitution
+                        Math.min(
+                            matrix[i][j - 1] + 1, // insertion
+                            matrix[i - 1][j] + 1  // deletion
+                        )
+                    );
+                }
+            }
+        }
+
+        return matrix[b.length][a.length];
     }
 
     getSettings() {

@@ -72,7 +72,6 @@ self.addEventListener('fetch', event => {
 
     // 2. Handle Navigation (HTML) - Cache First
     // FIX: Only return index.html if we are NOT navigating to a resource file.
-    // This allows window.open('/resources/file.mp3') to actually open the file.
     if (event.request.mode === 'navigate') {
         const isResource = url.pathname.includes('/resources/');
         
@@ -84,10 +83,25 @@ self.addEventListener('fetch', event => {
             );
             return;
         }
-        // If it IS a resource, fall through to Step 3
     }
 
-    // 3. Default Strategy: Cache First, Fallback to Network
+    // 3. Network-First Strategy for Database (resources.json)
+    if (url.pathname.endsWith('/resources.json')) {
+        event.respondWith(
+            fetch(event.request).then(networkRes => {
+                // Update Cache
+                const clone = networkRes.clone();
+                caches.open(APP_CACHE).then(cache => cache.put(event.request, clone));
+                return networkRes;
+            }).catch(() => {
+                // Fallback to Cache
+                return caches.match(event.request);
+            })
+        );
+        return;
+    }
+
+    // 4. Default Strategy: Cache First, Fallback to Network
     event.respondWith(
         caches.match(event.request).then(cachedRes => {
             if (cachedRes) return cachedRes;
