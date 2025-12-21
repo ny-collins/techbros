@@ -7,6 +7,7 @@
 class Store {
     constructor() {
         this.state = {
+            version: '2.0.0',
             resources: [],
             settings: {
                 theme: 'dark', // Default preference
@@ -84,6 +85,10 @@ class Store {
 
     getResources() {
         return this.state.resources;
+    }
+
+    getVersion() {
+        return this.state.version;
     }
 
     /**

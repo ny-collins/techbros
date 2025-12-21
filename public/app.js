@@ -14,7 +14,8 @@ window.addEventListener('unhandledrejection', event => {
 });
 
 async function initApp() {
-    console.log('[App] Booting TechBros v2.0.0...');
+    const v = store.getVersion();
+    console.log(`[App] Booting TechBros v${v}...`);
 
     try {
         // 1. Initialize State (Load settings, fetch resources)

@@ -51,6 +51,13 @@ class UI {
         this.renderLibrary(store.getResources());
         this.updateTheme(store.getSettings().theme);
         
+        // Dynamic Version Injection
+        const version = store.getVersion();
+        const sidebarVer = document.getElementById('app-version-sidebar');
+        const aboutVer = document.getElementById('app-version-about');
+        if (sidebarVer) sidebarVer.textContent = `v${version}`;
+        if (aboutVer) aboutVer.textContent = `Version ${version}`;
+
         // Hide Splash Screen after slight delay for effect
         if (this.elements.splashScreen) {
             setTimeout(() => {
