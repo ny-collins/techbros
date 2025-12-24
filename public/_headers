@@ -1,40 +1,39 @@
 /*
-  # Security Headers
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' https://unpkg.com; img-src 'self' data: blob: https:; font-src 'self' data: https://unpkg.com; connect-src 'self' https://*.peerjs.com wss://*.peerjs.com https://cdnjs.cloudflare.com https://unpkg.com; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' https://unpkg.com; img-src 'self' data: blob: https:; font-src 'self' data: https://unpkg.com; connect-src 'self' https://*.peerjs.com wss://*.peerjs.com https://cdnjs.cloudflare.com https://unpkg.com *.metered.ca stun.l.google.com; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
   X-Frame-Options: SAMEORIGIN
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   X-XSS-Protection: 1; mode=block
-  
-  # Cache Control
   Cache-Control: public, max-age=3600, must-revalidate
 
 /sw.js
-  # Service Worker - No Cache
   Cache-Control: no-cache, no-store, must-revalidate
 
 /manifest.json
-  # Manifest - Short Cache
   Cache-Control: public, max-age=86400
 
 /*.js
-  # JavaScript - 1 week cache
   Cache-Control: public, max-age=604800, immutable
 
 /*.css
-  # CSS - 1 week cache
   Cache-Control: public, max-age=604800, immutable
 
 /*.png
+  Cache-Control: public, max-age=2592000, immutable
+
 /*.jpg
+  Cache-Control: public, max-age=2592000, immutable
+
 /*.jpeg
+  Cache-Control: public, max-age=2592000, immutable
+
 /*.webp
+  Cache-Control: public, max-age=2592000, immutable
+
 /*.ico
-  # Images - 1 month cache
   Cache-Control: public, max-age=2592000, immutable
 
 /*.pdf
-  # PDFs - 1 month cache
   Cache-Control: public, max-age=2592000, immutable

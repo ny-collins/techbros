@@ -9,17 +9,14 @@
     <meta name="keywords" content="offline library, educational resources, PWA, peer-to-peer file sharing, study materials, offline education, PDF viewer, TechBros">
     <meta name="author" content="Collins Mwangi">
     
-    <!-- Canonical URL -->
     <link rel="canonical" href="https://techbros.pages.dev/">
     
-    <!-- Open Graph Tags -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://techbros.pages.dev/">
     <meta property="og:title" content="TechBros Library - Offline Educational Resources">
     <meta property="og:description" content="Access educational resources offline with peer-to-peer file sharing. No internet required for learning.">
     <meta property="og:image" content="https://techbros.pages.dev/favicon.png">
     
-    <!-- Twitter Card Tags -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://techbros.pages.dev/">
     <meta property="twitter:title" content="TechBros Library - Offline Educational Resources">
@@ -32,13 +29,11 @@
 
     <link rel="stylesheet" href="/style.css">
     
-    <!-- Phosphor Icons -->
     <link rel="stylesheet" href="/vendor/phosphor/regular.css">
     <link rel="stylesheet" href="/vendor/phosphor/bold.css">
     <link rel="stylesheet" href="/vendor/phosphor/fill.css">
     <link rel="stylesheet" href="/vendor/phosphor/duotone.css">
 
-    <!-- Structured Data -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -73,7 +68,6 @@
 </head>
 <body>
 
-    <!-- Custom Splash Screen -->
     <div id="splash-screen">
         <div class="splash-content">
             <img src="/favicon.png" alt="TechBros Logo" class="splash-logo">
@@ -84,15 +78,12 @@
 
     <div id="app" class="app-container">
         
-        <!-- Sidebar Navigation -->
         <aside id="main-sidebar" class="sidebar">
             <div class="brand-wrapper">
-                <!-- Brand acts as Toggle -->
                 <div id="brand-toggle" class="brand" role="button" tabindex="0" aria-label="Toggle Sidebar">
                     <img src="/favicon.png" alt="Logo" class="logo">
                     <h1>TechBros</h1>
                 </div>
-                <!-- Close Button -->
                 <button id="sidebar-close" class="btn-icon sidebar-close-btn" aria-label="Close Sidebar">
                     <i class="ph ph-x"></i>
                 </button>
@@ -124,13 +115,10 @@
             </div>
         </aside>
 
-        <!-- Overlay for Mobile/Click-away -->
         <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
-        <!-- Main Content Area -->
         <main class="main-content">
             
-            <!-- Header -->
             <header id="main-header" class="top-bar">
                 <div class="top-bar-left">
                     <button id="mobile-menu-toggle" class="btn-icon mobile-only" aria-label="Open Menu">
@@ -152,7 +140,6 @@
                 </div>
             </header>
 
-            <!-- VIEW: Library -->
             <section id="library-view" class="view-section active">
                 <div class="section-header">
                     <h2>Library Resources</h2>
@@ -163,14 +150,12 @@
                 </div>
                 
                 <div id="resource-list" class="resource-grid">
-                    <!-- Skeleton Loader -->
                     <div class="skeleton-card"></div>
                     <div class="skeleton-card"></div>
                     <div class="skeleton-card"></div>
                 </div>
             </section>
 
-            <!-- VIEW: Resource Player -->
             <section id="resource-view" class="view-section">
                 <div class="player-header">
                     <button id="btn-back-library" class="btn-back">
@@ -179,11 +164,9 @@
                 </div>
                 
                 <div id="player-container" class="player-container">
-                    <!-- Injected Content Goes Here -->
                 </div>
             </section>
 
-            <!-- VIEW: P2P Sharing -->
             <section id="p2p-view" class="view-section">
                 <div class="p2p-container">
                     
@@ -244,7 +227,6 @@
                 </div>
             </section>
 
-            <!-- VIEW: Export Data -->
             <section id="export-view" class="view-section">
                 <h2>Export Data</h2>
                 
@@ -261,7 +243,6 @@
                 </div>
             </section>
 
-            <!-- VIEW: About -->
             <section id="about-view" class="view-section">
                 <h2>About TechBros</h2>
                 
@@ -295,7 +276,6 @@
                 </div>
             </section>
 
-             <!-- VIEW: Help -->
              <section id="help-view" class="view-section">
                 <h2>Help & FAQ</h2>
                 
