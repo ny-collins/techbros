@@ -82,7 +82,7 @@
         </div>
     </div>
 
-    <div class="app-container">
+    <div id="app" class="app-container">
         
         <!-- Sidebar Navigation -->
         <aside id="main-sidebar" class="sidebar">
@@ -196,14 +196,23 @@
                         </div>
                     </div>
 
-                    <div class="p2p-grid">
-                        <div class="p2p-col">
+                    <div class="p2p-tabs">
+                        <button class="p2p-tab-btn active" data-tab="send">
+                            <i class="ph ph-paper-plane-right"></i> Send
+                        </button>
+                        <button class="p2p-tab-btn" data-tab="receive">
+                            <i class="ph ph-download-simple"></i> Receive
+                        </button>
+                    </div>
+
+                    <div id="tab-send" class="p2p-tab-content active">
+                        <div class="p2p-col full-width-card">
                             <div class="p2p-header">
                                 <div class="icon-circle"><i class="ph ph-paper-plane-right"></i></div>
                                 <h4>Send File</h4>
                             </div>
                             <div class="p2p-body">
-                                <p>To send a file, make sure the receiving device is on the "P2P Share" page. Ask for their 4-digit PIN.</p>
+                                <p>To send a file, make sure the receiving device is on the "Receive" tab. Ask for their 4-digit PIN.</p>
                                 <div class="input-group">
                                     <input type="number" id="remote-pin" placeholder="0000" maxlength="4">
                                     <button id="btn-connect" class="btn primary">Connect</button>
@@ -215,8 +224,10 @@
                                 </button>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="p2p-col">
+                    <div id="tab-receive" class="p2p-tab-content">
+                        <div class="p2p-col full-width-card">
                             <div class="p2p-header">
                                 <div class="icon-circle"><i class="ph ph-download-simple"></i></div>
                                 <h4>Receive Queue</h4>
@@ -325,6 +336,7 @@
         </main>
     </div>
 
+    <div id="toast-container"></div>
     <div id="notification-area"></div>
     <!-- Deployed on 24 Dec 2025 -->
     <script type="module" src="/app.js"></script>

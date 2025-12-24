@@ -1,6 +1,6 @@
-import './js/store.js';
-import './js/ui.js';
-import './js/p2p.js';
+import { store } from './js/store.js';
+import { ui } from './js/ui.js';
+import { p2p } from './js/p2p.js';
 
 // Initialize the app when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {

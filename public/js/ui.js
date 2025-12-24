@@ -24,6 +24,8 @@ class UI {
             searchInput: document.getElementById('search-input'),
             p2pPinDisplay: document.getElementById('my-pin-display'),
             p2pStatus: document.getElementById('p2p-status'),
+            p2pTabs: document.querySelectorAll('.p2p-tab-btn'),
+            p2pTabContents: document.querySelectorAll('.p2p-tab-content'),
             fileInput: document.getElementById('file-upload'),
 
             btnClearCache: document.getElementById('btn-clear-cache'),
@@ -40,6 +42,7 @@ class UI {
 
         this._bindNavigation();
         this._bindSearch();
+        this._bindP2PTabs();
         this._bindP2P();
         this._bindGlobalEvents();
         
@@ -321,7 +324,7 @@ class UI {
 
                         const originalIcon = clearButton.innerHTML;
                         const originalTooltip = clearButton.getAttribute('data-tooltip');
-                        clearButton.innerHTML = '<i class="ph-spinner ph-spin"></i>';
+                        clearButton.innerHTML = '<i class="ph ph-spinner ph-spin"></i>';
                         clearButton.setAttribute('data-tooltip', 'Clearing cache...');
                         clearButton.disabled = true;
 
@@ -393,7 +396,31 @@ class UI {
         });
     }
 
+    _bindP2PTabs() {
+        if (!this.elements.p2pTabs) return;
+
+        this.elements.p2pTabs.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Deactivate all tabs
+                this.elements.p2pTabs.forEach(b => b.classList.remove('active'));
+                this.elements.p2pTabContents.forEach(c => c.classList.remove('active'));
+
+                // Activate clicked tab
+                btn.classList.add('active');
+                const targetId = `tab-${btn.dataset.tab}`;
+                const targetContent = document.getElementById(targetId);
+                if (targetContent) targetContent.classList.add('active');
+            });
+        });
+    }
+
     _bindP2P() {
+        // If P2P is already ready (race condition fix), update UI immediately
+        if (p2p.peerId && this.elements.p2pPinDisplay) {
+            this.elements.p2pPinDisplay.textContent = p2p.peerId;
+            this.updateStatus('Online', 'success');
+        }
+
         p2p.addEventListener('ready', (e) => {
             if (this.elements.p2pPinDisplay) this.elements.p2pPinDisplay.textContent = e.detail.id;
             this.updateStatus('Online', 'success');
@@ -670,7 +697,22 @@ class UI {
     }
 
     _createProgressBar(container) {
-        return null;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'progress-container';
+        
+        const bar = document.createElement('div');
+        bar.className = 'progress-bar';
+        bar.style.width = '0%';
+        
+        const text = document.createElement('span');
+        text.className = 'progress-text';
+        text.textContent = '0%';
+        
+        wrapper.appendChild(bar);
+        wrapper.appendChild(text);
+        
+        container.appendChild(wrapper);
+        return bar;
     }
 }
 

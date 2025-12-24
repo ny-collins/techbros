@@ -12,10 +12,6 @@ export class P2PService extends EventTarget {
     async init(customPin = null) {
         if (this.peer) this.destroy();
 
-        if (typeof Peer === 'undefined') {
-            await this._loadPeerJS();
-        }
-
         this.peerId = customPin || this._generatePIN();
         this.isHost = !!customPin;
 
@@ -266,16 +262,6 @@ export class P2PService extends EventTarget {
 
     _generatePIN() {
         return Math.floor(1000 + Math.random() * 9000).toString();
-    }
-
-    async _loadPeerJS() {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = '/vendor/peerjs.min.js';
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error('Failed to load PeerJS'));
-            document.head.appendChild(script);
-        });
     }
 }
 

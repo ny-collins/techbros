@@ -1,6 +1,6 @@
 {
   "name": "techbros",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A PWA platform for sharing study resources with offline capabilities and P2P file sharing.",
   "keywords": [
     "pwa",
@@ -25,7 +25,6 @@
   "main": "scripts/add_resource.js",
   "scripts": {
     "add": "node scripts/add_resource.js",
-    "serve": "python3 -m http.server 8000 --directory public",
     "dev": "python3 -m http.server 8000 --directory public",
     "test": "jest",
     "test:watch": "jest --watch",

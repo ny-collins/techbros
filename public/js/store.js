@@ -1,7 +1,7 @@
 class Store {
     constructor() {
         this.state = {
-            version: typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '2.0.0',
+            version: typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '2.0.1',
             resources: [],
             settings: {
                 theme: 'dark',

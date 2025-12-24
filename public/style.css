@@ -534,18 +534,57 @@ audio {
 }
 .pin-display .code { font-size: 2rem; font-weight: 700; letter-spacing: 4px; line-height: 1.2; } /* Reduced size */
 
-.p2p-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; /* Reduced gap */
-    flex: 1; 
-    overflow: hidden; 
+/* P2P Tabs */
+.p2p-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    background: var(--bg-sidebar);
+    padding: 0.5rem;
+    border-radius: 50px;
+    align-self: center;
 }
 
-/* Fixed scrolling and clipping issue */
-.p2p-col {
-    background: transparent; border: 1px solid var(--border-color);
-    border-radius: 8px; padding: 1rem; /* Reduced padding */
-    display: flex; flex-direction: column; gap: 0.75rem; /* Reduced gap */
-    min-height: 0; /* Important for flex container to shrink */
+.p2p-tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.p2p-tab-btn:hover {
+    color: var(--text-primary);
+    background-color: rgba(255,255,255,0.05);
+}
+
+.p2p-tab-btn.active {
+    background-color: var(--primary-color);
+    color: var(--primary-text);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.p2p-tab-content {
+    display: none;
+    width: 100%;
+    animation: fadeIn 0.3s ease;
+}
+
+.p2p-tab-content.active {
+    display: block;
+}
+
+.p2p-col.full-width-card {
+    max-width: 600px;
+    margin: 0 auto;
 }
 
 .p2p-header {
@@ -605,4 +644,12 @@ audio {
     .player-cover-art { max-height: 40vh; }
     /* P2P scroll on mobile */
     .p2p-container { height: auto; overflow-y: auto; }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.ph-spin {
+    animation: spin 1s linear infinite;
 }

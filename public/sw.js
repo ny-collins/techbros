@@ -1,4 +1,4 @@
-const CACHE_VERSION = '2.0.0';
+const CACHE_VERSION = 'v2.0.1';
 const APP_CACHE = `techbros-app-${CACHE_VERSION}`;
 const RESOURCE_CACHE = 'techbros-resources-v1';
 
