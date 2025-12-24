@@ -653,3 +653,13 @@ audio {
 .ph-spin {
     animation: spin 1s linear infinite;
 }
+
+/* Utilities */
+.mb-1 { margin-bottom: 1rem; }
+.ml-1-5 { margin-left: 1.5rem; }
+.text-small { font-size: 0.9rem; }
+.d-none { display: none !important; }
+.color-text-secondary { color: var(--text-secondary); }
+
+#btn-send-file { display: none; }
+.lh-loose { line-height: 1.8; }

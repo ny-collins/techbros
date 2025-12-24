@@ -189,7 +189,7 @@
                     
                     <div class="p2p-section center-text">
                         <h3>My Identity</h3>
-                        <p style="margin-bottom: 1rem; color: var(--text-secondary);">Share this unique PIN with others on your local network to receive files directly.</p>
+                        <p class="mb-1 color-text-secondary">Share this unique PIN with others on your local network to receive files directly.</p>
                         <div class="pin-display">
                             <span class="label">MY PIN</span>
                             <span id="my-pin-display" class="code">....</span>
@@ -217,9 +217,9 @@
                                     <input type="number" id="remote-pin" placeholder="0000" maxlength="4">
                                     <button id="btn-connect" class="btn primary">Connect</button>
                                 </div>
-                                <p style="font-size:0.9rem; color:var(--text-secondary)">Once connected, a "Select File" button will appear.</p>
+                                <p class="text-small color-text-secondary">Once connected, a "Select File" button will appear.</p>
                                 <input type="file" id="file-upload" hidden>
-                                <button id="btn-send-file" class="btn secondary full-width" style="display:none">
+                                <button id="btn-send-file" class="btn secondary full-width">
                                     <i class="ph ph-file-plus"></i> Select File
                                 </button>
                             </div>
@@ -301,7 +301,7 @@
                 
                 <div class="info-section">
                     <h3>How do I share files?</h3>
-                    <ol style="margin-left: 1.5rem; color: var(--text-secondary); line-height: 1.8;">
+                    <ol class="ml-1-5 color-text-secondary lh-loose">
                         <li>Navigate to the <strong>P2P Share</strong> tab.</li>
                         <li>Ensure the person you want to send to is also on the P2P Share tab on their device.</li>
                         <li>Ask them for their <strong>4-digit PIN</strong> displayed at the top of their screen.</li>
@@ -338,7 +338,7 @@
 
     <div id="toast-container"></div>
     <div id="notification-area"></div>
-    <!-- Deployed on 24 Dec 2025 -->
+
     <script type="module" src="/app.js"></script>
 
 </body>
