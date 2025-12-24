@@ -1,3 +1,15 @@
 node_modules/
 .wrangler/
+dist/
+public/assets/
+public/public/
+public/dist/
+*.log
+.DS_Store
+.env
+.env.local
+.env.production
+.vite/
+coverage/
+.nyc_output/
 GEMINI.md

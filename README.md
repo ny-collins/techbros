@@ -9,6 +9,7 @@
 [![Live Site](https://img.shields.io/badge/🌐_Live-techbros.pages.dev-blue?style=for-the-badge)](https://techbros.pages.dev)
 [![Version](https://img.shields.io/badge/version-2.0.0-green?style=for-the-badge)](https://github.com/ny-collins/techbros)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-8%20passed-brightgreen?style=for-the-badge)](https://github.com/ny-collins/techbros)
 
 [🚀 Launch App](https://techbros.pages.dev) • [📖 Documentation](docs/ARCHITECTURE.md) • [🤝 Contributing](docs/CONTRIBUTING.md)
 
@@ -30,20 +31,25 @@ TechBros Library is a **Progressive Web Application (PWA)** that brings educatio
 ## ✨ Key Features
 
 ### 📖 Smart Library
-- **Fuzzy Search:** Typo-tolerant search using Levenshtein distance.
-- **Lazy Loading:** Efficiently renders large PDFs to save memory.
-- **Multiple Views:** Toggle between Grid and List layouts.
+- **Fuzzy Search:** Typo-tolerant search using Levenshtein distance algorithm.
+- **Multiple Formats:** Support for PDFs, videos, audio files, and images.
+- **Grid/List Views:** Toggle between different layout options.
 - **Theming:** Dark mode (default) and Light mode with high contrast.
+- **Responsive Design:** Optimized for mobile, tablet, and desktop screens.
 
 ### 🔄 P2P AirShare
 - **Device-to-Device:** Share files directly using a simple 4-digit PIN.
+- **File Chunking:** Large files are split into chunks for reliable transfer.
+- **Progress Tracking:** Real-time transfer progress with visual indicators.
 - **Secure:** Automatic file type validation and sanitization.
 - **Cross-Platform:** Works between any devices running a modern browser.
 
 ### 🛠️ Technical Highlights
-- **Architecture:** Modular Vanilla JavaScript (Store, UI, P2P).
+- **Architecture:** Modular Vanilla JavaScript (Store, UI, P2P) with zero dependencies in production.
 - **Caching:** Advanced Service Worker strategies (Network-First for data, Cache-First for assets).
-- **Security:** Strict input sanitization to prevent XSS.
+- **Security:** Strict input sanitization, file type validation, and XSS prevention.
+- **Performance:** Optimized for low-bandwidth environments with lazy loading.
+- **Testing:** Comprehensive Jest test suite with 8 passing tests.
 
 ---
 
@@ -64,13 +70,20 @@ Click "Add to Home Screen" to install as a native app.
 git clone https://github.com/ny-collins/techbros.git
 cd techbros
 
-# Install dependencies (for resource scripts)
+# Install dependencies
 npm install
 
-# Run local server
+# Run development server
 npm run dev
-# OR
-python3 -m http.server 8000 --directory public
+
+# Run tests
+npm test
+
+# Build for production
+npm run build
+
+# Add resources to library
+npm run add
 ```
 
 ---
@@ -84,6 +97,53 @@ python3 -m http.server 8000 --directory public
 
 ---
 
+## 🧪 Testing
+
+The project includes a comprehensive test suite:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+```
+
+**Test Coverage:**
+- Store functionality (search, settings, state management)
+- 8 passing tests with Jest framework
+- ES6 module support with Babel transpilation
+
+---
+
+## 📦 Build & Deployment
+
+### Local Development
+```bash
+# Start dev server (Python)
+npm run dev
+
+# Start dev server (Vite - alternative)
+npm run dev:vite
+```
+
+### Production Build
+```bash
+# Build optimized assets
+npm run build
+
+# Output: dist/ directory with production-ready files
+```
+
+### Deployment
+The app is designed for static hosting. Deploy the `dist/` folder or `public/` directory to any static host like:
+- Cloudflare Pages
+- Netlify
+- GitHub Pages
+- Vercel
+
+---
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file.
@@ -93,5 +153,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 <div align="center">
 
 **Made with ❤️ for offline-first education**
+
+*Built with Vanilla JavaScript • Zero Dependencies in Production • PWA Ready*
 
 </div>

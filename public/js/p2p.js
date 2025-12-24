@@ -1,36 +1,27 @@
-/**
- * TechBros P2P Engine (v2.0)
- * Wraps PeerJS to handle signaling, connection management,
- * and file transfers with event-based communication.
- */
-
 export class P2PService extends EventTarget {
     constructor() {
         super();
         this.peer = null;
         this.conn = null;
-        this.peerId = null; // This will be the 4-digit PIN
-        this.isHost = false; // True if we are the Sender (Host)
+        this.peerId = null;
+        this.isHost = false;
+        this.chunkSize = 64 * 1024;
+        this.receivingChunks = new Map();
     }
 
-    /**
-     * Initialize the PeerJS instance.
-     * @param {string} [customPin] - Optional 4-digit PIN. If not provided, one is generated.
-     * @returns {Promise<string>} - Resolves with the PIN (Peer ID)
-     */
     async init(customPin = null) {
-        // Disconnect existing if any
         if (this.peer) this.destroy();
 
-        // Use custom PIN or generate one (assuming utils.generatePIN exists or we do it here)
+        if (typeof Peer === 'undefined') {
+            await this._loadPeerJS();
+        }
+
         this.peerId = customPin || this._generatePIN();
-        this.isHost = !!customPin; // If we set the PIN, we usually act as host, but logic varies
+        this.isHost = !!customPin;
 
         console.log(`[P2P] Initializing with ID: ${this.peerId}`);
 
         return new Promise((resolve, reject) => {
-            // NOTE: We assume 'Peer' is loaded globally via script tag in index.html
-            // We use the default PeerJS cloud server for signaling.
             this.peer = new Peer(this.peerId, {
                 debug: 2,
                 secure: true,
@@ -41,8 +32,6 @@ export class P2PService extends EventTarget {
                     ]
                 }
             });
-
-            // --- Peer Events ---
 
             this.peer.on('open', (id) => {
                 console.log('[P2P] Peer Open. ID:', id);
@@ -57,14 +46,12 @@ export class P2PService extends EventTarget {
 
             this.peer.on('disconnected', () => {
                 console.warn('[P2P] Disconnected from signaling server. Reconnecting...');
-                // Workaround: PeerJS doesn't auto-reconnect to signaling
                 this.peer.reconnect();
             });
 
             this.peer.on('error', (err) => {
                 console.error('[P2P] Peer Error:', err.type, err);
-                
-                // Handle ID collisions (if PIN is taken)
+
                 if (err.type === 'unavailable-id') {
                     console.warn('[P2P] PIN taken, generating new one...');
                     this.init(null).then(resolve).catch(reject);
@@ -77,10 +64,6 @@ export class P2PService extends EventTarget {
         });
     }
 
-    /**
-     * Connect to a remote peer (Receiver connecting to Sender).
-     * @param {string} remotePin - The 4-digit PIN of the target
-     */
     connect(remotePin) {
         if (!this.peer) {
             console.error('[P2P] Peer not initialized');
@@ -95,11 +78,7 @@ export class P2PService extends EventTarget {
         this._handleConnection(conn);
     }
 
-    /**
-     * Send a file to the connected peer.
-     * @param {File} file - The file object
-     */
-    sendFile(file) {
+    async sendFile(file) {
         if (!this.conn || !this.conn.open) {
             this.dispatchEvent(new CustomEvent('error', { detail: { message: 'No active connection' } }));
             return;
@@ -107,28 +86,41 @@ export class P2PService extends EventTarget {
 
         console.log(`[P2P] Sending file: ${file.name} (${file.size} bytes)`);
 
-        // Send metadata first (optional, but good practice)
+        const totalChunks = Math.ceil(file.size / this.chunkSize);
+
         this.conn.send({
             type: 'meta',
             name: file.name,
             size: file.size,
-            mime: file.type
+            mime: file.type,
+            totalChunks: totalChunks
         });
 
-        // Send the actual file (PeerJS handles binary blob serialization)
-        // NOTE: For very large files (>100MB), we might need chunking. 
-        // For v2.0 baseline, we rely on browser Blob handling.
-        this.conn.send({
-            type: 'file',
-            file: file, // The Blob
-            name: file.name,
-            mime: file.type
-        });
+        for (let i = 0; i < totalChunks; i++) {
+            const start = i * this.chunkSize;
+            const end = Math.min(start + this.chunkSize, file.size);
+            const chunk = file.slice(start, end);
+
+            this.conn.send({
+                type: 'chunk',
+                index: i,
+                total: totalChunks,
+                data: await chunk.arrayBuffer(),
+                name: file.name
+            });
+
+            const progress = ((i + 1) / totalChunks) * 100;
+            this.dispatchEvent(new CustomEvent('send-progress', {
+                detail: { name: file.name, progress: progress }
+            }));
+
+            await new Promise(resolve => setTimeout(resolve, 10));
+        }
+
+        console.log(`[P2P] File sent: ${file.name}`);
+        this.dispatchEvent(new CustomEvent('send-complete', { detail: { name: file.name } }));
     }
 
-    /**
-     * Cleanup and destroy peer connection.
-     */
     destroy() {
         if (this.conn) {
             this.conn.close();
@@ -139,8 +131,6 @@ export class P2PService extends EventTarget {
         this.peer = null;
         this.conn = null;
     }
-
-    // --- Private Helpers ---
 
     _handleConnection(conn) {
         this.conn = conn;
@@ -167,27 +157,70 @@ export class P2PService extends EventTarget {
     }
 
     _handleData(data) {
-        // 1. Handle Metadata (optional UI update)
         if (data.type === 'meta') {
-            console.log(`[P2P] Incoming file metadata: ${data.name}`);
+            console.log(`[P2P] Incoming file metadata: ${data.name} (${data.totalChunks} chunks)`);
+            this.receivingChunks.set(data.name, {
+                chunks: new Array(data.totalChunks),
+                received: 0,
+                total: data.totalChunks,
+                size: data.size,
+                mime: data.mime
+            });
             this.dispatchEvent(new CustomEvent('transfer-start', { detail: data }));
             return;
         }
 
-        // 2. Handle File Data
+        if (data.type === 'chunk') {
+            const fileData = this.receivingChunks.get(data.name);
+            if (!fileData) {
+                console.error('[P2P] Received chunk for unknown file:', data.name);
+                return;
+            }
+
+            fileData.chunks[data.index] = data.data;
+            fileData.received++;
+
+            const progress = (fileData.received / fileData.total) * 100;
+            this.dispatchEvent(new CustomEvent('receive-progress', {
+                detail: { name: data.name, progress: progress }
+            }));
+
+            if (fileData.received === fileData.total) {
+                console.log(`[P2P] All chunks received for ${data.name}, reassembling...`);
+                const blob = new Blob(fileData.chunks, { type: fileData.mime });
+
+                const safeBlob = this._sanitizeBlob(blob, fileData.mime);
+
+                if (safeBlob) {
+                    this.dispatchEvent(new CustomEvent('file-received', {
+                        detail: {
+                            blob: safeBlob,
+                            name: data.name,
+                            mime: fileData.mime
+                        }
+                    }));
+                } else {
+                    console.warn('[P2P] Blocked potentially unsafe file type');
+                    this.dispatchEvent(new CustomEvent('error', { detail: { message: 'Security: Unsafe file type blocked' } }));
+                }
+
+                this.receivingChunks.delete(data.name);
+            }
+            return;
+        }
+
         if (data.file) {
-            console.log('[P2P] File received');
-            
-            // Security: Basic Sanity Check
+            console.log('[P2P] File received (legacy format)');
+
             const safeBlob = this._sanitizeBlob(data.file, data.mime);
-            
+
             if (safeBlob) {
-                this.dispatchEvent(new CustomEvent('file-received', { 
+                this.dispatchEvent(new CustomEvent('file-received', {
                     detail: {
                         blob: safeBlob,
                         name: data.name,
                         mime: data.mime
-                    } 
+                    }
                 }));
             } else {
                 console.warn('[P2P] Blocked potentially unsafe file type');
@@ -197,26 +230,53 @@ export class P2PService extends EventTarget {
     }
 
     _sanitizeBlob(blob, mimeType) {
-        // Block executables or dangerous scripts
-        const blockedTypes = [
-            'application/x-msdownload', 
-            'application/x-exe', 
-            'text/javascript', 
-            'application/javascript'
+        const allowedTypes = [
+            'application/pdf',
+            'text/plain',
+            'text/markdown',
+            'text/html',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+            'image/svg+xml',
+            'audio/mpeg',
+            'audio/wav',
+            'audio/ogg',
+            'video/mp4',
+            'video/webm',
+            'video/ogg',
+            'application/zip',
+            'application/x-zip-compressed'
         ];
 
-        if (blockedTypes.includes(mimeType)) {
+        if (!allowedTypes.includes(mimeType)) {
+            console.warn(`[P2P] Blocked potentially unsafe file type: ${mimeType}`);
             return null;
         }
 
-        // Return valid blob
         return blob;
     }
 
     _generatePIN() {
         return Math.floor(1000 + Math.random() * 9000).toString();
     }
+
+    async _loadPeerJS() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = '/vendor/peerjs.min.js';
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Failed to load PeerJS'));
+            document.head.appendChild(script);
+        });
+    }
 }
 
-// Export singleton instance
 export const p2p = new P2PService();

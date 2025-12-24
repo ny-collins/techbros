@@ -4,28 +4,23 @@ import { fileURLToPath } from 'url';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { createRequire } from 'module';
-import { parseFile } from 'music-metadata'; 
+import { parseFile } from 'music-metadata';
 
-// Use 'require' for legacy CJS libraries
 const require = createRequire(import.meta.url);
-const { PDFDocument } = require('pdf-lib'); 
+const { PDFDocument } = require('pdf-lib');
 
-// --- Configuration ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const RESOURCES_DIR = path.join(__dirname, '../public/resources');
 const DB_PATH = path.join(__dirname, '../public/resources.json');
 
-// Supported Mime Types Map
 const TYPE_MAP = {
     '.pdf': 'pdf',
     '.mp4': 'video', '.webm': 'video', '.mkv': 'video',
     '.mp3': 'audio', '.wav': 'audio', '.m4a': 'audio', '.ogg': 'audio',
     '.jpg': 'image', '.jpeg': 'image', '.png': 'image', '.webp': 'image', '.gif': 'image'
 };
-
-// --- Helpers ---
 
 const formatSize = (bytes) => {
     const units = ['B', 'KB', 'MB', 'GB'];
@@ -68,15 +63,12 @@ const getAudioMetadata = async (filePath, filename) => {
     }
 };
 
-// --- Main Logic ---
-
 async function main() {
     console.clear();
     console.log(chalk.cyan.bold('📚  TechBros Resource Manager v2.0.0'));
     console.log(chalk.gray('    Offline-First Library Management System'));
     console.log(chalk.gray('    ---------------------------------------\n'));
 
-    // 1. Database Check
     let db = [];
     if (fs.existsSync(DB_PATH)) {
         try {
@@ -89,7 +81,6 @@ async function main() {
         console.log(chalk.yellow('! No database found. Creating new.'));
     }
 
-    // 2. Scan Directory
     if (!fs.existsSync(RESOURCES_DIR)) {
         console.log(chalk.red('✘ Resources directory missing!'));
         process.exit(1);
@@ -104,9 +95,8 @@ async function main() {
         return;
     }
 
-    // 3. Selection Step (Checkbox Style)
     console.log(chalk.blue(`\n🔎 Found ${newFiles.length} new unindexed file(s).`));
-    
+
     const { selectedFiles } = await inquirer.prompt([
         {
             type: 'checkbox',
@@ -124,7 +114,6 @@ async function main() {
 
     console.log(chalk.gray('\n---------------------------------------'));
 
-    // 4. Process Selected Files
     const updates = [];
 
     for (const file of selectedFiles) {
@@ -132,13 +121,12 @@ async function main() {
         const stats = fs.statSync(filePath);
         const ext = path.extname(file).toLowerCase();
         const detectedType = TYPE_MAP[ext] || 'file';
-        
+
         let detectedTitle = path.basename(file, ext).replace(/_/g, ' ');
         let detectedCover = null;
 
         process.stdout.write(chalk.gray(`\nProcessing: ${file}... `));
 
-        // PDF Metadata
         if (detectedType === 'pdf') {
             const pdfInfo = await getPdfMetadata(filePath);
             if (pdfInfo) {
@@ -148,7 +136,6 @@ async function main() {
                 }
             }
         }
-        // Audio Metadata
         else if (detectedType === 'audio') {
             const audioData = await getAudioMetadata(filePath, file);
             if (audioData.title) detectedTitle = audioData.title;
@@ -157,8 +144,6 @@ async function main() {
 
         console.log(chalk.cyan('Done'));
 
-        // Confirm details for this file (Optional: Remove this if you want zero-touch)
-        // Keeping it allows you to fix bad titles even after batch selection.
         const answers = await inquirer.prompt([
             {
                 type: 'input',
@@ -175,10 +160,9 @@ async function main() {
             }
         ]);
 
-        // Check for existing cover on disk
         const coverName = `${file}.cover.jpg`;
-        let coverUrl = fs.existsSync(path.join(RESOURCES_DIR, coverName)) 
-            ? `/resources/${coverName}` 
+        let coverUrl = fs.existsSync(path.join(RESOURCES_DIR, coverName))
+            ? `/resources/${coverName}`
             : detectedCover;
 
         const entry = {
@@ -196,7 +180,6 @@ async function main() {
         console.log(chalk.green(`   ✓ Added`));
     }
 
-    // 5. Save Database
     if (updates.length > 0) {
         fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
         console.log(chalk.green(`\n\n💾 Database saved successfully! (${updates.length} new items)`));

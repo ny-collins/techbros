@@ -1,16 +1,10 @@
-/**
- * TechBros Store (v2.0)
- * Manages application state, resources, and settings.
- * acts as the Single Source of Truth (SSOT).
- */
-
 class Store {
     constructor() {
         this.state = {
-            version: '2.0.0',
+            version: typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '2.0.0',
             resources: [],
             settings: {
-                theme: 'dark', // Default preference
+                theme: 'dark',
                 layout: 'grid',
                 lastSeen: Date.now()
             },
@@ -19,31 +13,21 @@ class Store {
                 pin: null
             }
         };
-
-        // Event listeners could be implemented here (Observer pattern)
-        // for now, we keep it simple.
     }
 
-    /**
-     * Initialize the store: Load settings and fetch resources.
-     */
     async init() {
         this._loadSettings();
         await this._fetchResources();
         console.log('[Store] Initialized with', this.state.resources.length, 'resources.');
     }
 
-    /**
-     * Fetches the resources.json database.
-     */
     async _fetchResources() {
         try {
             const response = await fetch('/resources.json');
             if (!response.ok) throw new Error('Failed to load resources');
-            
+
             const data = await response.json();
-            
-            // Basic Validation: Ensure it's an array
+
             if (!Array.isArray(data)) {
                 console.error('[Store] resources.json is not an array!');
                 this.state.resources = [];
@@ -53,15 +37,10 @@ class Store {
             this.state.resources = data;
         } catch (error) {
             console.error('[Store] Error fetching resources:', error);
-            // In offline mode, this might fail if not cached. 
-            // The Service Worker should handle the caching, but we handle the error state here.
             this.state.resources = [];
         }
     }
 
-    /**
-     * Load settings from LocalStorage
-     */
     _loadSettings() {
         const saved = localStorage.getItem('techbros_settings');
         if (saved) {
@@ -74,14 +53,9 @@ class Store {
         }
     }
 
-    /**
-     * Save current settings to LocalStorage
-     */
     _saveSettings() {
         localStorage.setItem('techbros_settings', JSON.stringify(this.state.settings));
     }
-
-    // --- Public API ---
 
     getResources() {
         return this.state.resources;
@@ -91,73 +65,74 @@ class Store {
         return this.state.version;
     }
 
-    /**
-     * Search resources using Fuzzy Search (Levenshtein Distance)
-     * @param {string} query 
-     */
     search(query) {
-        if (!query) return this.state.resources;
-        const lowerQ = query.toLowerCase();
-        
-        // Configuration
-        const MAX_DISTANCE = 3; // Maximum allowed typos
-
-        return this.state.resources.filter(item => {
-            const title = item.title.toLowerCase();
-            
-            // 1. Direct Substring Match (Fastest & Most Common)
-            if (title.includes(lowerQ)) return true;
-            if (item.description && item.description.toLowerCase().includes(lowerQ)) return true;
-
-            // 2. Fuzzy Match (Typo Tolerance)
-            // We only check if the query is at least 3 chars long to avoid noise
-            if (lowerQ.length > 2) {
-                // Check Levenshtein distance against the Title
-                // Optimization: We check against individual words in the title too? 
-                // For now, let's check against the whole title string truncated to query length
-                // or just the whole title if it's short.
-                
-                const dist = this._levenshtein(lowerQ, title);
-                
-                // We normalize: if distance is small relative to length
-                if (dist <= MAX_DISTANCE) return true;
+        return new Promise((resolve) => {
+            if (!query) {
+                resolve(this.state.resources);
+                return;
             }
 
-            return false;
+            if (typeof Worker === 'undefined') {
+                const lowerQ = query.toLowerCase();
+                const MAX_DISTANCE = 3;
+
+                const results = this.state.resources.filter(item => {
+                    const title = item.title.toLowerCase();
+
+                    if (title.includes(lowerQ)) return true;
+                    if (item.description && item.description.toLowerCase().includes(lowerQ)) return true;
+
+                    if (lowerQ.length > 2) {
+                        const dist = this._levenshtein(lowerQ, title);
+                        if (dist <= MAX_DISTANCE) return true;
+                    }
+
+                    return false;
+                });
+
+                resolve(results);
+                return;
+            }
+
+            if (!this.searchWorker) {
+                this.searchWorker = new Worker('/js/search-worker.js');
+            }
+
+            this.searchWorker.postMessage({
+                query: query,
+                resources: this.state.resources
+            });
+
+            this.searchWorker.onmessage = (e) => {
+                resolve(e.data.results);
+            };
         });
     }
 
-    /**
-     * Levenshtein Distance Algorithm
-     * Calculates the minimum number of single-character edits to change a into b.
-     */
     _levenshtein(a, b) {
         if (a.length === 0) return b.length;
         if (b.length === 0) return a.length;
 
         const matrix = [];
 
-        // Increment along the first column of each row
         for (let i = 0; i <= b.length; i++) {
             matrix[i] = [i];
         }
 
-        // Increment each column in the first row
         for (let j = 0; j <= a.length; j++) {
             matrix[0][j] = j;
         }
 
-        // Fill in the rest of the matrix
         for (let i = 1; i <= b.length; i++) {
             for (let j = 1; j <= a.length; j++) {
                 if (b.charAt(i - 1) == a.charAt(j - 1)) {
                     matrix[i][j] = matrix[i - 1][j - 1];
                 } else {
                     matrix[i][j] = Math.min(
-                        matrix[i - 1][j - 1] + 1, // substitution
+                        matrix[i - 1][j - 1] + 1,
                         Math.min(
-                            matrix[i][j - 1] + 1, // insertion
-                            matrix[i - 1][j] + 1  // deletion
+                            matrix[i][j - 1] + 1,
+                            matrix[i - 1][j] + 1
                         )
                     );
                 }
@@ -184,5 +159,4 @@ class Store {
     }
 }
 
-// Export a singleton instance
 export const store = new Store();
