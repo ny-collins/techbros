@@ -30,7 +30,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "build": "node -e \"const fs=require('fs'),path=require('path'); const updateManifest=(file)=>{if(fs.existsSync(file)){let m=fs.readFileSync(file,'utf8'); m=m.replace(/__APP_VERSION__/g,'2.0.0'); fs.writeFileSync(file,m);}}; updateManifest('public/manifest.json'); const assets=path.join('public','assets'); if(fs.existsSync(assets)){const files=fs.readdirSync(assets).filter(f=>f.startsWith('manifest')&&f.endsWith('.json')); files.forEach(f=>updateManifest(path.join(assets,f)));}\" && vite build",
-    "postbuild": "cp -r dist/* public/ 2>/dev/null; rm -rf dist",
+    "postbuild": "cp -r dist/* public/ 2>/dev/null && rm -rf dist && rm -rf public/public 2>/dev/null || true",
     "dev:vite": "vite dev --host"
   },
   "dependencies": {
