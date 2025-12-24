@@ -30,19 +30,27 @@ export class P2PService extends EventTarget {
                         { urls: 'stun:stun.l.google.com:19302' },
                         { urls: 'stun:stun1.l.google.com:19302' },
                         {
-                            urls: 'turn:openrelay.metered.ca:80',
-                            username: 'openrelayproject',
-                            credential: 'openrelayproject'
+                            urls: 'stun:stun.relay.metered.ca:80'
                         },
                         {
-                            urls: 'turn:openrelay.metered.ca:443',
-                            username: 'openrelayproject',
-                            credential: 'openrelayproject'
+                            urls: 'turn:global.relay.metered.ca:80',
+                            username: '0a1d263dcfcb9483854a0e59',
+                            credential: 'RgD6934qR94TpIJm'
                         },
                         {
-                            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-                            username: 'openrelayproject',
-                            credential: 'openrelayproject'
+                            urls: 'turn:global.relay.metered.ca:80?transport=tcp',
+                            username: '0a1d263dcfcb9483854a0e59',
+                            credential: 'RgD6934qR94TpIJm'
+                        },
+                        {
+                            urls: 'turn:global.relay.metered.ca:443',
+                            username: '0a1d263dcfcb9483854a0e59',
+                            credential: 'RgD6934qR94TpIJm'
+                        },
+                        {
+                            urls: 'turns:global.relay.metered.ca:443?transport=tcp',
+                            username: '0a1d263dcfcb9483854a0e59',
+                            credential: 'RgD6934qR94TpIJm'
                         }
                     ]
                 }
