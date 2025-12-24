@@ -93,7 +93,6 @@ class UI {
         const isMobile = window.innerWidth <= 768;
 
         if (isMobile) {
-            // Ensure collapsed class is removed on mobile
             this.elements.sidebar.classList.remove('collapsed');
             this.elements.sidebar.classList.toggle('open');
             if (this.elements.overlay) this.elements.overlay.classList.toggle('active');
@@ -107,7 +106,6 @@ class UI {
 
         const isMobile = window.innerWidth <= 768;
         if (isMobile) {
-            // Ensure collapsed class is removed on mobile
             this.elements.sidebar.classList.remove('collapsed');
             this.elements.sidebar.classList.remove('open');
             if (this.elements.overlay) this.elements.overlay.classList.remove('active');
@@ -294,14 +292,11 @@ class UI {
             this.showToast('You are offline. Some features may be limited.', 'warning');
         });
 
-        // Handle window resize to ensure sidebar state is correct for screen size
         window.addEventListener('resize', () => {
             const isMobile = window.innerWidth <= 768;
             if (isMobile) {
-                // On mobile, ensure no collapsed class
                 this.elements.sidebar.classList.remove('collapsed');
             } else {
-                // On desktop, if sidebar is open (mobile state), close it
                 if (this.elements.sidebar.classList.contains('open')) {
                     this.elements.sidebar.classList.remove('open');
                     if (this.elements.overlay) this.elements.overlay.classList.remove('active');
@@ -401,11 +396,9 @@ class UI {
 
         this.elements.p2pTabs.forEach(btn => {
             btn.addEventListener('click', () => {
-                // Deactivate all tabs
                 this.elements.p2pTabs.forEach(b => b.classList.remove('active'));
                 this.elements.p2pTabContents.forEach(c => c.classList.remove('active'));
 
-                // Activate clicked tab
                 btn.classList.add('active');
                 const targetId = `tab-${btn.dataset.tab}`;
                 const targetContent = document.getElementById(targetId);
@@ -415,7 +408,6 @@ class UI {
     }
 
     _bindP2P() {
-        // If P2P is already ready (race condition fix), update UI immediately
         if (p2p.peerId && this.elements.p2pPinDisplay) {
             this.elements.p2pPinDisplay.textContent = p2p.peerId;
             this.updateStatus('Online', 'success');
@@ -443,6 +435,12 @@ class UI {
             downloadBtn.className = 'btn primary small';
             downloadBtn.textContent = 'Save to Device';
             downloadBtn.style.marginTop = '0.5rem';
+
+            downloadBtn.addEventListener('click', () => {
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+            });
+            
+            setTimeout(() => URL.revokeObjectURL(url), 12000);
 
             this._showFileNotification(name, downloadBtn);
         });
