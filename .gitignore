@@ -2,7 +2,6 @@ node_modules/
 .wrangler/
 dist/
 public/assets/
-public/public/
 public/dist/
 *.log
 .DS_Store
