@@ -1,1 +1,169 @@
-const u="2.0.0",h=`techbros-app-${u}`,l="techbros-resources-v1",d=["/","/index.html","/style.css","/app.js","/js/store.js","/js/p2p.js","/js/ui.js","/manifest.json","/resources.json","/favicon.png","/vendor/peerjs.min.js","/vendor/pdf.worker.min.js","/vendor/phosphor/regular.css","/vendor/phosphor/bold.css","/vendor/phosphor/fill.css","/vendor/phosphor/duotone.css","/vendor/phosphor/Phosphor.ttf","/vendor/phosphor/Phosphor.woff","/vendor/phosphor/Phosphor.woff2","/vendor/phosphor/Phosphor-Duotone.ttf","/vendor/phosphor/Phosphor-Duotone.woff","/vendor/phosphor/Phosphor-Duotone.woff2"];self.addEventListener("install",s=>{s.waitUntil(caches.open(h).then(e=>(console.log(`[SW] Installing App Shell: ${u}`),e.addAll(d))).then(()=>self.skipWaiting()).catch(e=>(console.error("[SW] Installation failed:",e),self.skipWaiting())))});self.addEventListener("activate",s=>{s.waitUntil(caches.keys().then(e=>Promise.all(e.map(t=>{if(t!==h&&t!==l)return console.log(`[SW] Cleaning old cache: ${t}`),caches.delete(t)}))).then(()=>self.clients.claim()))});self.addEventListener("fetch",s=>{const e=new URL(s.request.url);if(s.request.headers.get("range")){s.respondWith(f(s.request));return}if(s.request.mode==="navigate"&&!e.pathname.includes("/resources/")){s.respondWith(caches.match("/index.html").then(o=>o||i(s.request)));return}if(e.pathname.endsWith("/resources.json")){s.respondWith(fetch(s.request).then(t=>{const o=t.clone();return(e.protocol==="http:"||e.protocol==="https:")&&caches.open(h).then(r=>r.put(s.request,o)),t}).catch(()=>caches.match(s.request)));return}s.respondWith(caches.match(s.request).then(t=>t||i(s.request).then(o=>{if(!o||o.status!==200||o.type!=="basic")return o;const r=e.pathname.includes("/resources/")?l:h,n=o.clone();return(e.protocol==="http:"||e.protocol==="https:")&&caches.open(r).then(c=>{c.put(s.request,n)}),o})))});async function f(s){const e=await caches.match(s);if(e){const t=await e.blob(),r=s.headers.get("range").match(/bytes=(\d+)-(\d+)?/),n=parseInt(r[1]),c=r[2]?parseInt(r[2]):t.size-1;if(n>=t.size)return new Response("Requested range not satisfiable",{status:416});const p=t.slice(n,c+1),a=new Headers(e.headers);return a.set("Content-Range",`bytes ${n}-${c}/${t.size}`),a.set("Content-Length",p.size),new Response(p,{status:206,statusText:"Partial Content",headers:a})}return fetch(s)}async function i(s){try{const e=await fetch(s);if(e&&e.redirected){const t=e.body;return new Response(t,{status:e.status,statusText:e.statusText,headers:e.headers})}return e}catch(e){throw e}}
+const CACHE_VERSION = '2.0.0';
+const APP_CACHE = `techbros-app-${CACHE_VERSION}`;
+const RESOURCE_CACHE = 'techbros-resources-v1';
+
+const ASSETS = [
+    '/',
+    '/index.html',
+    '/style.css',
+    '/app.js',
+    '/js/store.js',
+    '/js/p2p.js',
+    '/js/ui.js',
+    '/manifest.json',
+    '/resources.json',
+    '/favicon.png',
+
+    '/vendor/peerjs.min.js',
+    '/vendor/pdf.worker.min.js',
+
+    '/vendor/phosphor/regular.css',
+    '/vendor/phosphor/bold.css',
+    '/vendor/phosphor/fill.css',
+    '/vendor/phosphor/duotone.css',
+    '/vendor/phosphor/Phosphor.ttf',
+    '/vendor/phosphor/Phosphor.woff',
+    '/vendor/phosphor/Phosphor.woff2',
+    '/vendor/phosphor/Phosphor-Duotone.ttf',
+    '/vendor/phosphor/Phosphor-Duotone.woff',
+    '/vendor/phosphor/Phosphor-Duotone.woff2'
+];
+
+self.addEventListener('install', event => {
+    event.waitUntil(
+        caches.open(APP_CACHE)
+            .then(cache => {
+                console.log(`[SW] Installing App Shell: ${CACHE_VERSION}`);
+                return cache.addAll(ASSETS);
+            })
+            .then(() => self.skipWaiting())
+            .catch(error => {
+                console.error('[SW] Installation failed:', error);
+                return self.skipWaiting();
+            })
+    );
+});
+
+self.addEventListener('activate', event => {
+    event.waitUntil(
+        caches.keys().then(keys => {
+            return Promise.all(
+                keys.map(key => {
+                    if (key !== APP_CACHE && key !== RESOURCE_CACHE) {
+                        console.log(`[SW] Cleaning old cache: ${key}`);
+                        return caches.delete(key);
+                    }
+                })
+            );
+        }).then(() => self.clients.claim())
+    );
+});
+
+self.addEventListener('fetch', event => {
+    const url = new URL(event.request.url);
+
+    if (event.request.headers.get('range')) {
+        event.respondWith(handleRangeRequest(event.request));
+        return;
+    }
+
+    if (event.request.mode === 'navigate') {
+        const isResource = url.pathname.includes('/resources/');
+
+        if (!isResource) {
+            event.respondWith(
+                caches.match('/index.html').then(response => {
+                    return response || safeFetch(event.request);
+                })
+            );
+            return;
+        }
+    }
+
+    if (url.pathname.endsWith('/resources.json')) {
+        event.respondWith(
+            fetch(event.request).then(networkRes => {
+                const clone = networkRes.clone();
+                if (url.protocol === 'http:' || url.protocol === 'https:') {
+                    caches.open(APP_CACHE).then(cache => cache.put(event.request, clone));
+                }
+                return networkRes;
+            }).catch(() => {
+                return caches.match(event.request);
+            })
+        );
+        return;
+    }
+
+    event.respondWith(
+        caches.match(event.request).then(cachedRes => {
+            if (cachedRes) return cachedRes;
+
+            return safeFetch(event.request).then(networkRes => {
+                if (!networkRes || networkRes.status !== 200 || networkRes.type !== 'basic') {
+                    return networkRes;
+                }
+
+                const targetCache = url.pathname.includes('/resources/')
+                    ? RESOURCE_CACHE
+                    : APP_CACHE;
+
+                const responseToCache = networkRes.clone();
+                if (url.protocol === 'http:' || url.protocol === 'https:') {
+                    caches.open(targetCache).then(cache => {
+                        cache.put(event.request, responseToCache);
+                    });
+                }
+
+                return networkRes;
+            });
+        })
+    );
+});
+
+async function handleRangeRequest(request) {
+    const cachedResponse = await caches.match(request);
+
+    if (cachedResponse) {
+        const blob = await cachedResponse.blob();
+        const header = request.headers.get('range');
+        const range = header.match(/bytes=(\d+)-(\d+)?/);
+
+        const start = parseInt(range[1]);
+        const end = range[2] ? parseInt(range[2]) : blob.size - 1;
+
+        if (start >= blob.size) {
+            return new Response('Requested range not satisfiable', { status: 416 });
+        }
+
+        const slicedBlob = blob.slice(start, end + 1);
+        const headers = new Headers(cachedResponse.headers);
+        headers.set('Content-Range', `bytes ${start}-${end}/${blob.size}`);
+        headers.set('Content-Length', slicedBlob.size);
+
+        return new Response(slicedBlob, {
+            status: 206,
+            statusText: 'Partial Content',
+            headers: headers
+        });
+    }
+
+    return fetch(request);
+}
+
+async function safeFetch(request) {
+    try {
+        const response = await fetch(request);
+        if (response && response.redirected) {
+            const body = response.body;
+            return new Response(body, {
+                status: response.status,
+                statusText: response.statusText,
+                headers: response.headers
+            });
+        }
+        return response;
+    } catch (e) {
+        throw e;
+    }
+}
