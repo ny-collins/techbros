@@ -95,7 +95,7 @@ class Store {
             }
 
             if (!this.searchWorker) {
-                this.searchWorker = new Worker('/js/search-worker.js');
+                this.searchWorker = new Worker(new URL('./search-worker.js', import.meta.url), { type: 'module' });
             }
 
             this.searchWorker.postMessage({
