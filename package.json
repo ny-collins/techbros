@@ -1,6 +1,6 @@
 {
   "name": "techbros",
-  "version": "2.0.1",
+  "version": "2.0.0",
   "description": "A PWA platform for sharing study resources with offline capabilities and P2P file sharing.",
   "keywords": [
     "pwa",
@@ -22,26 +22,29 @@
   "license": "MIT",
   "author": "Collins Mwangi",
   "type": "module",
-  "main": "scripts/add_resource.js",
+  "main": "src/app.js",
   "scripts": {
     "add": "node scripts/add_resource.js",
-    "dev": "python3 -m http.server 8000 --directory public",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "test": "jest",
-    "test:watch": "jest --watch",
-    "build": "node -e \"const fs=require('fs'); let m=fs.readFileSync('public/manifest.json','utf8'); m=m.replace(/__APP_VERSION__/g,'2.0.0'); fs.writeFileSync('public/manifest.json',m);\"",
-    "dev:vite": "vite dev --host"
+    "test:watch": "jest --watch"
   },
   "dependencies": {
+    "peerjs": "^1.5.2",
+    "qrcode": "^1.5.3",
+    "html5-qrcode": "^2.3.8",
     "chalk": "^5.6.2",
-    "inquirer": "^13.1.0",
-    "music-metadata": "^11.10.3",
-    "pdf-lib": "^1.17.1",
-    "pdf-parse": "^2.4.5"
+    "inquirer": "^13.1.0"
   },
   "devDependencies": {
+    "vite": "^5.0.0",
     "@babel/core": "^7.23.0",
     "@babel/preset-env": "^7.23.0",
     "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0"
+    "jest-environment-jsdom": "^29.7.0",
+    "music-metadata": "^7.13.4",
+    "pdf-lib": "^1.17.1"
   }
 }

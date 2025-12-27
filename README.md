@@ -1,159 +1,82 @@
-<div align="center">
-
-![TechBros Library](public/favicon.png)
-
 # TechBros Library
 
-### Offline-First Educational Resource Platform with P2P File Sharing
+**Offline-First Educational Resource Platform with Peer-to-Peer File Sharing**
 
-[![Live Site](https://img.shields.io/badge/🌐_Live-techbros.pages.dev-blue?style=for-the-badge)](https://techbros.pages.dev)
-[![Version](https://img.shields.io/badge/version-2.0.0-green?style=for-the-badge)](https://github.com/ny-collins/techbros)
-[![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-8%20passed-brightgreen?style=for-the-badge)](https://github.com/ny-collins/techbros)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue?style=flat-square)](https://github.com/ny-collins/techbros)
+[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)](https://github.com/ny-collins/techbros/actions)
 
-[🚀 Launch App](https://techbros.pages.dev) • [📖 Documentation](docs/ARCHITECTURE.md) • [🤝 Contributing](docs/CONTRIBUTING.md)
+TechBros Library is a Progressive Web Application (PWA) designed to provide educational resource access in low-bandwidth and offline environments. It leverages client-side storage and WebRTC-based peer-to-peer networking to distribute content without reliance on centralized infrastructure.
 
-</div>
+## System Overview
 
----
+The application functions as a local repository for educational materials (PDFs, Audio, Video). It employs a "Download Once, Read Forever" architecture, utilizing Service Workers for caching and IndexedDB for state management.
 
-## 🎯 What is TechBros?
+### Core Capabilities
 
-TechBros Library is a **Progressive Web Application (PWA)** that brings educational resources to users with limited internet connectivity. Built on a **"Download Once, Read Forever"** philosophy, it combines:
+*   **Offline-First Architecture:** Resources are cached locally, allowing full application functionality without network connectivity.
+*   **Peer-to-Peer Distribution:** Enables direct file transfer between client devices using WebRTC. Supports both signaling server-mediated connections (Online) and QR code-based manual signaling (Offline/LAN).
+*   **Zero-Backend Deployment:** Operates as a static site with no server-side database requirements.
+*   **Cross-Platform Compatibility:** Responsive design supporting Mobile, Tablet, and Desktop environments.
 
-- **📚 Offline-First Library** - Access PDFs, videos, and audio without internet.
-- **🔄 P2P File Sharing** - Share files directly between devices using WebRTC (No internet required after handshake).
-- **⚡ Zero Backend** - No servers, no databases, no hosting costs.
-- **📱 Universal Access** - Works on Mobile, Desktop, and Android TV.
+## Technical Specifications
 
----
+### Library Management
+*   **Search Algorithm:** Implements Levenshtein distance for fuzzy search capability.
+*   **Format Support:** Native rendering for PDF, MP4, and MP3 formats.
+*   **Interface:** Customizable Grid and List views with persistent theme preferences (Dark/Light).
 
-## ✨ Key Features
+### P2P File Transfer Protocol
+*   **Transport:** WebRTC Data Channels via PeerJS.
+*   **Signaling:**
+    *   **Online:** WebSocket connection to PeerJS cloud signaling.
+    *   **Offline:** Manual Session Description Protocol (SDP) exchange via QR Codes.
+*   **Performance:** Implements File System Access API for streaming writes, mitigating memory constraints during large file transfers.
+*   **Security:** File type validation and Content Security Policy (CSP) enforcement.
 
-### 📖 Smart Library
-- **Fuzzy Search:** Typo-tolerant search using Levenshtein distance algorithm.
-- **Multiple Formats:** Support for PDFs, videos, audio files, and images.
-- **Grid/List Views:** Toggle between different layout options.
-- **Theming:** Dark mode (default) and Light mode with high contrast.
-- **Responsive Design:** Optimized for mobile, tablet, and desktop screens.
+## Installation and Setup
 
-### 🔄 P2P AirShare
-- **Device-to-Device:** Share files directly using a simple 4-digit PIN.
-- **File Chunking:** Large files are split into chunks for reliable transfer.
-- **Progress Tracking:** Real-time transfer progress with visual indicators.
-- **Secure:** Automatic file type validation and sanitization.
-- **Cross-Platform:** Works between any devices running a modern browser.
+### User Installation
+Access the application via a supported web browser. For offline persistence, install the application to the device home screen when prompted.
 
-### 🛠️ Technical Highlights
-- **Architecture:** Modular Vanilla JavaScript (Store, UI, P2P) with zero dependencies in production.
-- **Caching:** Advanced Service Worker strategies (Network-First for data, Cache-First for assets).
-- **Security:** Strict input sanitization, file type validation, and XSS prevention.
-- **Performance:** Optimized for low-bandwidth environments with lazy loading.
-- **Testing:** Comprehensive Jest test suite with 8 passing tests.
+### Developer Setup
 
----
+**Prerequisites:** Node.js (v16+)
 
-## 🚀 Quick Start
+1.  **Clone Repository**
+    ```bash
+    git clone https://github.com/ny-collins/techbros.git
+    cd techbros
+    ```
 
-### For Users
+2.  **Install Dependencies**
+    ```bash
+    npm install
+    ```
 
-**1. Visit the live site:**
-👉 **[techbros.pages.dev](https://techbros.pages.dev)** 👈
+3.  **Development Server**
+    Start the Vite development server with hot module replacement:
+    ```bash
+    npm run dev
+    ```
 
-**2. Install:**
-Click "Add to Home Screen" to install as a native app.
+4.  **Production Build**
+    Generate optimized static assets in the `dist/` directory:
+    ```bash
+    npm run build
+    ```
 
-### For Developers
+5.  **Testing**
+    Execute the test suite using Jest:
+    ```bash
+    npm test
+    ```
 
-```bash
-# Clone the repository
-git clone https://github.com/ny-collins/techbros.git
-cd techbros
+## Documentation
 
-# Install dependencies
-npm install
+*   **[Architecture Guide](docs/ARCHITECTURE.md):** Detailed system design, data flow, and security model.
+*   **[Contributing Guidelines](docs/CONTRIBUTING.md):** Code standards and pull request process.
 
-# Run development server
-npm run dev
+## License
 
-# Run tests
-npm test
-
-# Build for production
-npm run build
-
-# Add resources to library
-npm run add
-```
-
----
-
-## 📚 Documentation
-
-| Document | Description |
-|----------|-------------|
-| **[Architecture Guide](docs/ARCHITECTURE.md)** | System design, module breakdown, and security model. |
-| **[Contributing](docs/CONTRIBUTING.md)** | How to contribute and coding standards. |
-
----
-
-## 🧪 Testing
-
-The project includes a comprehensive test suite:
-
-```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-```
-
-**Test Coverage:**
-- Store functionality (search, settings, state management)
-- 8 passing tests with Jest framework
-- ES6 module support with Babel transpilation
-
----
-
-## 📦 Build & Deployment
-
-### Local Development
-```bash
-# Start dev server (Python)
-npm run dev
-
-# Start dev server (Vite - alternative)
-npm run dev:vite
-```
-
-### Production Build
-```bash
-# Build optimized assets
-npm run build
-
-# Output: dist/ directory with production-ready files
-```
-
-### Deployment
-The app is designed for static hosting. Deploy the `dist/` folder or `public/` directory to any static host like:
-- Cloudflare Pages
-- Netlify
-- GitHub Pages
-- Vercel
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file.
-
----
-
-<div align="center">
-
-**Made with ❤️ for offline-first education**
-
-*Built with Vanilla JavaScript • Zero Dependencies in Production • PWA Ready*
-
-</div>
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

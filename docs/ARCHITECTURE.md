@@ -1,429 +1,114 @@
-# TechBros Library: Architecture & Design Documentation
+# Architecture and Design Documentation
 
-**Version:** 1.1.0  
-**Last Updated:** December 2025  
+**Version:** 2.0.0
+**Last Updated:** December 2025
 **Author:** Collins Mwangi
 
 ---
 
-## Table of Contents
+## 1. Executive Summary
 
-1. [Executive Summary](#executive-summary)
-2. [System Architecture Overview](#system-architecture-overview)
-3. [Technology Stack & Rationale](#technology-stack--rationale)
-4. [Core Components Deep Dive](#core-components-deep-dive)
-5. [Data Flow & State Management](#data-flow--state-management)
-6. [Security Architecture](#security-architecture)
-7. [Testing Architecture](#testing-architecture)
-8. [Build & Deployment Architecture](#build--deployment-architecture)
-9. [Future Considerations & Optimizations](#future-considerations--optimizations)
+TechBros Library is an offline-first Progressive Web Application (PWA) engineered to facilitate the distribution of educational resources in environments with limited or no internet connectivity. The system utilizes a static client-side architecture combined with peer-to-peer (P2P) networking protocols to achieve decentralized content sharing.
+
+### Design Principles
+
+*   **Minimal Dependency:** Utilization of vanilla JavaScript (ES Modules) to reduce bundle size and runtime overhead.
+*   **Offline Autonomy:** Full system functionality, including peer discovery and file transfer, operates independently of external network infrastructure.
+*   **Static Deployment:** Elimination of server-side dependencies to minimize operational costs and deployment complexity.
 
 ---
 
-## Executive Summary
+## 2. System Architecture
 
-**TechBros Library** is an offline-first Progressive Web Application designed to democratize access to educational resources in bandwidth-constrained environments. The application employs a hybrid architecture combining static site generation with peer-to-peer file sharing capabilities, enhanced with modern build tools and comprehensive testing.
+The application follows a modular client-side architecture managed by a central application entry point.
 
-### Design Philosophy
-
-Our architectural decisions are guided by three core principles:
-
-1. **Simplicity Over Complexity** - Vanilla JavaScript over heavy frameworks.
-2. **Offline-First Mindset** - Network is an enhancement, not a requirement.
-3. **Zero-Cost Operation** - No backend servers, databases, or hosting fees.
-
----
-
-## System Architecture Overview
+### Component Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        CLIENT BROWSER                           │
-│  ┌───────────────────────────────────────────────────────────┐ │
-│  │                    PRESENTATION LAYER                      │ │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │ │
-│  │  │ Sidebar  │  │  Search  │  │  Viewer  │  │ Settings │  │ │
-│  │  │   Nav    │  │  Filter  │  │   PDFs   │  │  Export  │  │ │
-│  │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  │ │
-│  └───────┼─────────────┼─────────────┼─────────────┼─────────┘ │
-│          │             │             │             │            │
-│  ┌───────▼─────────────▼─────────────▼─────────────▼─────────┐ │
-│  │              APPLICATION CORE (app.js)                     │ │
-│  │   ┌─────────────┐  ┌─────────────┐  ┌──────────────┐     │ │
-│  │   │   Store     │  │     UI      │  │     P2P      │     │ │
-│  │   │ (store.js)  │  │   (ui.js)   │  │   (p2p.js)   │     │ │
-│  │   └─────────────┘  └─────────────┘  └──────────────┘     │ │
-│  └───────┬─────────────────┬──────────────────┬──────────────┘ │
-│          │                 │                  │                 │
-│  ┌───────▼─────────────────▼──────────────────▼──────────────┐  │
-│  │                 STORAGE & CACHE LAYER                    │  │
-│  │  ┌────────────┐  ┌────────────┐  ┌──────────────────┐   │  │
-│  │  │LocalStorage│  │resources.js│  │  Service Worker  │   │  │
-│  │  │ (Settings) │  │(Index DB)  │  │  (Cache API)     │   │  │
-│  │  └────────────┘  └────────────┘  └──────────────────┘   │  │
-│  └──────────┬───────────────────────────────┬───────────────┘  │
-└─────────────┼───────────────────────────────┼──────────────────┘
-              │                               │
-         ┌────▼────┐                    ┌─────▼──────┐
-         │  P2P    │                    │   HTTP     │
-         │ WebRTC  │                    │   Fetch    │
-         │(PeerJS) │                    │(Resources) │
-         └────┬────┘                    └─────┬──────┘
-              │                               │
-         ┌────▼────┐                    ┌─────▼──────┐
-         │  Other  │                    │ Cloudflare │
-         │ Device  │                    │   Pages    │
-         └─────────┘                    └────────────┘
+[ Client Browser ]
+    |
+    |--- [ Presentation Layer ]
+    |       |-- Sidebar Navigation
+    |       |-- Search & Filter Interface
+    |       |-- Resource Viewer (PDF/Media)
+    |       |-- Settings & Configuration
+    |
+    |--- [ Application Core (src/app.js) ]
+    |       |
+    |       |-- [ State Manager (src/store.js) ]
+    |       |       Manages application state, user preferences, and resource index.
+    |       |
+    |       |-- [ UI Controller (src/ui.js) ]
+    |       |       Handles DOM manipulation, event routing, and rendering logic.
+    |       |
+    |       |-- [ P2P Service (src/p2p.js) ]
+    |               |-- Online Signaling (PeerJS)
+    |               |-- Offline Signaling (Manual/QR)
+    |               |-- Data Channel Management
+    |
+    |--- [ Storage Layer ]
+            |-- LocalStorage (User Preferences)
+            |-- IndexedDB / Static JSON (Resource Index)
+            |-- Service Worker Cache (Application Assets & Content)
+            |-- File System Access API (Streaming Downloads)
 ```
 
 ---
 
-## Technology Stack & Rationale
+## 3. Technology Stack
 
-### Core Technologies
-
-| Component | Technology | Rationale |
-|-----------|------------|-----------|
-| **Runtime** | Vanilla JavaScript (ES6+) | Zero dependencies, maximum performance, universal compatibility |
-| **Build System** | Vite | Fast development server, optimized production builds, modern bundling |
-| **Testing** | Jest + jsdom | Comprehensive unit testing, DOM simulation, zero-config setup |
-| **P2P** | PeerJS | WebRTC abstraction, reliable file transfers, cross-browser support |
-| **PDF Viewer** | PDF.js | Client-side PDF rendering, offline capability, security |
-| **Styling** | CSS3 + CSS Variables | Responsive design, theming support, performance |
-| **Caching** | Service Worker API | Offline-first functionality, advanced caching strategies |
-
-### Why Vanilla JavaScript?
-
-**Decision:** No React, Vue, or Angular
-
-**Reasoning:**
-- **Bundle Size:** Framework overhead adds 50-300KB+ (critical on 2G networks).
-- **Longevity:** Vanilla JS has no deprecation cycles or breaking changes.
-- **Performance:** Direct DOM manipulation is faster for our use case.
-- **Simplicity:** No build step complexity in production (though Vite used for development).
+*   **Runtime:** ECMAScript 2020+ (ES6 Modules)
+*   **Build System:** Vite (Rollup-based bundling and minification)
+*   **Networking:** WebRTC (Peer-to-Peer Data Channels)
+*   **Signaling:** PeerJS (Online) / QR Code Encoding (Offline)
+*   **Storage:** Cache API, LocalStorage, File System Access API
+*   **Testing:** Jest (Unit and Integration Testing)
 
 ---
 
-## Core Components Deep Dive
+## 4. Core Modules
 
-### 1. Application Structure (Modularized)
+### 4.1. Peer-to-Peer Service (`src/p2p.js`)
 
-*   **`app.js`**: The entry point. Initializes the Store, UI, and P2P modules and registers the Service Worker.
-*   **`js/store.js`**: Manages state (resources list, user settings). Implements fuzzy search using Levenshtein Distance.
-*   **`js/ui.js`**: Handles all DOM manipulation, view routing, event listeners, and XSS sanitization.
-*   **`js/p2p.js`**: Wraps PeerJS to handle WebRTC connections and chunked file transfers with progress tracking.
+The P2P module implements a dual-mode signaling strategy to ensure connectivity in diverse network conditions.
 
-### 2. Fuzzy Search Engine
+#### Online Mode
+Uses a WebSocket connection to a public signaling server to exchange ICE candidates and Session Description Protocol (SDP) data. This mode requires internet access for the initial handshake.
 
-**Location:** `js/store.js`
+#### Offline (Manual) Mode
+Bypasses external servers by encoding signaling data into QR codes.
+1.  **Offer Generation:** The host device creates a WebRTC offer and encodes the SDP data into a QR code.
+2.  **Scanning:** The client device scans the QR code to ingest the offer.
+3.  **Answer Generation:** The client generates an answer SDP, displayed as a counter-QR code.
+4.  **Connection:** The host scans the client's answer to establish the peer-to-peer data channel.
 
-**Algorithm:** Levenshtein Distance with optimizations.
-
-**Features:**
-- **Typo Tolerance:** "Calculs" matches "Calculus".
-- **Performance:** Cached results for common queries.
-- **Relevance:** Results filtered by edit distance threshold.
-
-### 3. P2P File Transfer Protocol
-
-**Location:** `js/p2p.js` & `js/ui.js`
-
-**Enhanced Features:**
-1.  **Identity:** Each user gets a 4-digit PIN.
-2.  **Handshake:** Sender enters Receiver's PIN to establish WebRTC connection.
-3.  **Chunked Transfer:** Large files split into 64KB chunks for reliability.
-4.  **Progress Tracking:** Real-time transfer progress with visual indicators.
-5.  **Error Recovery:** Automatic retry on chunk failures.
-6.  **Security:** MIME type validation and executable file blocking.
-
-**Workflow:**
-1. Sender selects file and generates PIN
-2. Receiver enters PIN to connect
-3. File is chunked and transferred with progress updates
-4. Receiver reassembles chunks and saves file
+### 4.2. File Stream Management
+To mitigate memory exhaustion risks on resource-constrained devices, the application implements streaming writes for file transfers.
+*   **Protocol:** Incoming data chunks are written directly to the device storage using the `FileSystemWritableFileStream` interface.
+*   **Memory Footprint:** Keeps only the current chunk (~64KB) in memory, rather than the entire file blob.
 
 ---
 
-## Data Flow & State Management
+## 5. Security Architecture
 
-### State Architecture
+### Content Security Policy (CSP)
+A strict CSP is enforced to mitigate Cross-Site Scripting (XSS) risks.
+*   `default-src 'self'`: Restricts resource loading to the application origin.
+*   `connect-src`: Permits WebSocket connections for signaling.
+*   `script-src`: Disallows inline scripts and `eval()`.
 
-```
-User Action → UI Event → Store Update → UI Re-render → DOM Update
-     ↓              ↓         ↓            ↓            ↓
-  Click        Event         State       Virtual      Browser
-  Search       Handler      Change       DOM         Display
-```
+### Resource Validation
+*   **MIME Type Verification:** Incoming files are validated against an allowlist of educational formats (PDF, MP4, MP3).
+*   **Sanitization:** User input and file metadata are sanitized before rendering to prevent DOM injection attacks.
 
-### Data Persistence
-
-- **Settings:** LocalStorage (theme, search preferences)
-- **Resources:** IndexedDB via resources.json (library index)
-- **Cache:** Service Worker Cache API (PDFs, assets)
+### Storage Quota Management
+Prior to initiating a file transfer, the system queries the `navigator.storage` API to verify sufficient available disk space, preventing incomplete transfers and storage saturation.
 
 ---
 
-## Security Architecture
+## 6. Build and Deployment
 
-### Threat Model & Defense
+The project utilizes Vite for compilation and asset optimization.
 
-1.  **XSS via User Input:**
-    *   **Defense:** All dynamic content sanitized through `ui._sanitize()`.
-
-2.  **Malicious File Uploads:**
-    *   **Defense:** P2P module validates MIME types, blocks executables.
-
-3.  **Stale Content:**
-    *   **Defense:** Network-first strategy for `resources.json`.
-
-4.  **WebRTC Security:**
-    *   **Defense:** PIN-based authentication, file type validation.
-
----
-
-## Testing Architecture
-
-### Test Framework: Jest + jsdom
-
-**Coverage Areas:**
-- Store functionality (search, settings, state management)
-- UI components (DOM manipulation, event handling)
-- P2P module (connection, file transfer simulation)
-- Utility functions (sanitization, validation)
-
-**Test Structure:**
-```
-tests/
-├── store.test.js      # State management tests
-├── ui.test.js         # DOM manipulation tests
-├── p2p.test.js        # P2P functionality tests
-└── utils.test.js      # Helper function tests
-```
-
-**CI/CD Integration:**
-- Automated test runs on commits
-- Coverage reporting
-- Pre-deployment validation
-
----
-
-## Build & Deployment Architecture
-
-### Development Workflow
-
-```bash
-# Development server (Vite)
-npm run dev:vite
-
-# Testing
-npm test
-
-# Production build
-npm run build
-```
-
-### Build System: Vite
-
-**Features:**
-- **Fast HMR:** Instant updates during development
-- **Optimized Builds:** Code splitting, minification, asset optimization
-- **ES Module Support:** Native module loading in modern browsers
-
-### Deployment: Cloudflare Pages
-
-**Strategy:**
-- **Global CDN:** Served from 300+ edge locations
-- **Atomic Deploys:** `git push` triggers automated build
-- **Zero Config:** Static site deployment with no server management
-
-**Deployment Command:**
-```bash
-npm run deploy
-# OR
-npx wrangler pages deploy dist --project-name techbros
-```
-
----
-
-## Executive Summary
-
-**TechBros Library** is an offline-first Progressive Web Application designed to democratize access to educational resources in bandwidth-constrained environments. The application employs a hybrid architecture combining static site generation with peer-to-peer file sharing capabilities.
-
-### Design Philosophy
-
-Our architectural decisions are guided by three core principles:
-
-1. **Simplicity Over Complexity** - Vanilla JavaScript over heavy frameworks.
-2. **Offline-First Mindset** - Network is an enhancement, not a requirement.
-3. **Zero-Cost Operation** - No backend servers, databases, or hosting fees.
-
----
-
-## System Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        CLIENT BROWSER                           │
-│  ┌───────────────────────────────────────────────────────────┐ │
-│  │                    PRESENTATION LAYER                      │ │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │ │
-│  │  │ Sidebar  │  │  Search  │  │  Viewer  │  │ Settings │  │ │
-│  │  │   Nav    │  │  Filter  │  │   PDFs   │  │  Export  │  │ │
-│  │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  │ │
-│  └───────┼─────────────┼─────────────┼─────────────┼─────────┘ │
-│          │             │             │             │            │
-│  ┌───────▼─────────────▼─────────────▼─────────────▼─────────┐ │
-│  │              APPLICATION CORE (app.js)                     │ │
-│  │   ┌─────────────┐  ┌─────────────┐  ┌──────────────┐     │ │
-│  │   │   Store     │  │     UI      │  │     P2P      │     │ │
-│  │   │ (store.js)  │  │   (ui.js)   │  │   (p2p.js)   │     │ │
-│  │   └─────────────┘  └─────────────┘  └──────────────┘     │ │
-│  └───────┬─────────────────┬──────────────────┬──────────────┘ │
-│          │                 │                  │                 │
-│  ┌───────▼─────────────────▼──────────────────▼──────────────┐  │
-│  │                 STORAGE & CACHE LAYER                    │  │
-│  │  ┌────────────┐  ┌────────────┐  ┌──────────────────┐   │  │
-│  │  │LocalStorage│  │resources.js│  │  Service Worker  │   │  │
-│  │  │ (Settings) │  │(Index DB)  │  │  (Cache API)     │   │  │
-│  │  └────────────┘  └────────────┘  └──────────────────┘   │  │
-│  └──────────┬───────────────────────────────┬───────────────┘  │
-└─────────────┼───────────────────────────────┼──────────────────┘
-              │                               │
-         ┌────▼────┐                    ┌─────▼──────┐
-         │  P2P    │                    │   HTTP     │
-         │ WebRTC  │                    │   Fetch    │
-         │(PeerJS) │                    │(Resources) │
-         └────┬────┘                    └─────┬──────┘
-              │                               │
-         ┌────▼────┐                    ┌─────▼──────┐
-         │  Other  │                    │ Cloudflare │
-         │ Device  │                    │   Pages    │
-         └─────────┘                    └────────────┘
-```
-
----
-
-## Technology Stack & Rationale
-
-### Why Vanilla JavaScript?
-
-**Decision:** No React, Vue, or Angular
-
-**Reasoning:**
-- **Bundle Size:** Framework overhead adds 50-300KB+ (critical on 2G networks).
-- **Longevity:** Vanilla JS has no deprecation cycles or breaking changes.
-- **Performance:** Direct DOM manipulation is faster for our use case.
-- **Simplicity:** No build step, transpilation, or toolchain complexity.
-
----
-
-## Core Components Deep Dive
-
-### 1. Application Structure (Modularized)
-
-*   **`app.js`**: The entry point. Initializes the Store, UI, and P2P modules and registers the Service Worker.
-*   **`js/store.js`**: Manages state (resources list, user settings). Implements the Fuzzy Search algorithm (Levenshtein Distance).
-*   **`js/ui.js`**: Handles all DOM manipulation, view routing, event listeners, and XSS sanitization.
-*   **`js/p2p.js`**: Wraps PeerJS to handle WebRTC connections and file transfers.
-
-### 2. Fuzzy Search Engine
-
-**Location:** `js/store.js`
-
-**Algorithm:** Levenshtein Distance.
-
-**Why Levenshtein:**
-- **Typo Tolerance:** "Calculs" matches "Calculus".
-- **Relevance:** Results are filtered based on edit distance, ensuring users find what they need even with spelling errors.
-
-### 3. P2P File Transfer Protocol
-
-**Location:** `js/p2p.js` & `js/ui.js`
-
-**Workflow:**
-1.  **Identity:** Each user gets a 4-digit PIN.
-2.  **Handshake:** Sender enters Receiver's PIN to establish a WebRTC connection via PeerJS.
-3.  **Transfer:** File is sent as a Blob.
-4.  **Reception:** Receiver gets a notification and must manually click "Save to Device" (Browser security requirement).
-
----
-
-## Security Architecture
-
-### Threat Model & Defense
-
-1.  **XSS via User Input:**
-    *   **Defense:** All dynamic content (titles, filenames) is passed through `ui._sanitize()`, which escapes HTML characters before rendering.
-2.  **Malicious File Uploads:**
-    *   **Defense:** P2P module validates MIME types and blocks executables (`.exe`, `.js`, etc.).
-3.  **Stale Content:**
-    *   **Defense:** Service Worker uses a "Network-First" strategy for `resources.json`, ensuring the library index is always up-to-date.
-
----
-
-## Deployment Architecture
-
-### Cloudflare Pages
-
-**Strategy:**
-- **Global CDN:** served from 300+ edge locations.
-- **Atomic Deploys:** `git push` triggers a build.
-- **Wrangler:** CLI tool used for manual deployments.
-
-**Command:**
-```bash
-npx wrangler pages deploy public --project-name techbros
-```
-
----
-
-## Future Considerations & Optimizations
-
-### Performance Optimizations
-
-#### P2P File Transfer Memory Management
-**Current Issue:** The P2P file transfer system (`p2p.js`) reconstructs entire files in memory using `new Blob(fileData.chunks)`, which can cause browser crashes on low-end mobile devices when transferring large files (e.g., 1GB+).
-
-**Technical Details:**
-- **Problem Code:** `fileData.chunks[data.index] = data.data;` followed by `new Blob(fileData.chunks, { type: fileData.mime })`
-- **Impact:** Full file size held in RAM during transfer
-- **Affected Devices:** Low-end mobile devices, tablets with limited RAM
-
-**Proposed Solutions:**
-1. **File System Access API:** Write chunks directly to disk instead of memory
-   - **Pros:** Zero memory overhead, handles any file size
-   - **Cons:** Requires user permission, limited browser support
-   - **Implementation:** Use `showSaveFilePicker()` and `FileSystemWritableFileStream`
-
-2. **Stream Processing:** Process files as streams rather than complete blobs
-   - **Pros:** Constant memory usage regardless of file size
-   - **Cons:** Complex implementation, requires protocol changes
-   - **Implementation:** Use `TransformStream` and `ReadableStream`
-
-3. **Progressive Blob Construction:** Build blob incrementally without full memory allocation
-   - **Pros:** Simpler implementation, maintains current protocol
-   - **Cons:** Still limited by available RAM
-   - **Implementation:** Use `Blob` constructor with smaller chunk arrays
-
-**Priority:** High (affects production stability)
-**Estimated Effort:** Medium-High
-**Timeline:** Future release (post-MVP)
-
-### Additional Future Enhancements
-
-#### Search Performance
-- **Current:** Fuzzy search runs in main thread
-- **Future:** WebAssembly implementation for faster string matching
-
-#### Storage Optimization
-- **Current:** LocalStorage for settings, Cache API for resources
-- **Future:** IndexedDB for better performance and larger data sets
-
-#### P2P Reliability
-- **Current:** Basic WebRTC with STUN servers
-- **Future:** TURN server support for firewall traversal, connection quality monitoring
-
----
-
-**Document Version:** 1.1.0  
-**Last Updated:** December 2025
+*   **Development:** `npm run dev` starts a local server with Hot Module Replacement.
+*   **Production:** `npm run build` generates a `dist/` directory containing minified JavaScript, CSS, and optimized assets suitable for deployment to static hosting environments (e.g., Cloudflare Pages, Nginx, Apache).

@@ -14,8 +14,8 @@ export default {
     '<rootDir>/__tests__/**/*.test.js'
   ],
   collectCoverageFrom: [
-    'public/js/**/*.js',
-    '!public/js/**/*.test.js'
+    'src/**/*.js',
+    '!src/**/*.test.js'
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.js']
 };

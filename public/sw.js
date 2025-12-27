@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v2.0.1';
+const CACHE_VERSION = 'v2.0.0';
 const APP_CACHE = `techbros-app-${CACHE_VERSION}`;
 const RESOURCE_CACHE = 'techbros-resources-v1';
 
@@ -15,7 +15,6 @@ const ASSETS = [
     '/favicon.png',
 
     '/vendor/peerjs.min.js',
-    '/vendor/pdf.worker.min.js',
 
     '/vendor/phosphor/regular.css',
     '/vendor/phosphor/bold.css',

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechBros Library</title>
+    
+    <meta name="description" content="Offline-first educational resource library with P2P file sharing.">
+    <meta name="theme-color" content="#0a0a0c">
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" href="/favicon.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/vendor/phosphor/regular.css">
+    <link rel="stylesheet" href="/vendor/phosphor/bold.css">
+    <link rel="stylesheet" href="/vendor/phosphor/fill.css">
+    <link rel="stylesheet" href="/vendor/phosphor/duotone.css">
+
+    <script src="/vendor/peerjs.min.js"></script>
+  <script type="module" crossorigin src="/assets/main-CeU1xSdv.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-C9cWrGZx.css">
+</head>
+<body>
+
+    <div id="splash-screen">
+        <div class="splash-content">
+            <img src="/favicon.png" alt="TechBros" class="splash-logo">
+            <h1 class="splash-title">TechBros</h1>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="app" class="app-container">
+        
+        <aside id="main-sidebar" class="sidebar">
+            <div class="brand-wrapper">
+                <div id="brand-toggle" class="brand" role="button" tabindex="0" aria-label="Toggle Sidebar">
+                    <img src="/favicon.png" alt="Logo" class="logo">
+                    <h1>TechBros</h1>
+                </div>
+                <button id="sidebar-close" class="btn-icon sidebar-close-btn" aria-label="Close Sidebar">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="#library" class="nav-link active">
+                    <i class="ph ph-books"></i> <span>Library</span>
+                </a>
+                <a href="#p2p" class="nav-link">
+                    <i class="ph ph-share-network"></i> <span>P2P Share</span>
+                </a>
+                <a href="#export" class="nav-link">
+                    <i class="ph ph-download"></i> <span>Export Data</span>
+                </a>
+                <a href="#about" class="nav-link">
+                    <i class="ph ph-info"></i> <span>About</span>
+                </a>
+                <a href="#help" class="nav-link">
+                    <i class="ph ph-question"></i> <span>Help</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div id="p2p-status" class="status-indicator neutral">
+                    <span class="dot"></span> <span class="text">Offline</span>
+                </div>
+                <small id="app-version-sidebar">v2.0.0</small>
+            </div>
+        </aside>
+
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+        <main class="main-content">
+            
+            <header id="main-header" class="top-bar">
+                <div class="top-bar-left">
+                    <button id="mobile-menu-toggle" class="btn-icon mobile-only" aria-label="Open Menu">
+                        <i class="ph ph-list"></i>
+                    </button>
+                    <div class="search-container">
+                        <i class="ph ph-magnifying-glass search-icon"></i>
+                        <input type="text" id="search-input" placeholder="Search library...">
+                    </div>
+                </div>
+                
+                <div class="actions">
+                    <button id="btn-clear-cache" class="btn-icon tooltip" data-tooltip="Clear Cache">
+                        <i class="ph ph-trash"></i>
+                    </button>
+                    <button id="theme-toggle" class="btn-icon" aria-label="Toggle Theme">
+                        <i class="ph ph-moon"></i>
+                    </button>
+                </div>
+            </header>
+
+            <section id="library-view" class="view-section active">
+                <div class="library-header">
+                    <div class="header-text">
+                        <h2>Library</h2>
+                        <p class="subtitle">Your offline collection</p>
+                    </div>
+                    <div class="view-toggles">
+                        <button id="view-grid" class="btn-icon active" title="Grid View"><i class="ph ph-squares-four"></i></button>
+                        <button id="view-list" class="btn-icon" title="List View"><i class="ph ph-list-dashes"></i></button>
+                    </div>
+                </div>
+
+                <div class="filter-chips" id="filter-container"></div>
+                
+                <div id="resource-list" class="resource-grid"></div>
+            </section>
+
+            <section id="resource-view" class="view-section">
+                <div class="player-header">
+                    <button id="btn-back-library" class="btn-back">
+                        <i class="ph ph-arrow-left"></i> <span>Back</span>
+                    </button>
+                </div>
+                <div id="player-container" class="player-container"></div>
+            </section>
+
+            <section id="p2p-view" class="view-section">
+                <div class="p2p-container">
+                    <div class="p2p-identity-card">
+                        <div class="radar-container">
+                            <div class="radar-scan"></div>
+                            <div class="radar-scan delay-1"></div>
+                            <div class="pin-wrapper">
+                                <span class="label">MY SIGNAL</span>
+                                <span id="my-pin-display" class="code">....</span>
+                            </div>
+                        </div>
+                        <p class="instruction">Share this PIN to receive files</p>
+                    </div>
+
+                    <div class="p2p-controls">
+                        <div class="p2p-tabs">
+                            <button class="p2p-tab-btn active" data-tab="send">
+                                <i class="ph ph-paper-plane-right"></i> Send
+                            </button>
+                            <button class="p2p-tab-btn" data-tab="receive">
+                                <i class="ph ph-download-simple"></i> Receive
+                            </button>
+                        </div>
+
+                        <div class="manual-mode-toggle" style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="manual-mode-switch">
+                            <label for="manual-mode-switch">Manual Mode (Offline QR)</label>
+                        </div>
+
+                        <div id="manual-signal-area" class="hidden" style="margin-bottom: 1.5rem; text-align: center;">
+                            <div id="qr-display"></div>
+                            <div id="qr-reader" style="width: 300px; margin: 0 auto; display: none;"></div>
+                            <button id="btn-scan-qr" class="btn secondary small" style="margin-top: 10px;">Scan Peer QR</button>
+                            <textarea id="manual-signal-input" placeholder="Or paste signal data here" style="width: 100%; margin-top: 10px; display: none;"></textarea>
+                        </div>
+
+                        <div id="tab-send" class="p2p-tab-content active">
+                            <div class="p2p-card">
+                                <div class="connection-form">
+                                    <input type="text" pattern="[0-9]*" inputmode="numeric" id="remote-pin" placeholder="ENTER RECEIVER PIN" maxlength="4">
+                                    <button id="btn-connect" class="btn primary">Connect</button>
+                                </div>
+                                <div id="drop-zone" class="drop-zone">
+                                    <div class="drop-content">
+                                        <i class="ph ph-cloud-arrow-up"></i>
+                                        <p>Drop file here or click to browse</p>
+                                    </div>
+                                    <input type="file" id="file-upload" hidden>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="tab-receive" class="p2p-tab-content">
+                            <div class="p2p-card">
+                                <div class="queue-header">
+                                    <h4>Incoming</h4>
+                                    <span class="live-badge">LIVE</span>
+                                </div>
+                                <div id="transfer-status" class="transfer-log">
+                                    <div class="empty-log">
+                                        <i class="ph ph-broadcast"></i>
+                                        <p>Waiting for connection...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="export-view" class="view-section">
+                <div class="header-text">
+                    <h2>Export Data</h2>
+                    <p class="subtitle">Manage your local data</p>
+                </div>
+                
+                <div class="settings-list">
+                    <div class="setting-item">
+                        <div class="setting-content">
+                            <h3>Settings Backup</h3>
+                            <p>Download a JSON file containing your theme preferences, layout settings, and search history. Useful when moving to a new device.</p>
+                            <button class="btn primary small">Export JSON</button>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div class="setting-content">
+                            <h3>Library Catalog</h3>
+                            <p>Generate a complete manifest of all files currently stored in your offline library. This list can be shared with others to compare collections.</p>
+                            <button class="btn secondary small">Export Catalog</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="about-view" class="view-section">
+                <div class="hero-section">
+                    <img src="/favicon.png" alt="TechBros" class="hero-logo">
+                    <h2>TechBros Library</h2>
+                    <p>Knowledge Without Boundaries</p>
+                </div>
+
+                <div class="about-content">
+                    <div class="about-block">
+                        <h3>Our Mission</h3>
+                        <p>TechBros is built on a simple belief: <strong>Education should not depend on your internet connection.</strong> We provide a platform where high-quality educational resources—textbooks, video lectures, and audio guides—live permanently on your device, accessible anytime, anywhere.</p>
+                    </div>
+
+                    <div class="about-block">
+                        <h3>Key Capabilities</h3>
+                        
+                        <div class="capability-item">
+                            <h4><i class="ph ph-books"></i> Smart Offline Library</h4>
+                            <p>Your entire study collection is organized, searchable, and instantly accessible. Our fuzzy-search technology helps you find resources even if you make a typo. Support for PDFs, MP4 videos, and MP3 audio means you can learn in the way that suits you best.</p>
+                        </div>
+
+                        <div class="capability-item">
+                            <h4><i class="ph ph-wifi-slash"></i> Zero-Data Usage</h4>
+                            <p>Once you've downloaded a resource or the app itself, you never need to spend data on it again. It works completely offline, making it perfect for remote areas, travel, or anyone with limited data plans.</p>
+                        </div>
+
+                        <div class="capability-item">
+                            <h4><i class="ph ph-share-network"></i> AirShare (P2P)</h4>
+                            <p>Share knowledge with your classmates or students without using the internet. Our Peer-to-Peer technology connects devices directly, allowing you to beam heavy textbooks or video courses from one phone to another in seconds.</p>
+                        </div>
+                    </div>
+
+                    <div class="about-block">
+                        <h3>Who is this for?</h3>
+                        <ul style="list-style: none; padding: 0; color: var(--text-muted);">
+                            <li style="margin-bottom: 0.5rem;"><i class="ph ph-student" style="color: var(--primary); margin-right: 8px;"></i> <strong>Students:</strong> Keep your entire curriculum in your pocket.</li>
+                            <li style="margin-bottom: 0.5rem;"><i class="ph ph-chalkboard-teacher" style="color: var(--primary); margin-right: 8px;"></i> <strong>Educators:</strong> Distribute materials to a whole class effortlessly.</li>
+                            <li><i class="ph ph-globe" style="color: var(--primary); margin-right: 8px;"></i> <strong>Remote Learners:</strong> Learn without boundaries or buffering.</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="about-block">
+                        <h3>Installation</h3>
+                        <p>For the best experience, install TechBros as a native app on your device.</p>
+                        <div class="install-action" id="install-container">
+                            <button id="btn-install-pwa" class="btn primary hidden">Install App</button>
+                        </div>
+                    </div>
+
+                    <div class="developer-section">
+                        <p>Version 2.0.0 • Developed by <strong>Collins Mwangi</strong></p>
+                        <a href="https://github.com/ny-collins/techbros" target="_blank" class="btn text-btn">
+                            <i class="ph ph-github-logo"></i> View Source
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+             <section id="help-view" class="view-section">
+                <h2>Help Center</h2>
+                <div class="help-list">
+                    <div class="help-item">
+                        <h3><i class="ph ph-books"></i> Library Navigation</h3>
+                        <p><strong>Icons & Controls:</strong></p>
+                        <ul>
+                            <li><i class="ph ph-squares-four"></i> <strong>Grid View:</strong> Displays resources as cards with thumbnails.</li>
+                            <li><i class="ph ph-list-dashes"></i> <strong>List View:</strong> Displays resources as a compact list.</li>
+                            <li><i class="ph ph-magnifying-glass"></i> <strong>Search:</strong> Finds resources by title or type (typo-tolerant).</li>
+                            <li><strong>Filter Chips:</strong> Click "Video", "Audio", or "PDF" to see only that file type.</li>
+                        </ul>
+                        <p class="tip"><strong>Tip:</strong> Click any card to open the resource. Video and Audio play directly; PDFs open in a built-in viewer.</p>
+                    </div>
+
+                    <div class="help-item">
+                        <h3><i class="ph ph-share-network"></i> P2P File Sharing</h3>
+                        <p>Transfer files directly between devices without a server.</p>
+                        <p><strong>To Send:</strong> Go to the <strong>P2P Share</strong> tab, click <strong>Send</strong>, enter the receiver's <strong>4-digit PIN</strong>, click <strong>Connect</strong>, then drag & drop your file.</p>
+                        <p><strong>To Receive:</strong> Go to the <strong>P2P Share</strong> tab, share your <strong>My Signal</strong> PIN, wait for the connection, and click <strong>Save to Device</strong> when the file arrives.</p>
+                    </div>
+
+                    <div class="help-item">
+                        <h3><i class="ph ph-wifi-slash"></i> Offline Usage</h3>
+                        <p>The app automatically saves visited pages and resources to your device. Use the <i class="ph ph-trash"></i> button in the header to clear storage if needed. P2P sharing requires a brief internet connection to find the other device, but the transfer is direct.</p>
+                    </div>
+
+                    <div class="help-item">
+                        <h3><i class="ph ph-gear"></i> Settings & Export</h3>
+                        <p><strong>Settings Backup:</strong> Downloads a .json file of your preferences.</p>
+                        <p><strong>Library Catalog:</strong> Exports a list of all files you have available.</p>
+                        <p><strong>Theme:</strong> Toggle between Dark <i class="ph ph-moon"></i> and Light <i class="ph ph-sun"></i> modes in the top right.</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <div id="confirmation-overlay" class="confirmation-overlay hidden">
+        <div class="confirmation-dialog">
+            <p id="confirmation-message">Are you sure?</p>
+            <div class="confirmation-actions">
+                <button id="btn-confirm-cancel" class="btn secondary">Cancel</button>
+                <button id="btn-confirm-ok" class="btn danger">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+    <div id="notification-area"></div>
+
+
+</body>
+</html>

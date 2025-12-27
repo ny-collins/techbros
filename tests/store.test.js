@@ -1,4 +1,4 @@
-import { store } from '../public/js/store.js';
+import { store } from '../src/store.js';
 
 describe('Store', () => {
   beforeEach(() => {

@@ -1,0 +1,11 @@
+# TechBros Library - robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://techbros.pages.dev/sitemap.xml
+
+# Disallow indexing of internal resources
+Disallow: /sw.js
+Disallow: /manifest.json
+Disallow: /resources/
