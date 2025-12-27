@@ -1,6 +1,5 @@
 import { p2p } from '../src/p2p.js';
 
-// Mock PeerJS
 jest.mock('peerjs', () => {
     return {
         Peer: jest.fn().mockImplementation(() => ({
@@ -11,7 +10,6 @@ jest.mock('peerjs', () => {
     };
 });
 
-// Mock WebRTC globals
 global.RTCPeerConnection = jest.fn().mockImplementation(() => ({
     createDataChannel: jest.fn(() => ({
         onopen: null,
@@ -38,9 +36,6 @@ describe('P2PService', () => {
     describe('Online Mode', () => {
         test('initializes PeerJS by default', async () => {
             const promise = p2p.init();
-            // We need to manually trigger the 'open' event on the mock if we want the promise to resolve,
-            // or just check internal state if exposed.
-            // Since init() returns a promise waiting for 'open', we verify the constructor called.
             expect(p2p.mode).toBe('online');
         });
     });
@@ -59,13 +54,7 @@ describe('P2PService', () => {
             
             await p2p.initManual(true);
             
-            // Simulate ICE gathering complete
             const mockOffer = JSON.stringify({ type: 'offer', sdp: 'mock-sdp' });
-            // We need to access the private/internal manualService to trigger the event listener
-            // or we rely on the implementation details.
-            // For this test, we can trust initManual attaches the listeners.
-            
-            // Trigger the internal event dispatch
             p2p.manualService.dispatchEvent(new CustomEvent('signal-ready', { detail: mockOffer }));
             
             expect(spy).toHaveBeenCalledWith(expect.objectContaining({
@@ -74,7 +63,7 @@ describe('P2PService', () => {
         });
 
         test('processes incoming manual signal', async () => {
-            await p2p.initManual(false); // Guest
+            await p2p.initManual(false);
             
             const mockSignal = JSON.stringify({ type: 'offer', sdp: 'remote-sdp' });
             await p2p.processManualSignal(mockSignal);

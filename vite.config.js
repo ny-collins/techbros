@@ -2,8 +2,8 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 export default defineConfig({
-  root: '.', // Project root
-  publicDir: 'public', // Static assets like resources.json, icons
+  root: '.',
+  publicDir: 'public',
   build: {
     outDir: 'dist',
     emptyOutDir: true,
