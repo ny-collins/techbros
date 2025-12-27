@@ -11,6 +11,7 @@ const ASSETS = [
     '/src/app.js',
     '/src/store.js',
     '/src/p2p.js',
+    '/src/db.js',
     '/src/ui.js',
     '/src/search-worker.js',
     '/vendor/peerjs.min.js',

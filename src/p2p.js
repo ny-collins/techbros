@@ -1,4 +1,5 @@
 import { Peer } from 'peerjs';
+import { db } from './db.js';
 
 class ManualP2PService extends EventTarget {
     constructor() {
@@ -241,12 +242,13 @@ export class P2PService extends EventTarget {
             }
 
             this.receivingChunks.set(data.name, {
-                chunks: new Array(data.totalChunks),
                 received: 0,
                 total: data.totalChunks,
                 size: data.size,
                 mime: data.mime
             });
+            // Clear any previous chunks for this file to avoid corruption
+            db.deleteFileChunks(data.name).catch(e => console.warn('Failed to clear old chunks', e));
             this.dispatchEvent(new CustomEvent('transfer-start', { detail: data }));
             return;
         }
@@ -271,20 +273,27 @@ export class P2PService extends EventTarget {
             const fileData = this.receivingChunks.get(data.name);
             if (!fileData) return;
 
-            fileData.chunks[data.index] = data.data;
+            // Store chunk in IDB instead of RAM
+            await db.addChunk(data.name, data.index, data.data);
             fileData.received++;
 
             const progress = (fileData.received / fileData.total) * 100;
             this.dispatchEvent(new CustomEvent('receive-progress', { detail: { name: data.name, progress } }));
 
             if (fileData.received === fileData.total) {
-                const blob = new Blob(fileData.chunks, { type: fileData.mime });
+                // Retrieve all chunks from IDB
+                const chunks = await db.getFileChunks(data.name);
+                const blob = new Blob(chunks, { type: fileData.mime });
                 const safeBlob = this._sanitizeBlob(blob, fileData.mime);
+                
                 if (safeBlob) {
                     this.dispatchEvent(new CustomEvent('file-received', {
                         detail: { blob: safeBlob, name: data.name, mime: fileData.mime }
                     }));
                 }
+                
+                // Cleanup IDB and memory map
+                await db.deleteFileChunks(data.name);
                 this.receivingChunks.delete(data.name);
             }
         }
