@@ -52,6 +52,21 @@ export class SnowSystem {
     this.loop();
   }
 
+  pause() {
+    if (this.canvas) this.canvas.style.display = 'none';
+    if (this.animationFrameId) {
+        cancelAnimationFrame(this.animationFrameId);
+        this.animationFrameId = null;
+    }
+  }
+
+  resume() {
+    if (this.canvas) this.canvas.style.display = 'block';
+    if (!this.animationFrameId) {
+        this.loop();
+    }
+  }
+
   resize() {
     this.width = window.innerWidth;
     this.height = window.innerHeight;

@@ -11,6 +11,7 @@ export const viewer = {
         if (this.elements.backButton) {
             this.elements.backButton.addEventListener('click', () => {
                 this.clear();
+                if (window.snowSystem) window.snowSystem.resume();
                 router.navigateTo('library');
             });
         }
@@ -19,6 +20,9 @@ export const viewer = {
     open(resource, router) {
         common.closeSidebar();
         this.clear();
+        
+        // Resume snow by default, pause only for PDF
+        if (window.snowSystem) window.snowSystem.resume();
 
         const container = this.elements.container;
         if (!container) return;
@@ -28,6 +32,7 @@ export const viewer = {
         } else if (resource.type === 'video') {
             this._renderVideo(resource, container);
         } else if (resource.type === 'pdf') {
+            if (window.snowSystem) window.snowSystem.pause();
             this._renderPDF(resource, container);
         } else {
             this._renderImage(resource, container);

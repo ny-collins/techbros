@@ -27,6 +27,7 @@ const bootApp = async () => {
         if (today.getMonth() === 11) {
             const snow = new SnowSystem();
             snow.init();
+            window.snowSystem = snow;
             console.log('[App] Festive mode activated: Let it snow! ❄️');
         }
     } catch (error) {
