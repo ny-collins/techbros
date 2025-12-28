@@ -3,38 +3,46 @@ export class SnowSystem {
     this.canvas = null;
     this.ctx = null;
     this.flakes = [];
-    this.flakeCount = 200; // Number of snowflakes
+    this.flakeCount = 200;
     this.animationFrameId = null;
     this.width = 0;
     this.height = 0;
+    this.mouse = { x: -1000, y: -1000 };
   }
 
   init() {
-    // 1. Create and append the canvas dynamically
     this.canvas = document.createElement('canvas');
     this.canvas.id = 'snow-canvas';
     this.ctx = this.canvas.getContext('2d');
-    
-    // 2. Set canvas styles via JS (or move to CSS) to ensure it's an overlay
     this.canvas.style.position = 'fixed';
     this.canvas.style.top = '0';
     this.canvas.style.left = '0';
     this.canvas.style.width = '100%';
     this.canvas.style.height = '100%';
-    this.canvas.style.pointerEvents = 'none'; // Crucial: lets clicks pass through to your app
-    this.canvas.style.zIndex = '9999'; // On top of everything
+    this.canvas.style.pointerEvents = 'none';
+    this.canvas.style.zIndex = '9999';
     
     document.body.appendChild(this.canvas);
-
-    // 3. Handle resizing
     this.boundResize = this.resize.bind(this);
     window.addEventListener('resize', this.boundResize);
     this.resize();
-
-    // 4. Create particles
-    this.createFlakes();
-
-    // 5. Start the loop
+    this.boundMouseMove = (e) => {
+        let clientX, clientY;
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        this.mouse.x = clientX;
+        this.mouse.y = clientY;
+    };
+    
+    window.addEventListener('mousemove', this.boundMouseMove);
+    window.addEventListener('touchmove', this.boundMouseMove, { passive: true });
+    window.addEventListener('touchstart', this.boundMouseMove, { passive: true });
+    this.createFlakes(); 
     this.loop();
   }
 
@@ -52,9 +60,9 @@ export class SnowSystem {
         x: Math.random() * this.width,
         y: Math.random() * this.height,
         opacity: Math.random(),
-        speedX: Math.random() * 1 - 0.5, // Slight horizontal drift
-        speedY: Math.random() * 3 + 1,   // Falling speed (Gravity)
-        radius: Math.random() * 3 + 1    // Size of flake
+        speedX: Math.random() * 1 - 0.5,
+        speedY: Math.random() * 3 + 1,
+        radius: Math.random() * 3 + 1
       });
     }
   }
@@ -62,15 +70,20 @@ export class SnowSystem {
   update() {
     for (let i = 0; i < this.flakeCount; i++) {
       let flake = this.flakes[i];
-
-      // Physics: Apply Gravity
       flake.y += flake.speedY;
-      
-      // Physics: Apply Wind (Sine wave for swaying)
-      // x(t) = x_0 + \sin(t)
       flake.x += Math.sin(flake.y * 0.01) * 0.5 + flake.speedX;
+      const dx = flake.x - this.mouse.x;
+      const dy = flake.y - this.mouse.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const interactionRadius = 250;
 
-      // Reset if off screen
+      if (dist < interactionRadius) {
+          const force = (interactionRadius - dist) / interactionRadius;
+          const angle = Math.atan2(dy, dx);
+          flake.x += Math.cos(angle) * force * 15;
+          flake.y += Math.sin(angle) * force * 15;
+      }
+
       if (flake.y > this.height) {
         flake.y = -5;
         flake.x = Math.random() * this.width;
@@ -81,7 +94,6 @@ export class SnowSystem {
   }
 
   draw() {
-    // Clear the previous frame
     this.ctx.clearRect(0, 0, this.width, this.height);
     
     this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
@@ -105,6 +117,9 @@ export class SnowSystem {
   destroy() {
     cancelAnimationFrame(this.animationFrameId);
     window.removeEventListener('resize', this.boundResize);
+    window.removeEventListener('mousemove', this.boundMouseMove);
+    window.removeEventListener('touchmove', this.boundMouseMove);
+    window.removeEventListener('touchstart', this.boundMouseMove);
     if (this.canvas) this.canvas.remove();
   }
 }

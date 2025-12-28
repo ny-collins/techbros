@@ -155,7 +155,8 @@ export class P2PService extends EventTarget {
         }
 
         const totalChunks = Math.ceil(file.size / this.chunkSize);
-        sendData({ type: 'meta', name: file.name, size: file.size, mime: file.type, totalChunks });
+        const transferId = crypto.randomUUID();
+        sendData({ type: 'meta', name: file.name, size: file.size, mime: file.type, totalChunks, transferId });
 
         for (let i = 0; i < totalChunks; i++) {
             const start = i * this.chunkSize;
@@ -169,7 +170,7 @@ export class P2PService extends EventTarget {
                  chunkData = await chunk.arrayBuffer();
             }
 
-            sendData({ type: 'chunk', index: i, total: totalChunks, data: chunkData, name: file.name });
+            sendData({ type: 'chunk', index: i, total: totalChunks, data: chunkData, name: file.name, transferId });
 
             const progress = ((i + 1) / totalChunks) * 100;
             this.dispatchEvent(new CustomEvent('send-progress', { detail: { name: file.name, progress } }));
@@ -237,7 +238,7 @@ export class P2PService extends EventTarget {
                         types: [{ description: 'File', accept: { [data.mime]: ['.' + data.name.split('.').pop()] } }]
                     });
                     const writable = await handle.createWritable();
-                    this.fileStreams.set(data.name, { writable, received: 0, total: data.totalChunks });
+                    this.fileStreams.set(data.transferId, { writable, received: 0, total: data.totalChunks, name: data.name });
                     this.dispatchEvent(new CustomEvent('transfer-start', { detail: data }));
                     return;
                 }
@@ -245,60 +246,62 @@ export class P2PService extends EventTarget {
                 console.warn('[P2P] File Picker cancelled or failed, falling back to RAM.', err);
             }
 
-            this.receivingChunks.set(data.name, {
+            this.receivingChunks.set(data.transferId, {
                 received: 0,
                 total: data.totalChunks,
                 size: data.size,
-                mime: data.mime
+                mime: data.mime,
+                name: data.name
             });
-            // Clear any previous chunks for this file to avoid corruption
-            db.deleteFileChunks(data.name).catch(e => console.warn('Failed to clear old chunks', e));
+            // Clear any previous chunks for this transfer ID (unlikely but safe)
+            db.deleteFileChunks(data.transferId).catch(e => console.warn('Failed to clear old chunks', e));
             this.dispatchEvent(new CustomEvent('transfer-start', { detail: data }));
             return;
         }
 
         if (data.type === 'chunk') {
-            if (this.fileStreams.has(data.name)) {
-                const stream = this.fileStreams.get(data.name);
+            // Check direct stream first
+            if (this.fileStreams.has(data.transferId)) {
+                const stream = this.fileStreams.get(data.transferId);
                 await stream.writable.write(data.data);
                 stream.received++;
                 
                 const progress = (stream.received / stream.total) * 100;
-                this.dispatchEvent(new CustomEvent('receive-progress', { detail: { name: data.name, progress } }));
+                this.dispatchEvent(new CustomEvent('receive-progress', { detail: { name: stream.name, progress } }));
 
                 if (stream.received === stream.total) {
                     await stream.writable.close();
-                    this.fileStreams.delete(data.name);
-                    this.dispatchEvent(new CustomEvent('file-saved', { detail: { name: data.name } }));
+                    this.fileStreams.delete(data.transferId);
+                    this.dispatchEvent(new CustomEvent('file-saved', { detail: { name: stream.name } }));
                 }
                 return;
             }
 
-            const fileData = this.receivingChunks.get(data.name);
+            const fileData = this.receivingChunks.get(data.transferId);
             if (!fileData) return;
 
-            // Store chunk in IDB instead of RAM
-            await db.addChunk(data.name, data.index, data.data);
+            // Store chunk in IDB
+            await db.addChunk(data.transferId, data.index, data.data);
             fileData.received++;
 
             const progress = (fileData.received / fileData.total) * 100;
-            this.dispatchEvent(new CustomEvent('receive-progress', { detail: { name: data.name, progress } }));
+            this.dispatchEvent(new CustomEvent('receive-progress', { detail: { name: fileData.name, progress } }));
 
             if (fileData.received === fileData.total) {
                 // Retrieve all chunks from IDB
-                const chunks = await db.getFileChunks(data.name);
+                const chunks = await db.getFileChunks(data.transferId);
                 const blob = new Blob(chunks, { type: fileData.mime });
                 const safeBlob = this._sanitizeBlob(blob, fileData.mime);
                 
                 if (safeBlob) {
                     this.dispatchEvent(new CustomEvent('file-received', {
-                        detail: { blob: safeBlob, name: data.name, mime: fileData.mime }
+                        detail: { blob: safeBlob, name: fileData.name, mime: fileData.mime }
                     }));
                 }
                 
                 // Cleanup IDB and memory map
-                await db.deleteFileChunks(data.name);
-                this.receivingChunks.delete(data.name);
+                await db.deleteFileChunks(data.transferId);
+                this.receivingChunks.delete(data.transferId);
             }
         }
     }

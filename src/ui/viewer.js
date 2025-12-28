@@ -98,12 +98,59 @@ export const viewer = {
     _renderImage(resource, container) {
         const img = document.createElement('img');
         img.src = resource.url;
-        img.style.maxWidth = '100%'; 
-        img.style.maxHeight = '90vh';
         img.onerror = () => {
             img.style.display = 'none';
             common.showToast('Error loading image', 'error');
         };
+
+        // Zoom state
+        let scale = 1;
+        let lastScale = 1;
+        let startDist = 0;
+        let isPinching = false;
+        let posX = 0, posY = 0;
+        let lastX = 0, lastY = 0;
+
+        img.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                isPinching = true;
+                startDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                lastScale = scale;
+            } else if (e.touches.length === 1) {
+                lastX = e.touches[0].clientX - posX;
+                lastY = e.touches[0].clientY - posY;
+            }
+        });
+
+        img.addEventListener('touchmove', (e) => {
+            if (isPinching && e.touches.length === 2) {
+                const dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                scale = Math.min(Math.max(1, lastScale * (dist / startDist)), 4);
+                img.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+                e.preventDefault();
+            } else if (!isPinching && e.touches.length === 1 && scale > 1) {
+                posX = e.touches[0].clientX - lastX;
+                posY = e.touches[0].clientY - lastY;
+                img.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        img.addEventListener('touchend', () => {
+            isPinching = false;
+        });
+
+        container.style.overflow = 'hidden';
+        container.style.display = 'flex';
+        container.style.alignItems = 'center';
+        container.style.justifyContent = 'center';
+        
         container.appendChild(img);
     },
 

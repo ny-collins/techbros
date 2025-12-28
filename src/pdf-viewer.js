@@ -15,6 +15,11 @@ export class PDFViewer {
         this.canvas = null;
         this.ctx = null;
         this.pageLabel = null;
+        
+        // Touch State
+        this.touchStartDist = 0;
+        this.touchStartScale = 1;
+        this.isPinching = false;
     }
 
     async init() {
@@ -76,6 +81,49 @@ export class PDFViewer {
         toolbar.querySelector('#zoom_in').addEventListener('click', () => { this.scale += 0.1; this.renderPage(this.pageNum); });
         
         this.pageLabel = toolbar.querySelector('#page_num');
+
+        this._setupTouchEvents(canvasWrapper);
+    }
+
+    _setupTouchEvents(element) {
+        element.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                this.isPinching = true;
+                this.touchStartDist = this._getTouchDistance(e.touches);
+                this.touchStartScale = this.scale;
+                e.preventDefault(); // Prevent default browser zoom
+            }
+        }, { passive: false });
+
+        element.addEventListener('touchmove', (e) => {
+            if (this.isPinching && e.touches.length === 2) {
+                const dist = this._getTouchDistance(e.touches);
+                const ratio = dist / this.touchStartDist;
+                
+                // Limit zoom levels
+                const newScale = Math.min(Math.max(0.5, this.touchStartScale * ratio), 3.0);
+                
+                // Only re-render if scale changed significantly (performance optimization)
+                if (Math.abs(newScale - this.scale) > 0.05) {
+                    this.scale = newScale;
+                    this.renderPage(this.pageNum);
+                }
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        element.addEventListener('touchend', (e) => {
+            if (this.isPinching && e.touches.length < 2) {
+                this.isPinching = false;
+            }
+        });
+    }
+
+    _getTouchDistance(touches) {
+        return Math.hypot(
+            touches[0].clientX - touches[1].clientX,
+            touches[0].clientY - touches[1].clientY
+        );
     }
 
     async renderPage(num) {
@@ -87,14 +135,20 @@ export class PDFViewer {
             // Determine scale based on container width if it's the first load or reset
             const viewport = page.getViewport({ scale: this.scale });
             
-            // Responsive scaling: Fit width
+            // Responsive scaling: Fit width only on first load (if scale is default 1.0)
             const wrapper = this.container.querySelector('.pdf-canvas-wrapper');
-            const availWidth = wrapper.clientWidth || window.innerWidth;
-            
-            // If the viewport is wider than available space, scale down
-            // But respect manual zoom if user changed it (logic can be improved)
-            // For now, let's just stick to the set scale.
-            
+            if (this.scale === 1.0 && wrapper) {
+                const availWidth = wrapper.clientWidth || window.innerWidth;
+                const baseViewport = page.getViewport({ scale: 1.0 });
+                // If PDF is wider than screen, fit it. 
+                // We update this.scale so subsequent renders respect it.
+                if (baseViewport.width > availWidth) {
+                    this.scale = (availWidth - 40) / baseViewport.width; // -40 for padding
+                    // Re-calculate viewport with new scale
+                    return this.renderPage(num);
+                }
+            }
+
             this.canvas.height = viewport.height;
             this.canvas.width = viewport.width;
 
