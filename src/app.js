@@ -1,6 +1,7 @@
 import { store } from './store.js';
 import { ui } from './ui.js';
 import { p2p } from './p2p.js';
+import { SnowSystem } from './ui/snow.js';
 
 const bootApp = async () => {
     try {
@@ -19,6 +20,17 @@ const bootApp = async () => {
         ui.init();
     } catch (error) {
         console.error('[App] UI initialization failed:', error);
+    }
+
+    try {
+        const today = new Date();
+        if (today.getMonth() === 11) {
+            const snow = new SnowSystem();
+            snow.init();
+            console.log('[App] Festive mode activated: Let it snow! ❄️');
+        }
+    } catch (error) {
+        console.error('[App] Snow system initialization failed:', error);
     }
 
     console.log('[App] Boot sequence complete');
