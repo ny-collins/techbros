@@ -68,6 +68,9 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
 
+    // Ignore unsupported schemes (chrome-extension, etc.)
+    if (!url.protocol.startsWith('http')) return;
+
     if (url.pathname.startsWith('/resources/')) {
         event.respondWith(handleResourceRequest(event.request));
         return;
