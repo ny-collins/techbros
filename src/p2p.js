@@ -94,7 +94,11 @@ export class P2PService extends EventTarget {
                 config: {
                     iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'turn:global.relay.metered.ca:80', username: '0a1d263dcfcb9483854a0e59', credential: 'RgD6934qR94TpIJm' }
+                        { 
+                            urls: import.meta.env.VITE_TURN_URL, 
+                            username: import.meta.env.VITE_TURN_USERNAME, 
+                            credential: import.meta.env.VITE_TURN_CREDENTIAL 
+                        }
                     ]
                 }
             });

@@ -75,9 +75,14 @@ To add a file to the library index (`public/resources.json`):
 ## Directory Structure
 
 *   **`src/`**: Application source code.
+    *   **`ui/`**: UI modules (`library.js`, `viewer.js`, `p2p-ui.js`, `router.js`, `common.js`).
+    *   `pdf-viewer.js`: PDF rendering logic using `pdfjs-dist`.
+    *   `db.js`: IndexedDB helper.
 *   **`public/`**: Static assets served directly.
     *   `resources/`: The actual educational content files.
     *   `resources.json`: The metadata index for the library.
+    *   `sw.js`: Service Worker.
 *   **`tests/`**: Jest test files.
 *   **`docs/`**: Project documentation.
 *   **`scripts/`**: Utility scripts for build and maintenance.
+*   **`.env`**: Local environment variables (not committed).
