@@ -82,6 +82,7 @@
                     </button>
                     <div class="search-container">
                         <i class="ph ph-magnifying-glass search-icon"></i>
+                        <label for="search-input" class="hidden">Search Library</label>
                         <input type="text" id="search-input" placeholder="Search library...">
                     </div>
                 </div>
@@ -146,7 +147,7 @@
                             </button>
                         </div>
 
-                        <div class="manual-mode-toggle" style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
+                        <div class="manual-mode-toggle">
                             <input type="checkbox" id="manual-mode-switch">
                             <label for="manual-mode-switch">Manual Mode (Offline QR)</label>
                         </div>
@@ -177,7 +178,7 @@
                         <div id="tab-receive" class="p2p-tab-content">
                             <div class="p2p-card">
                                 <div class="queue-header">
-                                    <h4>Incoming</h4>
+                                    <h3>Incoming</h3>
                                     <span class="live-badge">LIVE</span>
                                 </div>
                                 <div id="transfer-status" class="transfer-log">

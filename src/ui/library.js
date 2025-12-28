@@ -79,9 +79,9 @@ export const library = {
 
         if (resources.length === 0) {
             this.elements.list.innerHTML = `
-                <div class="empty-state" style="grid-column: 1/-1; text-align:center; padding: 4rem; color: var(--glass-border);">
-                    <i class="ph ph-ghost" style="font-size: 64px; margin-bottom: 1rem; opacity: 0.5;"></i>
-                    <p style="color: var(--text-muted);">No resources found.</p>
+                <div class="empty-state" style="grid-column: 1/-1; text-align:center; padding: 4rem; color: var(--text-muted);">
+                    <i class="ph ph-ghost" style="font-size: 64px; margin-bottom: 1rem; opacity: 0.8;"></i>
+                    <p style="color: var(--text-main); font-weight: 500;">No resources found.</p>
                 </div>`;
             return;
         }
