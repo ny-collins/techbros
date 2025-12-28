@@ -286,10 +286,13 @@ class UI {
             video.onerror = () => this.showToast('Error loading video', 'error');
             if(container) container.appendChild(video);
         } else if (resource.type === 'pdf') {
-            const iframe = document.createElement('iframe');
-            iframe.className = 'full-viewer';
-            iframe.src = resource.url;
-            if(container) container.appendChild(iframe);
+            const pdfContainer = document.createElement('div');
+            pdfContainer.className = 'full-viewer pdf-viewer-root';
+            if(container) {
+                container.appendChild(pdfContainer);
+                const viewer = new PDFViewer(pdfContainer, resource.url);
+                viewer.init();
+            }
         } else {
              const img = document.createElement('img');
              img.src = resource.url;
