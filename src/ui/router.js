@@ -9,6 +9,8 @@ export const router = {
     currentView: 'library',
 
     init(onViewChange) {
+        this.onViewChange = onViewChange || (() => {});
+
         if (this.elements.navLinks) {
             this.elements.navLinks.forEach(link => {
                 link.addEventListener('click', (e) => {
@@ -35,8 +37,6 @@ export const router = {
         } else {
             history.replaceState({ view: 'library' }, '', '#library');
         }
-
-        this.onViewChange = onViewChange || (() => {});
     },
 
     navigateTo(viewId, addToHistory = true) {
