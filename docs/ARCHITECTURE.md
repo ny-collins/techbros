@@ -38,8 +38,13 @@ The application follows a modular client-side architecture managed by a central 
     |       |-- [ State Manager (src/store.js) ]
     |       |       Manages application state, user preferences, and resource index.
     |       |
-    |       |-- [ UI Controller (src/ui.js) ]
-    |       |       Handles DOM manipulation, event routing, and rendering logic.
+    |       |-- [ UI Facade (src/ui.js) ]
+    |       |       Orchestrates UI modules:
+    |       |       |-- [ Router (src/ui/router.js) ]: Navigation & History
+    |       |       |-- [ Library (src/ui/library.js) ]: List rendering & filtering
+    |       |       |-- [ Viewer (src/ui/viewer.js) ]: Media & PDF display
+    |       |       |       |-- [ PDFViewer (src/pdf-viewer.js) ]: PDF.js wrapper
+    |       |       |-- [ P2P UI (src/ui/p2p-ui.js) ]: Transfer controls
     |       |
     |       |-- [ P2P Service (src/p2p.js) ]
     |               |-- Online Signaling (PeerJS)
@@ -49,6 +54,7 @@ The application follows a modular client-side architecture managed by a central 
     |--- [ Storage Layer ]
             |-- LocalStorage (User Preferences)
             |-- IndexedDB / Static JSON (Resource Index)
+            |-- IndexedDB (File Chunks - Fallback)
             |-- Service Worker Cache (Application Assets & Content)
             |-- File System Access API (Streaming Downloads)
 ```
@@ -61,8 +67,9 @@ The application follows a modular client-side architecture managed by a central 
 *   **Build System:** Vite (Rollup-based bundling and minification)
 *   **Networking:** WebRTC (Peer-to-Peer Data Channels)
 *   **Signaling:** PeerJS (Online) / QR Code Encoding (Offline)
-*   **Storage:** Cache API, LocalStorage, File System Access API
+*   **Storage:** Cache API, LocalStorage, File System Access API, IndexedDB
 *   **Testing:** Jest (Unit and Integration Testing)
+*   **Libraries:** `pdfjs-dist` (PDF Rendering), `html5-qrcode`, `qrcode`.
 
 ---
 
@@ -87,6 +94,12 @@ To mitigate memory exhaustion risks on resource-constrained devices, the applica
 *   **Protocol:** Incoming data chunks are written directly to the device storage using the `FileSystemWritableFileStream` interface.
 *   **Memory Footprint:** Keeps only the current chunk (~64KB) in memory, rather than the entire file blob.
 
+### 4.3. IndexedDB Fallback (`src/db.js`)
+If the File System Access API is unavailable (e.g., on Mobile or Firefox), the system falls back to storing file chunks in IndexedDB.
+*   **Process:** Chunks are written to an object store as they arrive.
+*   **Assembly:** Once all chunks are received, they are concatenated into a Blob and offered for download.
+*   **Cleanup:** The database is cleared after successful assembly or initialization.
+
 ---
 
 ## 5. Security Architecture
@@ -96,6 +109,7 @@ A strict CSP is enforced to mitigate Cross-Site Scripting (XSS) risks.
 *   `default-src 'self'`: Restricts resource loading to the application origin.
 *   `connect-src`: Permits WebSocket connections for signaling.
 *   `script-src`: Disallows inline scripts and `eval()`.
+*   `frame-ancestors 'self'`: Allows the app to frame its own content (required for PDF viewer).
 
 ### Resource Validation
 *   **MIME Type Verification:** Incoming files are validated against an allowlist of educational formats (PDF, MP4, MP3).
@@ -112,3 +126,9 @@ The project utilizes Vite for compilation and asset optimization.
 
 *   **Development:** `npm run dev` starts a local server with Hot Module Replacement.
 *   **Production:** `npm run build` generates a `dist/` directory containing minified JavaScript, CSS, and optimized assets suitable for deployment to static hosting environments (e.g., Cloudflare Pages, Nginx, Apache).
+
+## 7. Configuration
+
+Sensitive configuration (like TURN server credentials) is managed via environment variables.
+*   **Local:** Create a `.env` file (see `.env.example`).
+*   **Build:** Vite injects these variables (prefixed with `VITE_`) into the client-side bundle at build time.

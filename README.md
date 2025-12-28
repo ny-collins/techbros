@@ -23,7 +23,7 @@ The application functions as a local repository for educational materials (PDFs,
 
 ### Library Management
 *   **Search Algorithm:** Implements Levenshtein distance for fuzzy search capability.
-*   **Format Support:** Native rendering for PDF, MP4, and MP3 formats.
+*   **Format Support:** In-app PDF rendering via PDF.js, plus native MP4 and MP3 support.
 *   **Interface:** Customizable Grid and List views with persistent theme preferences (Dark/Light).
 
 ### P2P File Transfer Protocol
@@ -49,24 +49,31 @@ Access the application via a supported web browser. For offline persistence, ins
     cd techbros
     ```
 
-2.  **Install Dependencies**
+2.  **Setup Environment Variables**
+    Copy the example configuration and add your credentials (e.g., TURN server).
+    ```bash
+    cp .env.example .env
+    # Edit .env with your keys
+    ```
+
+3.  **Install Dependencies**
     ```bash
     npm install
     ```
 
-3.  **Development Server**
+4.  **Development Server**
     Start the Vite development server with hot module replacement:
     ```bash
     npm run dev
     ```
 
-4.  **Production Build**
+5.  **Production Build**
     Generate optimized static assets in the `dist/` directory:
     ```bash
     npm run build
     ```
 
-5.  **Testing**
+6.  **Testing**
     Execute the test suite using Jest:
     ```bash
     npm test
