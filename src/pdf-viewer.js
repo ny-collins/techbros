@@ -1,6 +1,5 @@
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Set the worker source to the local file we just updated
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdf.worker.min.js';
 
 export class PDFViewer {
@@ -16,7 +15,6 @@ export class PDFViewer {
         this.ctx = null;
         this.pageLabel = null;
         
-        // Touch State
         this.touchStartDist = 0;
         this.touchStartScale = 1;
         this.isPinching = false;
@@ -30,10 +28,8 @@ export class PDFViewer {
             this.pdfDoc = await pdfjsLib.getDocument(this.url).promise;
             this.container.classList.remove('loading');
             
-            // Update page count label
             this._updatePageLabel();
             
-            // Initial render
             this.renderPage(this.pageNum);
         } catch (error) {
             console.error('Error loading PDF:', error);
@@ -74,7 +70,6 @@ export class PDFViewer {
         this.container.appendChild(toolbar);
         this.container.appendChild(canvasWrapper);
 
-        // Bind Events
         toolbar.querySelector('#prev').addEventListener('click', () => this.onPrevPage());
         toolbar.querySelector('#next').addEventListener('click', () => this.onNextPage());
         toolbar.querySelector('#zoom_out').addEventListener('click', () => { this.scale -= 0.1; this.renderPage(this.pageNum); });
@@ -91,7 +86,7 @@ export class PDFViewer {
                 this.isPinching = true;
                 this.touchStartDist = this._getTouchDistance(e.touches);
                 this.touchStartScale = this.scale;
-                e.preventDefault(); // Prevent default browser zoom
+                e.preventDefault();
             }
         }, { passive: false });
 
@@ -100,10 +95,8 @@ export class PDFViewer {
                 const dist = this._getTouchDistance(e.touches);
                 const ratio = dist / this.touchStartDist;
                 
-                // Limit zoom levels
                 const newScale = Math.min(Math.max(0.5, this.touchStartScale * ratio), 3.0);
                 
-                // Only re-render if scale changed significantly (performance optimization)
                 if (Math.abs(newScale - this.scale) > 0.05) {
                     this.scale = newScale;
                     this.renderPage(this.pageNum);
@@ -132,19 +125,14 @@ export class PDFViewer {
         try {
             const page = await this.pdfDoc.getPage(num);
             
-            // Determine scale based on container width if it's the first load or reset
             const viewport = page.getViewport({ scale: this.scale });
             
-            // Responsive scaling: Fit width only on first load (if scale is default 1.0)
             const wrapper = this.container.querySelector('.pdf-canvas-wrapper');
             if (this.scale === 1.0 && wrapper) {
                 const availWidth = wrapper.clientWidth || window.innerWidth;
                 const baseViewport = page.getViewport({ scale: 1.0 });
-                // If PDF is wider than screen, fit it. 
-                // We update this.scale so subsequent renders respect it.
                 if (baseViewport.width > availWidth) {
-                    this.scale = (availWidth - 40) / baseViewport.width; // -40 for padding
-                    // Re-calculate viewport with new scale
+                    this.scale = (availWidth - 40) / baseViewport.width;
                     return this.renderPage(num);
                 }
             }

@@ -27,7 +27,6 @@ export class SnowSystem {
     window.addEventListener('resize', this.boundResize);
     this.resize();
 
-    // Dynamically adjust density for mobile
     if (this.width < 768) {
         this.flakeCount = 50;
     }

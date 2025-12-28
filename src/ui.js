@@ -20,24 +20,19 @@ class UIManager {
     init() {
         console.log('[UI] Initializing modules...');
         
-        // 1. Initialize Shared Components
         common.init();
 
-        // 2. Initialize Core Features
         p2pUI.init();
         viewer.init(router);
 
-        // 3. Initialize Library (depends on Router & Viewer)
         library.init(router, viewer);
 
-        // 4. Initialize Router (depends on Library for view resets)
         router.init((viewId) => {
             if (viewId === 'library') {
                 library.reset(router, viewer);
             }
         });
 
-        // 5. Initialize P2P Service (triggers UI updates via events)
         p2p.init().catch(console.error);
 
         this._checkInstallation();

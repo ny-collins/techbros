@@ -21,7 +21,6 @@ export const viewer = {
         common.closeSidebar();
         this.clear();
         
-        // Resume snow by default, pause only for PDF
         if (window.snowSystem) window.snowSystem.resume();
 
         const container = this.elements.container;
@@ -108,7 +107,6 @@ export const viewer = {
             common.showToast('Error loading image', 'error');
         };
 
-        // Zoom state
         let scale = 1;
         let lastScale = 1;
         let startDist = 0;

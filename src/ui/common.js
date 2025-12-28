@@ -24,10 +24,8 @@ export const common = {
             });
         }
         
-        // Initial theme set
         this.updateTheme(store.getSettings().theme);
 
-        // Sidebar global events
         const brandToggle = document.getElementById('brand-toggle');
         const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
         const sidebarClose = document.getElementById('sidebar-close');
@@ -41,7 +39,6 @@ export const common = {
             if (e.key === 'Escape') this.closeSidebar();
         });
 
-        // Online/Offline status
         window.addEventListener('online', () => {
             this.updateStatus('Online', 'success');
             this.showToast('Back online!', 'success');
@@ -52,7 +49,6 @@ export const common = {
             this.showToast('You are offline.', 'warning');
         });
 
-        // Splash screen removal
         if (this.elements.splashScreen) {
             setTimeout(() => {
                 this.elements.splashScreen.classList.add('hidden');
@@ -91,7 +87,7 @@ export const common = {
     showToast(message, type = 'info') {
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
-        toast.innerHTML = message; // Allow HTML for bolding filenames etc
+        toast.innerHTML = message;
         if (this.elements.toastContainer) {
             this.elements.toastContainer.appendChild(toast);
             requestAnimationFrame(() => toast.classList.add('show'));

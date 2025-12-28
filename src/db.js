@@ -12,9 +12,7 @@ export const db = {
             request.onupgradeneeded = (event) => {
                 const database = event.target.result;
                 if (!database.objectStoreNames.contains(STORE_NAME)) {
-                    // Create an object store with a composite key (file name + chunk index)
                     const store = database.createObjectStore(STORE_NAME, { keyPath: ['file', 'index'] });
-                    // Create an index on the 'file' property for efficient querying by file name
                     store.createIndex('file', 'file', { unique: false });
                 }
             };
@@ -43,7 +41,6 @@ export const db = {
             const request = index.getAll(IDBKeyRange.only(fileName));
             
             request.onsuccess = () => {
-                // Ensure chunks are sorted by index before returning
                 const sorted = request.result.sort((a, b) => a.index - b.index);
                 resolve(sorted.map(item => item.data));
             };

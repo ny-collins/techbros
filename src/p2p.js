@@ -253,14 +253,12 @@ export class P2PService extends EventTarget {
                 mime: data.mime,
                 name: data.name
             });
-            // Clear any previous chunks for this transfer ID (unlikely but safe)
             db.deleteFileChunks(data.transferId).catch(e => console.warn('Failed to clear old chunks', e));
             this.dispatchEvent(new CustomEvent('transfer-start', { detail: data }));
             return;
         }
 
         if (data.type === 'chunk') {
-            // Check direct stream first
             if (this.fileStreams.has(data.transferId)) {
                 const stream = this.fileStreams.get(data.transferId);
                 await stream.writable.write(data.data);
@@ -280,7 +278,6 @@ export class P2PService extends EventTarget {
             const fileData = this.receivingChunks.get(data.transferId);
             if (!fileData) return;
 
-            // Store chunk in IDB
             await db.addChunk(data.transferId, data.index, data.data);
             fileData.received++;
 
@@ -288,7 +285,6 @@ export class P2PService extends EventTarget {
             this.dispatchEvent(new CustomEvent('receive-progress', { detail: { name: fileData.name, progress } }));
 
             if (fileData.received === fileData.total) {
-                // Retrieve all chunks from IDB
                 const chunks = await db.getFileChunks(data.transferId);
                 const blob = new Blob(chunks, { type: fileData.mime });
                 const safeBlob = this._sanitizeBlob(blob, fileData.mime);
@@ -299,7 +295,6 @@ export class P2PService extends EventTarget {
                     }));
                 }
                 
-                // Cleanup IDB and memory map
                 await db.deleteFileChunks(data.transferId);
                 this.receivingChunks.delete(data.transferId);
             }

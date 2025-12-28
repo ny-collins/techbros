@@ -509,6 +509,24 @@ audio { width: 100%; margin-top: 1rem; height: 50px; border-radius: 25px; }
 
 #manual-signal-area.hidden { display: none; }
 
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Generic hidden state - overrides display properties if defined later */
+.hidden { display: none; }
+
+/* Ensure top-bar keeps display:flex so transform works */
+.top-bar.hidden { display: flex; }
+
 /* PDF Viewer Styles */
 .pdf-viewer-root {
     display: flex;

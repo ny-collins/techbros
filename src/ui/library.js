@@ -17,7 +17,6 @@ export const library = {
         this._bindViewToggles();
         this._bindCacheClear();
 
-        // Initial Render
         const resources = store.getResources();
         this.renderFilters(resources);
         this.renderList(resources, viewer, router);
@@ -68,7 +67,6 @@ export const library = {
     },
 
     renderList(resources, viewer = null, router = null) {
-        // Save references if passed, for re-renders
         if (viewer) this.viewer = viewer;
         if (router) this.router = router;
 
