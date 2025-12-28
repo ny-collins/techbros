@@ -3,7 +3,7 @@ export class SnowSystem {
     this.canvas = null;
     this.ctx = null;
     this.flakes = [];
-    this.flakeCount = 200;
+    this.flakeCount = 100;
     this.animationFrameId = null;
     this.width = 0;
     this.height = 0;
@@ -26,6 +26,12 @@ export class SnowSystem {
     this.boundResize = this.resize.bind(this);
     window.addEventListener('resize', this.boundResize);
     this.resize();
+
+    // Dynamically adjust density for mobile
+    if (this.width < 768) {
+        this.flakeCount = 50;
+    }
+
     this.boundMouseMove = (e) => {
         let clientX, clientY;
         if (e.touches && e.touches.length > 0) {
