@@ -156,7 +156,10 @@ export class P2PService extends EventTarget {
 
         const totalChunks = Math.ceil(file.size / this.chunkSize);
         const transferId = crypto.randomUUID();
-        sendData({ type: 'meta', name: file.name, size: file.size, mime: file.type, totalChunks, transferId });
+        const meta = { type: 'meta', name: file.name, size: file.size, mime: file.type, totalChunks, transferId };
+        
+        this.dispatchEvent(new CustomEvent('transfer-start', { detail: { ...meta, isOutgoing: true } }));
+        sendData(meta);
 
         for (let i = 0; i < totalChunks; i++) {
             const start = i * this.chunkSize;
@@ -173,10 +176,10 @@ export class P2PService extends EventTarget {
             sendData({ type: 'chunk', index: i, total: totalChunks, data: chunkData, name: file.name, transferId });
 
             const progress = ((i + 1) / totalChunks) * 100;
-            this.dispatchEvent(new CustomEvent('send-progress', { detail: { name: file.name, progress } }));
+            this.dispatchEvent(new CustomEvent('send-progress', { detail: { name: file.name, progress, transferId } }));
             await new Promise(r => setTimeout(r, 10));
         }
-        this.dispatchEvent(new CustomEvent('send-complete', { detail: { name: file.name } }));
+        this.dispatchEvent(new CustomEvent('send-complete', { detail: { name: file.name, transferId } }));
     }
 
     _blobToBase64(blob) {
@@ -254,7 +257,7 @@ export class P2PService extends EventTarget {
                 name: data.name
             });
             db.deleteFileChunks(data.transferId).catch(e => console.warn('Failed to clear old chunks', e));
-            this.dispatchEvent(new CustomEvent('transfer-start', { detail: data }));
+            this.dispatchEvent(new CustomEvent('transfer-start', { detail: data })); // data already has transferId
             return;
         }
 
@@ -265,12 +268,12 @@ export class P2PService extends EventTarget {
                 stream.received++;
                 
                 const progress = (stream.received / stream.total) * 100;
-                this.dispatchEvent(new CustomEvent('receive-progress', { detail: { name: stream.name, progress } }));
+                this.dispatchEvent(new CustomEvent('receive-progress', { detail: { name: stream.name, progress, transferId: data.transferId } }));
 
                 if (stream.received === stream.total) {
                     await stream.writable.close();
                     this.fileStreams.delete(data.transferId);
-                    this.dispatchEvent(new CustomEvent('file-saved', { detail: { name: stream.name } }));
+                    this.dispatchEvent(new CustomEvent('file-saved', { detail: { name: stream.name, transferId: data.transferId } }));
                 }
                 return;
             }
@@ -282,7 +285,7 @@ export class P2PService extends EventTarget {
             fileData.received++;
 
             const progress = (fileData.received / fileData.total) * 100;
-            this.dispatchEvent(new CustomEvent('receive-progress', { detail: { name: fileData.name, progress } }));
+            this.dispatchEvent(new CustomEvent('receive-progress', { detail: { name: fileData.name, progress, transferId: data.transferId } }));
 
             if (fileData.received === fileData.total) {
                 const chunks = await db.getFileChunks(data.transferId);
@@ -291,7 +294,7 @@ export class P2PService extends EventTarget {
                 
                 if (safeBlob) {
                     this.dispatchEvent(new CustomEvent('file-received', {
-                        detail: { blob: safeBlob, name: fileData.name, mime: fileData.mime }
+                        detail: { blob: safeBlob, name: fileData.name, mime: fileData.mime, transferId: data.transferId }
                     }));
                 }
                 

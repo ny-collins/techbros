@@ -124,70 +124,88 @@
             </section>
 
             <section id="p2p-view" class="view-section">
-                <div class="p2p-container">
-                    <div class="p2p-identity-card">
-                        <div class="radar-container">
-                            <div class="radar-scan"></div>
-                            <div class="radar-scan delay-1"></div>
-                            <div class="pin-wrapper">
-                                <span class="label">MY SIGNAL</span>
-                                <span id="my-pin-display" class="code">....</span>
-                            </div>
-                        </div>
-                        <p class="instruction">Share this PIN to receive files</p>
+                <!-- Phase 1: Handshake (Connection) -->
+                <div id="p2p-handshake-view" class="p2p-container">
+                    <div class="header-text center">
+                        <h2>AirShare</h2>
+                        <p class="subtitle">Connect to a nearby device to start sharing</p>
                     </div>
 
-                    <div class="p2p-controls">
-                        <div class="p2p-tabs">
-                            <button class="p2p-tab-btn active" data-tab="send">
-                                <i class="ph ph-paper-plane-right"></i> Send
-                            </button>
-                            <button class="p2p-tab-btn" data-tab="receive">
-                                <i class="ph ph-download-simple"></i> Receive
-                            </button>
-                        </div>
+                    <div class="p2p-role-selection">
+                        <button id="btn-role-host" class="role-card">
+                            <div class="icon-wrapper"><i class="ph ph-broadcast"></i></div>
+                            <h3>Receive</h3>
+                            <p>I am the Host</p>
+                        </button>
+                        <button id="btn-role-join" class="role-card">
+                            <div class="icon-wrapper"><i class="ph ph-paper-plane-right"></i></div>
+                            <h3>Send</h3>
+                            <p>I am a Guest</p>
+                        </button>
+                    </div>
 
-                        <div class="manual-mode-toggle">
-                            <input type="checkbox" id="manual-mode-switch">
-                            <label for="manual-mode-switch">Manual Mode (Offline QR)</label>
-                        </div>
-
-                        <div id="manual-signal-area" class="hidden" style="margin-bottom: 1.5rem; text-align: center;">
-                            <div id="qr-display"></div>
-                            <div id="qr-reader" style="width: 300px; margin: 0 auto; display: none;"></div>
-                            <button id="btn-scan-qr" class="btn secondary small" style="margin-top: 10px;">Scan Peer QR</button>
-                            <textarea id="manual-signal-input" placeholder="Or paste signal data here" style="width: 100%; margin-top: 10px; display: none;"></textarea>
-                        </div>
-
-                        <div id="tab-send" class="p2p-tab-content active">
-                            <div class="p2p-card">
-                                <div class="connection-form">
-                                    <input type="text" pattern="[0-9]*" inputmode="numeric" id="remote-pin" placeholder="ENTER RECEIVER PIN" maxlength="4">
-                                    <button id="btn-connect" class="btn primary">Connect</button>
-                                </div>
-                                <div id="drop-zone" class="drop-zone">
-                                    <div class="drop-content">
-                                        <i class="ph ph-cloud-arrow-up"></i>
-                                        <p>Drop file here or click to browse</p>
-                                    </div>
-                                    <input type="file" id="file-upload" hidden>
+                    <div id="host-panel" class="p2p-panel hidden">
+                        <button class="btn-back-role"><i class="ph ph-arrow-left"></i> Back</button>
+                        <div class="p2p-identity-card">
+                            <div class="radar-container">
+                                <div class="radar-scan"></div>
+                                <div class="radar-scan delay-1"></div>
+                                <div class="pin-wrapper">
+                                    <span class="label">MY SIGNAL</span>
+                                    <span id="my-pin-display" class="code">....</span>
                                 </div>
                             </div>
-                        </div>
-
-                        <div id="tab-receive" class="p2p-tab-content">
-                            <div class="p2p-card">
-                                <div class="queue-header">
-                                    <h3>Incoming</h3>
-                                    <span class="live-badge">LIVE</span>
-                                </div>
-                                <div id="transfer-status" class="transfer-log">
-                                    <div class="empty-log">
-                                        <i class="ph ph-broadcast"></i>
-                                        <p>Waiting for connection...</p>
-                                    </div>
-                                </div>
+                            <p class="instruction">Ask the sender to enter this PIN</p>
+                            
+                            <div class="manual-mode-toggle">
+                                <input type="checkbox" id="manual-mode-switch-host">
+                                <label for="manual-mode-switch-host">Show Offline QR Code</label>
                             </div>
+                            <div id="host-qr-display" class="hidden"></div>
+                        </div>
+                    </div>
+
+                    <div id="join-panel" class="p2p-panel hidden">
+                        <button class="btn-back-role"><i class="ph ph-arrow-left"></i> Back</button>
+                        <div class="p2p-card">
+                            <h3>Enter Host PIN</h3>
+                            <div class="connection-form">
+                                <input type="text" pattern="[0-9]*" inputmode="numeric" id="remote-pin" placeholder="ENTER PIN" maxlength="4" autofocus>
+                                <button id="btn-connect" class="btn primary">Connect</button>
+                            </div>
+                            
+                            <div class="divider"><span>OR</span></div>
+                            
+                            <button id="btn-scan-qr" class="btn secondary full-width">
+                                <i class="ph ph-qr-code"></i> Scan Offline QR
+                            </button>
+                            <div id="qr-reader" class="hidden"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase 2: Dashboard (Exchange) -->
+                <div id="p2p-dashboard-view" class="p2p-dashboard hidden">
+                    <div class="dashboard-header">
+                        <div class="connection-status">
+                            <span class="status-dot"></span>
+                            <span id="dashboard-status-text">Connected to Peer</span>
+                        </div>
+                        <button id="btn-disconnect" class="btn-icon danger small" title="Disconnect">
+                            <i class="ph ph-power"></i>
+                        </button>
+                    </div>
+
+                    <div id="transfer-feed" class="transfer-feed">
+                        <!-- Chat bubbles will go here -->
+                        <div class="system-message">Connection established. You can now share files.</div>
+                    </div>
+
+                    <div class="dashboard-footer">
+                        <div id="dashboard-drop-zone" class="mini-drop-zone">
+                            <i class="ph ph-plus-circle"></i>
+                            <span>Tap to send file</span>
+                            <input type="file" id="file-upload" hidden>
                         </div>
                     </div>
                 </div>

@@ -5,225 +5,290 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 
 export const p2pUI = {
     elements: {
-        pinDisplay: document.getElementById('my-pin-display'),
-        tabs: document.querySelectorAll('.p2p-tab-btn'),
-        tabContents: document.querySelectorAll('.p2p-tab-content'),
-        manualSwitch: document.getElementById('manual-mode-switch'),
-        manualArea: document.getElementById('manual-signal-area'),
-        connectionForm: document.querySelector('.connection-form'),
-        qrDisplay: document.getElementById('qr-display'),
-        btnScan: document.getElementById('btn-scan-qr'),
-        fileInput: document.getElementById('file-upload'),
-        dropZone: document.getElementById('drop-zone'),
+        // Views
+        handshakeView: document.getElementById('p2p-handshake-view'),
+        dashboardView: document.getElementById('p2p-dashboard-view'),
+        
+        // Panels
+        roleSelection: document.querySelector('.p2p-role-selection'),
+        hostPanel: document.getElementById('host-panel'),
+        joinPanel: document.getElementById('join-panel'),
+        
+        // Controls
+        btnHost: document.getElementById('btn-role-host'),
+        btnJoin: document.getElementById('btn-role-join'),
+        btnBackRole: document.querySelectorAll('.btn-back-role'),
         btnConnect: document.getElementById('btn-connect'),
+        btnDisconnect: document.getElementById('btn-disconnect'),
+        btnScan: document.getElementById('btn-scan-qr'),
+        
+        // Displays
+        pinDisplay: document.getElementById('my-pin-display'),
+        hostQrDisplay: document.getElementById('host-qr-display'),
+        statusText: document.getElementById('dashboard-status-text'),
+        remotePinInput: document.getElementById('remote-pin'),
+        manualSwitchHost: document.getElementById('manual-mode-switch-host'),
+        
+        // Transfer
+        transferFeed: document.getElementById('transfer-feed'),
+        dropZone: document.getElementById('dashboard-drop-zone'),
+        fileInput: document.getElementById('file-upload'),
     },
-    html5QrcodeScanner: null,
+    
+    scanner: null,
+    currentRole: null, // 'host' or 'guest'
 
     init() {
-        this._bindTabs();
+        this._bindRoleSelection();
+        this._bindConnectionLogic();
+        this._bindDashboard();
         this._bindP2PEvents();
-        this._bindManualMode();
-        this._bindFileHandling();
-        this._bindConnection();
-
-        if (p2p.peerId && this.elements.pinDisplay) {
-            this.elements.pinDisplay.textContent = p2p.peerId;
-            common.updateStatus('Online', 'success');
-        }
     },
 
-    _bindTabs() {
-        if (!this.elements.tabs) return;
-        this.elements.tabs.forEach(btn => {
+    _bindRoleSelection() {
+        if (this.elements.btnHost) {
+            this.elements.btnHost.addEventListener('click', async () => {
+                this.currentRole = 'host';
+                this._showPanel('host');
+                await p2p.init();
+            });
+        }
+
+        if (this.elements.btnJoin) {
+            this.elements.btnJoin.addEventListener('click', async () => {
+                this.currentRole = 'guest';
+                this._showPanel('join');
+                await p2p.init(); // Initialize to get a Peer ID even as guest
+            });
+        }
+
+        this.elements.btnBackRole.forEach(btn => {
             btn.addEventListener('click', () => {
-                this.elements.tabs.forEach(b => b.classList.remove('active'));
-                this.elements.tabContents.forEach(c => c.classList.remove('active'));
-                btn.classList.add('active');
-                const targetId = `tab-${btn.dataset.tab}`;
-                const targetContent = document.getElementById(targetId);
-                if (targetContent) targetContent.classList.add('active');
+                this._resetHandshake();
+                p2p.destroy();
             });
         });
     },
 
-    _bindManualMode() {
-        if (this.elements.manualSwitch) {
-            this.elements.manualSwitch.addEventListener('change', async (e) => {
+    _showPanel(type) {
+        this.elements.roleSelection.style.display = 'none';
+        if (type === 'host') {
+            this.elements.hostPanel.classList.remove('hidden');
+            this.elements.joinPanel.classList.add('hidden');
+        } else {
+            this.elements.joinPanel.classList.remove('hidden');
+            this.elements.hostPanel.classList.add('hidden');
+        }
+    },
+
+    _resetHandshake() {
+        this.elements.roleSelection.style.display = 'grid';
+        this.elements.hostPanel.classList.add('hidden');
+        this.elements.joinPanel.classList.add('hidden');
+        this.elements.handshakeView.classList.remove('hidden');
+        this.elements.dashboardView.classList.add('hidden');
+        
+        if (this.elements.hostQrDisplay) this.elements.hostQrDisplay.classList.add('hidden');
+        if (this.elements.manualSwitchHost) this.elements.manualSwitchHost.checked = false;
+        if (this.elements.remotePinInput) this.elements.remotePinInput.value = '';
+        
+        // Clear feed
+        this.elements.transferFeed.innerHTML = '<div class="system-message">Connection established. You can now share files.</div>';
+    },
+
+    _bindConnectionLogic() {
+        // Host: Manual Mode Toggle
+        if (this.elements.manualSwitchHost) {
+            this.elements.manualSwitchHost.addEventListener('change', async (e) => {
                 const isManual = e.target.checked;
                 if (isManual) {
-                    this.elements.manualArea.classList.remove('hidden');
-                    if(this.elements.connectionForm) this.elements.connectionForm.classList.add('hidden');
-                    const isHost = document.querySelector('.p2p-tab-btn[data-tab="send"]').classList.contains('active');
-                    await p2p.initManual(isHost);
-                    common.updateStatus('Manual (Offline)', 'warning');
+                    this.elements.hostQrDisplay.classList.remove('hidden');
+                    await p2p.initManual(true);
                 } else {
-                    this.elements.manualArea.classList.add('hidden');
-                    if(this.elements.connectionForm) this.elements.connectionForm.classList.remove('hidden');
+                    this.elements.hostQrDisplay.classList.add('hidden');
                     await p2p.init();
                 }
             });
         }
 
+        // Guest: Connect Button
+        if (this.elements.btnConnect) {
+            this.elements.btnConnect.addEventListener('click', () => {
+                const pin = this.elements.remotePinInput.value;
+                if (pin.length === 4) {
+                    this.elements.btnConnect.textContent = 'Connecting...';
+                    p2p.connect(pin);
+                } else {
+                    common.showToast('Please enter a 4-digit PIN', 'warning');
+                }
+            });
+        }
+
+        // Guest: Scan QR
         if (this.elements.btnScan) {
             this.elements.btnScan.addEventListener('click', () => {
                 const readerElem = document.getElementById('qr-reader');
-                readerElem.style.display = 'block';
+                readerElem.classList.remove('hidden');
                 
-                if (this.html5QrcodeScanner) this.html5QrcodeScanner.clear();
-
-                this.html5QrcodeScanner = new Html5QrcodeScanner(
-                    "qr-reader", { fps: 10, qrbox: 250 });
+                if (this.scanner) this.scanner.clear();
+                this.scanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
                 
-                this.html5QrcodeScanner.render((decodedText) => {
+                this.scanner.render((decodedText) => {
                     p2p.processManualSignal(decodedText);
-                    this.html5QrcodeScanner.clear();
-                    readerElem.style.display = 'none';
-                    common.showToast('Signal Scanned!', 'success');
-                }, (error) => {});
+                    this.scanner.clear();
+                    readerElem.classList.add('hidden');
+                    common.showToast('Signal Scanned! Connecting...', 'success');
+                }, console.warn);
             });
         }
     },
 
-    _bindConnection() {
-        if (this.elements.btnConnect) {
-            this.elements.btnConnect.addEventListener('click', () => {
-                const pin = document.getElementById('remote-pin').value;
-                if (pin.length === 4) p2p.connect(pin);
+    _bindDashboard() {
+        if (this.elements.btnDisconnect) {
+            this.elements.btnDisconnect.addEventListener('click', () => {
+                p2p.destroy();
+                this._resetHandshake();
+                common.showToast('Disconnected', 'info');
             });
         }
-    },
 
-    _bindFileHandling() {
         const { dropZone, fileInput } = this.elements;
         if (!dropZone || !fileInput) return;
 
         dropZone.addEventListener('click', () => fileInput.click());
-
+        
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
-            dropZone.classList.add('drag-over');
+            dropZone.classList.add('active');
         });
 
-        dropZone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('drag-over');
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('active');
         });
 
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
-            dropZone.classList.remove('drag-over');
-            if (e.dataTransfer.files.length) {
-                this._handleFileUpload(e.dataTransfer.files[0]);
-            }
+            dropZone.classList.remove('active');
+            if (e.dataTransfer.files.length) this._handleFileUpload(e.dataTransfer.files[0]);
         });
 
         fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length) {
-                this._handleFileUpload(e.target.files[0]);
-            }
+            if (e.target.files.length) this._handleFileUpload(e.target.files[0]);
         });
     },
 
     _handleFileUpload(file) {
-        if (file) {
-            p2p.sendFile(file);
-            common.showToast(`Sending ${file.name}...`, 'info');
-        }
+        if (!file) return;
+        p2p.sendFile(file);
     },
 
     _bindP2PEvents() {
         p2p.addEventListener('ready', (e) => {
             if (this.elements.pinDisplay) this.elements.pinDisplay.textContent = e.detail.id;
-            common.updateStatus('Online', 'success');
         });
 
         p2p.addEventListener('connected', (e) => {
-            common.updateStatus(`Connected`, 'success');
-            common.showToast('Peer connected!', 'success');
+            this.elements.handshakeView.classList.add('hidden');
+            this.elements.dashboardView.classList.remove('hidden');
+            
+            if(this.elements.btnConnect) this.elements.btnConnect.textContent = 'Connect';
+            
+            const peerId = e.detail.peer || 'Unknown';
+            if (this.elements.statusText) this.elements.statusText.textContent = `Connected to ${peerId}`;
+            common.showToast('Connected!', 'success');
         });
 
         p2p.addEventListener('signal-generated', (e) => {
             QRCode.toCanvas(e.detail, { errorCorrectionLevel: 'L' }, (err, canvas) => {
-                if (err) { console.error(err); return; }
-                this.elements.qrDisplay.innerHTML = '';
-                this.elements.qrDisplay.appendChild(canvas);
-                const p = document.createElement('p');
-                p.textContent = 'Scan this on the other device';
-                this.elements.qrDisplay.appendChild(p);
+                if (!err && this.elements.hostQrDisplay) {
+                    this.elements.hostQrDisplay.innerHTML = '';
+                    this.elements.hostQrDisplay.appendChild(canvas);
+                }
             });
         });
 
-        p2p.addEventListener('file-received', (e) => {
-            const { blob, name, mime } = e.detail;
-            const url = URL.createObjectURL(blob);
-            const downloadBtn = document.createElement('a');
-            downloadBtn.href = url;
-            downloadBtn.download = name;
-            downloadBtn.className = 'btn primary small';
-            downloadBtn.textContent = 'Save to Device';
-            downloadBtn.style.marginTop = '0.5rem';
+        p2p.addEventListener('error', (e) => {
+            common.showToast(e.detail.message || 'Connection Error', 'error');
+            if(this.elements.btnConnect) this.elements.btnConnect.textContent = 'Connect';
+        });
+
+        p2p.addEventListener('transfer-start', (e) => this._addBubble(e.detail));
+        p2p.addEventListener('send-progress', (e) => this._updateBubble(e.detail, 'sending'));
+        p2p.addEventListener('receive-progress', (e) => this._updateBubble(e.detail, 'receiving'));
+        p2p.addEventListener('file-received', (e) => this._completeBubble(e.detail, 'received'));
+        p2p.addEventListener('send-complete', (e) => this._completeBubble(e.detail, 'sent'));
+    },
+
+    _addBubble(data) {
+        this._getOrCreateBubble(data.transferId, data.name, data.isOutgoing);
+    },
+
+    _getOrCreateBubble(id, name, isOutgoing) {
+        let bubble = document.getElementById(`transfer-${id}`);
+        if (!bubble) {
+            bubble = document.createElement('div');
+            bubble.id = `transfer-${id}`;
+            bubble.className = `chat-bubble ${isOutgoing ? 'outgoing' : 'incoming'}`;
             
-            downloadBtn.addEventListener('click', () => setTimeout(() => URL.revokeObjectURL(url), 100));
-            setTimeout(() => URL.revokeObjectURL(url), 12000);
-            this._showFileNotification(name, downloadBtn);
-        });
-
-        p2p.addEventListener('send-progress', (e) => this._updateTransferProgress('Sending', e.detail.name, e.detail.progress));
-        p2p.addEventListener('receive-progress', (e) => this._updateTransferProgress('Receiving', e.detail.name, e.detail.progress));
-        p2p.addEventListener('send-complete', (e) => {
-            this._updateTransferProgress('Sent', e.detail.name, 100);
-            setTimeout(() => this._clearTransferProgress(), 3000);
-        });
-        p2p.addEventListener('transfer-start', (e) => this._updateTransferProgress('Starting', e.detail.name, 0));
-    },
-
-    _updateTransferProgress(status, filename, progress) {
-        const transferStatus = document.getElementById('transfer-status');
-        if (!transferStatus) return;
-
-        let progressBar = transferStatus.querySelector('.progress-bar');
-        
-        if (!progressBar) {
-            transferStatus.innerHTML = `
-                <div class="transfer-info">
-                    <strong><span id="transfer-status-text"></span>:</strong> <span id="transfer-filename"></span>
+            const icon = isOutgoing ? 'upload-simple' : 'download-simple';
+            
+            bubble.innerHTML = `
+                <div class="bubble-content">
+                    <div class="bubble-icon"><i class="ph ph-${icon}"></i></div>
+                    <div class="bubble-info">
+                        <h4>${common.sanitizeText(name)}</h4>
+                        <span class="status pulse">Starting...</span>
+                    </div>
                 </div>
-                <div class="progress-container">
-                    <div class="progress-bar" style="width: 0%"></div>
-                    <span class="progress-text">0%</span>
-                </div>`;
-            progressBar = transferStatus.querySelector('.progress-bar');
+                <div class="progress-track">
+                    <div class="progress-fill" style="width: 0%"></div>
+                </div>
+                <div class="action-area" style="margin-top: 8px; display: none;"></div>
+            `;
+            this.elements.transferFeed.appendChild(bubble);
+            this.elements.transferFeed.scrollTop = this.elements.transferFeed.scrollHeight;
         }
-
-        const statusText = transferStatus.querySelector('#transfer-status-text');
-        const fileText = transferStatus.querySelector('#transfer-filename');
-        const progressText = transferStatus.querySelector('.progress-text');
-
-        if (statusText) statusText.textContent = status;
-        if (fileText) fileText.textContent = common.sanitizeText(filename);
-        if (progressBar) progressBar.style.width = `${progress}%`;
-        if (progressText) progressText.textContent = `${Math.round(progress)}%`;
+        return bubble;
     },
 
-    _clearTransferProgress() {
-        const transferStatus = document.getElementById('transfer-status');
-        if (transferStatus) transferStatus.innerHTML = '<div class="empty-log"><i class="ph ph-broadcast"></i><p>Waiting for connection...</p></div>';
+    _updateBubble(data, state) {
+        // data: { name, progress, transferId }
+        const isOutgoing = state === 'sending';
+        const bubble = this._getOrCreateBubble(data.transferId, data.name, isOutgoing);
+        
+        const fill = bubble.querySelector('.progress-fill');
+        const status = bubble.querySelector('.status');
+        
+        if (status) {
+            status.classList.remove('pulse');
+            status.textContent = `${Math.round(data.progress)}%`;
+        }
+        if (fill) fill.style.width = `${data.progress}%`;
     },
 
-    _showFileNotification(filename, actionBtn) {
-        const toast = document.createElement('div');
-        toast.className = 'toast toast-success';
-        toast.style.flexDirection = 'column';
-        toast.style.alignItems = 'flex-start';
-        const text = document.createElement('div');
-        text.innerHTML = `Received <b>${common.sanitizeText(filename)}</b>`;
-        toast.appendChild(text);
-        toast.appendChild(actionBtn);
-        const container = document.getElementById('toast-container');
-        if (container) {
-            container.appendChild(toast);
-            requestAnimationFrame(() => toast.classList.add('show'));
-            setTimeout(() => toast.remove(), 10000);
+    _completeBubble(data, state) {
+        // state: 'sent' or 'received'
+        // data: { name, transferId, blob? }
+        const isOutgoing = state === 'sent';
+        const bubble = this._getOrCreateBubble(data.transferId, data.name, isOutgoing);
+        
+        const fill = bubble.querySelector('.progress-fill');
+        const status = bubble.querySelector('.status');
+        const actionArea = bubble.querySelector('.action-area');
+        
+        if (fill) fill.style.width = '100%';
+        if (status) status.textContent = isOutgoing ? 'Sent' : 'Received';
+        
+        if (state === 'received' && data.blob) {
+            const url = URL.createObjectURL(data.blob);
+            actionArea.style.display = 'block';
+            actionArea.innerHTML = `
+                <a href="${url}" download="${data.name}" class="btn primary small full-width">
+                    Save File
+                </a>
+            `;
+            // Revoke URL after a long timeout or click
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
         }
     }
 };
