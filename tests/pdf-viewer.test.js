@@ -1,6 +1,5 @@
 import { PDFViewer } from '../src/pdf-viewer.js';
 
-// Mock pdfjs-dist
 jest.mock('pdfjs-dist', () => ({
     GlobalWorkerOptions: { workerSrc: '' },
     getDocument: jest.fn(() => ({
@@ -21,8 +20,7 @@ describe('PDFViewer', () => {
     beforeEach(() => {
         container = document.createElement('div');
         viewer = new PDFViewer(container, 'mock.pdf');
-        
-        // Mock Canvas Context
+
         HTMLCanvasElement.prototype.getContext = jest.fn(() => ({
             drawImage: jest.fn(),
             save: jest.fn(),

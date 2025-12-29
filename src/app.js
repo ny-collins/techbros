@@ -11,16 +11,14 @@ const bootApp = async () => {
     }
 
     try {
-        await p2p.init();
-    } catch (error) {
-        console.error('[App] P2P initialization failed:', error);
-    }
-
-    try {
         ui.init();
     } catch (error) {
         console.error('[App] UI initialization failed:', error);
     }
+
+    p2p.init().catch(error => {
+        console.error('[App] P2P initialization failed:', error);
+    });
 
     try {
         const today = new Date();

@@ -5,7 +5,6 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=()
 
-# FORCE RAW STREAMING FOR MEDIA (Fixes seeking & huge PDF crashes)
 /*.mp4
   Cache-Control: no-transform
   Accept-Ranges: bytes

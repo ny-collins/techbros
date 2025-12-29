@@ -88,6 +88,7 @@ export class P2PService extends EventTarget {
         this.manualService = null;
         this.receivingChunks = new Map();
         this.fileStreams = new Map();
+        this.pendingTransfers = new Map();
         this.heartbeatInterval = null;
     }
 
@@ -159,6 +160,11 @@ export class P2PService extends EventTarget {
         }
     }
 
+    _send(data) {
+        if (this.mode === 'online' && this.conn) this.conn.send(data);
+        else if (this.mode === 'manual' && this.manualService) this.manualService.send(data);
+    }
+
     async sendFile(file) {
         const sendData = (data) => {
             if (this.mode === 'online' && this.conn) this.conn.send(data);
@@ -187,6 +193,29 @@ export class P2PService extends EventTarget {
         
         this.dispatchEvent(new CustomEvent('transfer-start', { detail: { ...meta, isOutgoing: true } }));
         sendData(meta);
+
+        try {
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    this.pendingTransfers.delete(transferId);
+                    reject(new Error('Transfer timed out waiting for peer acceptance'));
+                }, 30000);
+
+                this.pendingTransfers.set(transferId, {
+                    resolve: () => {
+                        clearTimeout(timeout);
+                        resolve();
+                    },
+                    reject: (err) => {
+                        clearTimeout(timeout);
+                        reject(err);
+                    }
+                });
+            });
+        } catch (error) {
+            this.dispatchEvent(new CustomEvent('error', { detail: { message: error.message } }));
+            return;
+        }
 
         for (let i = 0; i < totalChunks; i++) {
             while (getBufferedAmount() > BUFFER_THRESHOLD) {
@@ -239,7 +268,13 @@ export class P2PService extends EventTarget {
     }
 
     _handleData(data) {
-        if (data && data.type === 'ping') return;
+        if (!data) return;
+        if (data.type === 'ping') return;
+
+        if (data.type === 'transfer-accepted' || data.type === 'transfer-rejected') {
+            this._handleTransferSignal(data);
+            return;
+        }
 
         if (data.type === 'chunk' && typeof data.data === 'string' && data.data.startsWith('data:')) {
              fetch(data.data).then(res => res.arrayBuffer()).then(buffer => {
@@ -251,12 +286,25 @@ export class P2PService extends EventTarget {
         this._processChunk(data);
     }
 
+    _handleTransferSignal(data) {
+        const pending = this.pendingTransfers.get(data.transferId);
+        if (pending) {
+            if (data.type === 'transfer-accepted') {
+                pending.resolve();
+            } else {
+                pending.reject(new Error('Transfer rejected by peer'));
+            }
+            this.pendingTransfers.delete(data.transferId);
+        }
+    }
+
     async _processChunk(data) {
         if (data.type === 'meta') {
             if ('storage' in navigator && 'estimate' in navigator.storage) {
                 const { usage, quota } = await navigator.storage.estimate();
                 if (usage + data.size > quota) {
                     this.dispatchEvent(new CustomEvent('error', { detail: { message: 'Storage quota exceeded!' } }));
+                    this._send({ type: 'transfer-rejected', transferId: data.transferId, reason: 'Quota exceeded' });
                     return;
                 }
             }
@@ -269,6 +317,7 @@ export class P2PService extends EventTarget {
                     });
                     const writable = await handle.createWritable();
                     this.fileStreams.set(data.transferId, { writable, received: 0, total: data.totalChunks, name: data.name });
+                    this._send({ type: 'transfer-accepted', transferId: data.transferId });
                     this.dispatchEvent(new CustomEvent('transfer-start', { detail: data }));
                     return;
                 }
@@ -285,6 +334,7 @@ export class P2PService extends EventTarget {
             });
 
             db.deleteFileChunks(data.transferId).catch(e => console.warn(e));
+            this._send({ type: 'transfer-accepted', transferId: data.transferId });
             this.dispatchEvent(new CustomEvent('transfer-start', { detail: data }));
             return;
         }

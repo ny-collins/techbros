@@ -5,38 +5,33 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 
 export const p2pUI = {
     elements: {
-        // Views
         handshakeView: document.getElementById('p2p-handshake-view'),
         dashboardView: document.getElementById('p2p-dashboard-view'),
-        
-        // Panels
+
         roleSelection: document.querySelector('.p2p-role-selection'),
         hostPanel: document.getElementById('host-panel'),
         joinPanel: document.getElementById('join-panel'),
-        
-        // Controls
+
         btnHost: document.getElementById('btn-role-host'),
         btnJoin: document.getElementById('btn-role-join'),
         btnBackRole: document.querySelectorAll('.btn-back-role'),
         btnConnect: document.getElementById('btn-connect'),
         btnDisconnect: document.getElementById('btn-disconnect'),
         btnScan: document.getElementById('btn-scan-qr'),
-        
-        // Displays
+
         pinDisplay: document.getElementById('my-pin-display'),
         hostQrDisplay: document.getElementById('host-qr-display'),
         statusText: document.getElementById('dashboard-status-text'),
         remotePinInput: document.getElementById('remote-pin'),
         manualSwitchHost: document.getElementById('manual-mode-switch-host'),
-        
-        // Transfer
+
         transferFeed: document.getElementById('transfer-feed'),
         dropZone: document.getElementById('dashboard-drop-zone'),
         fileInput: document.getElementById('file-upload'),
     },
     
     scanner: null,
-    currentRole: null, // 'host' or 'guest'
+    currentRole: null,
 
     init() {
         this._bindRoleSelection();
@@ -58,7 +53,7 @@ export const p2pUI = {
             this.elements.btnJoin.addEventListener('click', async () => {
                 this.currentRole = 'guest';
                 this._showPanel('join');
-                await p2p.init(); // Initialize to get a Peer ID even as guest
+                await p2p.init();
             });
         }
 
@@ -91,13 +86,11 @@ export const p2pUI = {
         if (this.elements.hostQrDisplay) this.elements.hostQrDisplay.classList.add('hidden');
         if (this.elements.manualSwitchHost) this.elements.manualSwitchHost.checked = false;
         if (this.elements.remotePinInput) this.elements.remotePinInput.value = '';
-        
-        // Clear feed
+
         this.elements.transferFeed.innerHTML = '<div class="system-message">Connection established. You can now share files.</div>';
     },
 
     _bindConnectionLogic() {
-        // Host: Manual Mode Toggle
         if (this.elements.manualSwitchHost) {
             this.elements.manualSwitchHost.addEventListener('change', async (e) => {
                 const isManual = e.target.checked;
@@ -111,7 +104,6 @@ export const p2pUI = {
             });
         }
 
-        // Guest: Connect Button
         if (this.elements.btnConnect) {
             this.elements.btnConnect.addEventListener('click', () => {
                 const pin = this.elements.remotePinInput.value;
@@ -124,7 +116,6 @@ export const p2pUI = {
             });
         }
 
-        // Guest: Scan QR
         if (this.elements.btnScan) {
             this.elements.btnScan.addEventListener('click', () => {
                 const readerElem = document.getElementById('qr-reader');
@@ -252,7 +243,6 @@ export const p2pUI = {
     },
 
     _updateBubble(data, state) {
-        // data: { name, progress, transferId }
         const isOutgoing = state === 'sending';
         const bubble = this._getOrCreateBubble(data.transferId, data.name, isOutgoing);
         
@@ -267,8 +257,6 @@ export const p2pUI = {
     },
 
     _completeBubble(data, state) {
-        // state: 'sent' or 'received'
-        // data: { name, transferId, blob? }
         const isOutgoing = state === 'sent';
         const bubble = this._getOrCreateBubble(data.transferId, data.name, isOutgoing);
         
@@ -287,7 +275,6 @@ export const p2pUI = {
                     Save File
                 </a>
             `;
-            // Revoke URL after a long timeout or click
             setTimeout(() => URL.revokeObjectURL(url), 60000);
         }
     }
