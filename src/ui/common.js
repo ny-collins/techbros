@@ -49,7 +49,6 @@ export const common = {
             this.showToast('You are offline.', 'warning');
         });
 
-        // Initial check
         if (navigator.onLine) {
             this.updateStatus('Online', 'success');
         }
@@ -131,7 +130,16 @@ export const common = {
 
     sanitizeText(str) {
         if (!str) return '';
-        return str.replace(/[<>]/g, '');
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#x27;',
+            "/": '&#x2F;',
+        };
+        const reg = /[&<>"'/]/ig;
+        return str.replace(reg, (match) => (map[match]));
     },
 
     formatBytes(bytes) {
