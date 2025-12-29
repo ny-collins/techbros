@@ -91,7 +91,7 @@ export const common = {
     showToast(message, type = 'info') {
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
-        toast.innerHTML = message;
+        toast.innerHTML = message; 
         if (this.elements.toastContainer) {
             this.elements.toastContainer.appendChild(toast);
             requestAnimationFrame(() => toast.classList.add('show'));

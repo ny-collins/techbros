@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import compression from 'vite-plugin-compression';
 
 export default defineConfig({
   root: '.',
   publicDir: 'public',
+  plugins: [compression()],
   build: {
     outDir: 'dist',
     emptyOutDir: true,
