@@ -49,6 +49,11 @@ export const common = {
             this.showToast('You are offline.', 'warning');
         });
 
+        // Initial check
+        if (navigator.onLine) {
+            this.updateStatus('Online', 'success');
+        }
+
         if (this.elements.splashScreen) {
             setTimeout(() => {
                 this.elements.splashScreen.classList.add('hidden');
