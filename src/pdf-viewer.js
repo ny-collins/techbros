@@ -92,11 +92,10 @@ export class PDFViewer {
         });
         
         this.pageLabel = toolbar.querySelector('#page_num');
-
-        this._setupTouchEvents(canvasWrapper);
+        this._setupInteraction(canvasWrapper);
     }
 
-    _setupTouchEvents(element) {
+    _setupInteraction(element) {
         element.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
                 this.isPinching = true;
@@ -114,6 +113,7 @@ export class PDFViewer {
                 const cssScale = ratio; 
                 this.canvas.style.transform = `scale(${cssScale})`;
                 this.canvas.style.transformOrigin = 'center center';
+                
                 e.preventDefault();
             }
         }, { passive: false });
@@ -121,7 +121,6 @@ export class PDFViewer {
         element.addEventListener('touchend', (e) => {
             if (this.isPinching && e.touches.length < 2) {
                 this.isPinching = false;
-
                 if (this.currentTransform) {
                     this.scale = this.currentTransform;
                     this.canvas.style.transform = 'none';
@@ -129,6 +128,20 @@ export class PDFViewer {
                 }
             }
         });
+
+        element.addEventListener('wheel', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+                
+                const delta = e.deltaY * -0.01;
+                const newScale = Math.min(Math.max(0.5, this.scale + delta), 3.0);
+                
+                if (Math.abs(newScale - this.scale) > 0.1) {
+                    this.scale = newScale;
+                    this.renderPage(this.pageNum);
+                }
+            }
+        }, { passive: false });
     }
 
     _getTouchDistance(touches) {
@@ -145,7 +158,7 @@ export class PDFViewer {
             const page = await this.pdfDoc.getPage(num);
             const wrapper = this.container.querySelector('.pdf-canvas-wrapper');
 
-            if (this.scale === 1.0 && wrapper) {
+            if (this.scale === 1.0 && wrapper && !this.isPinching) {
                 const availWidth = wrapper.clientWidth || window.innerWidth;
                 const baseViewport = page.getViewport({ scale: 1.0 });
                 if (baseViewport.width > availWidth - 20) {
@@ -154,13 +167,17 @@ export class PDFViewer {
             }
 
             const viewport = page.getViewport({ scale: this.scale });
+            const outputScale = window.devicePixelRatio || 1;
 
-            this.canvas.height = viewport.height;
-            this.canvas.width = viewport.width;
+            this.canvas.width = Math.floor(viewport.width * outputScale);
+            this.canvas.height = Math.floor(viewport.height * outputScale);
+            this.canvas.style.width = Math.floor(viewport.width) + "px";
+            this.canvas.style.height = Math.floor(viewport.height) + "px";
 
             const renderContext = {
                 canvasContext: this.ctx,
-                viewport: viewport
+                viewport: viewport,
+                transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null
             };
             
             const renderTask = page.render(renderContext);
@@ -185,7 +202,6 @@ export class PDFViewer {
     _prefetchNextPage(num) {
         if (this.pdfDoc && num <= this.pdfDoc.numPages) {
             this.pdfDoc.getPage(num).then(page => {
-                console.log(`[PDF] Prefetched page ${num} data`);
             }).catch(() => {});
         }
     }
