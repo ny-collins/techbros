@@ -14,10 +14,10 @@ export class PDFViewer {
         this.canvas = null;
         this.ctx = null;
         this.pageLabel = null;
-        
         this.touchStartDist = 0;
         this.touchStartScale = 1;
         this.isPinching = false;
+        this.currentTransform = 1;
     }
 
     async init() {
@@ -25,14 +25,22 @@ export class PDFViewer {
         
         try {
             this.container.classList.add('loading');
-            this.pdfDoc = await pdfjsLib.getDocument(this.url).promise;
+
+            const loadingTask = pdfjsLib.getDocument({
+                url: this.url,
+                disableAutoFetch: true,
+                disableStream: true,
+            });
+
+            this.pdfDoc = await loadingTask.promise;
             this.container.classList.remove('loading');
             
             this._updatePageLabel();
-            
             this.renderPage(this.pageNum);
+
         } catch (error) {
-            console.error('Error loading PDF:', error);
+            console.error('[PDFViewer] Error loading PDF:', error);
+            this.container.classList.remove('loading');
             this.container.innerHTML = `
                 <div class="error-state">
                     <i class="ph ph-warning-circle"></i>
@@ -63,6 +71,7 @@ export class PDFViewer {
 
         const canvasWrapper = document.createElement('div');
         canvasWrapper.className = 'pdf-canvas-wrapper';
+        
         this.canvas = document.createElement('canvas');
         this.ctx = this.canvas.getContext('2d');
         canvasWrapper.appendChild(this.canvas);
@@ -72,8 +81,15 @@ export class PDFViewer {
 
         toolbar.querySelector('#prev').addEventListener('click', () => this.onPrevPage());
         toolbar.querySelector('#next').addEventListener('click', () => this.onNextPage());
-        toolbar.querySelector('#zoom_out').addEventListener('click', () => { this.scale -= 0.1; this.renderPage(this.pageNum); });
-        toolbar.querySelector('#zoom_in').addEventListener('click', () => { this.scale += 0.1; this.renderPage(this.pageNum); });
+        
+        toolbar.querySelector('#zoom_out').addEventListener('click', () => { 
+            this.scale = Math.max(0.5, this.scale - 0.2); 
+            this.renderPage(this.pageNum); 
+        });
+        toolbar.querySelector('#zoom_in').addEventListener('click', () => { 
+            this.scale = Math.min(3.0, this.scale + 0.2); 
+            this.renderPage(this.pageNum); 
+        });
         
         this.pageLabel = toolbar.querySelector('#page_num');
 
@@ -94,13 +110,10 @@ export class PDFViewer {
             if (this.isPinching && e.touches.length === 2) {
                 const dist = this._getTouchDistance(e.touches);
                 const ratio = dist / this.touchStartDist;
-                
-                const newScale = Math.min(Math.max(0.5, this.touchStartScale * ratio), 3.0);
-                
-                if (Math.abs(newScale - this.scale) > 0.05) {
-                    this.scale = newScale;
-                    this.renderPage(this.pageNum);
-                }
+                this.currentTransform = Math.max(0.5, Math.min(3.0, this.touchStartScale * ratio));
+                const cssScale = ratio; 
+                this.canvas.style.transform = `scale(${cssScale})`;
+                this.canvas.style.transformOrigin = 'center center';
                 e.preventDefault();
             }
         }, { passive: false });
@@ -108,6 +121,12 @@ export class PDFViewer {
         element.addEventListener('touchend', (e) => {
             if (this.isPinching && e.touches.length < 2) {
                 this.isPinching = false;
+
+                if (this.currentTransform) {
+                    this.scale = this.currentTransform;
+                    this.canvas.style.transform = 'none';
+                    this.renderPage(this.pageNum);
+                }
             }
         });
     }
@@ -124,18 +143,17 @@ export class PDFViewer {
         
         try {
             const page = await this.pdfDoc.getPage(num);
-            
-            const viewport = page.getViewport({ scale: this.scale });
-            
             const wrapper = this.container.querySelector('.pdf-canvas-wrapper');
+
             if (this.scale === 1.0 && wrapper) {
                 const availWidth = wrapper.clientWidth || window.innerWidth;
                 const baseViewport = page.getViewport({ scale: 1.0 });
-                if (baseViewport.width > availWidth) {
-                    this.scale = (availWidth - 40) / baseViewport.width;
-                    return this.renderPage(num);
+                if (baseViewport.width > availWidth - 20) {
+                    this.scale = (availWidth - 20) / baseViewport.width;
                 }
             }
+
+            const viewport = page.getViewport({ scale: this.scale });
 
             this.canvas.height = viewport.height;
             this.canvas.width = viewport.width;
@@ -161,6 +179,15 @@ export class PDFViewer {
 
         this.pageLabel.textContent = `Page ${num}`;
         this._updatePageLabel();
+        this._prefetchNextPage(num + 1);
+    }
+
+    _prefetchNextPage(num) {
+        if (this.pdfDoc && num <= this.pdfDoc.numPages) {
+            this.pdfDoc.getPage(num).then(page => {
+                console.log(`[PDF] Prefetched page ${num} data`);
+            }).catch(() => {});
+        }
     }
 
     queueRenderPage(num) {
