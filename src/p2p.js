@@ -1,6 +1,9 @@
 import { Peer } from 'peerjs';
 import { db } from './db.js';
 
+const CHUNK_SIZE = 64 * 1024;
+const BUFFER_THRESHOLD = 1024 * 1024;
+const HEARTBEAT_INTERVAL = 5000;
 class ManualP2PService extends EventTarget {
     constructor() {
         super();
@@ -44,22 +47,28 @@ class ManualP2PService extends EventTarget {
     async handleSignal(signalStr) {
         try {
             const signal = JSON.parse(signalStr);
-            if (this.isHost) {
-                await this.peerConnection.setRemoteDescription(signal);
-            } else {
-                await this.peerConnection.setRemoteDescription(signal);
+            await this.peerConnection.setRemoteDescription(signal);
+            
+            if (!this.isHost && signal.type === 'offer') {
                 const answer = await this.peerConnection.createAnswer();
                 await this.peerConnection.setLocalDescription(answer);
             }
         } catch (e) {
             console.error('[Manual] Signal error:', e);
-            this.dispatchEvent(new CustomEvent('error', { detail: e }));
+            this.dispatchEvent(new CustomEvent('error', { detail: { message: 'Invalid QR Code' } }));
         }
     }
 
     _setupDataChannel(channel) {
         channel.onopen = () => this.dispatchEvent(new Event('channel-open'));
-        channel.onmessage = (event) => this.dispatchEvent(new CustomEvent('data', { detail: JSON.parse(event.data) }));
+        channel.onmessage = (event) => {
+            try {
+                const parsed = JSON.parse(event.data);
+                this.dispatchEvent(new CustomEvent('data', { detail: parsed }));
+            } catch (e) {
+                console.error('Failed to parse manual message', e);
+            }
+        };
     }
 
     send(data) {
@@ -77,9 +86,9 @@ export class P2PService extends EventTarget {
         this.peerId = null;
         this.mode = 'online';
         this.manualService = null;
-        this.chunkSize = 64 * 1024;
         this.receivingChunks = new Map();
         this.fileStreams = new Map();
+        this.heartbeatInterval = null;
     }
 
     async init(customPin = null) {
@@ -89,7 +98,7 @@ export class P2PService extends EventTarget {
 
         return new Promise((resolve, reject) => {
             this.peer = new Peer(this.peerId, {
-                debug: 2,
+                debug: 1,
                 secure: true,
                 config: {
                     iceServers: [
@@ -111,11 +120,12 @@ export class P2PService extends EventTarget {
             this.peer.on('connection', (conn) => this._handleConnection(conn));
             
             this.peer.on('error', (err) => {
+                console.warn('[PeerJS] Error:', err);
                 if (err.type === 'unavailable-id') {
                     this.init(null).then(resolve).catch(reject);
                     return;
                 }
-                reject(err);
+                this.dispatchEvent(new CustomEvent('error', { detail: { message: 'Connection Error: ' + err.type } }));
             });
         });
     }
@@ -126,7 +136,10 @@ export class P2PService extends EventTarget {
         this.manualService = new ManualP2PService();
 
         this.manualService.addEventListener('signal-ready', (e) => this.dispatchEvent(new CustomEvent('signal-generated', { detail: e.detail })));
-        this.manualService.addEventListener('connected', () => this.dispatchEvent(new CustomEvent('connected', { detail: { peer: 'Manual Peer' } })));
+        this.manualService.addEventListener('connected', () => {
+             this._startHeartbeat();
+             this.dispatchEvent(new CustomEvent('connected', { detail: { peer: 'Manual Peer' } }));
+        });
         this.manualService.addEventListener('data', (e) => this._handleData(e.detail));
         
         await this.manualService.init(isHost);
@@ -138,7 +151,10 @@ export class P2PService extends EventTarget {
 
     connect(remotePin) {
         if (this.mode === 'online' && this.peer) {
-            const conn = this.peer.connect(remotePin, { reliable: true });
+            const conn = this.peer.connect(remotePin, { 
+                reliable: true,
+                serialization: 'binary'
+            });
             this._handleConnection(conn);
         }
     }
@@ -149,12 +165,23 @@ export class P2PService extends EventTarget {
             else if (this.mode === 'manual' && this.manualService) this.manualService.send(data);
         };
 
+        const getBufferedAmount = () => {
+            if (this.mode === 'online' && this.conn && this.conn.dataChannel) {
+                return this.conn.dataChannel.bufferedAmount;
+            }
+
+            if (this.mode === 'manual' && this.manualService && this.manualService.dataChannel) {
+                return this.manualService.dataChannel.bufferedAmount;
+            }
+            return 0;
+        };
+
         if ((this.mode === 'online' && !this.conn) || (this.mode === 'manual' && !this.manualService)) {
              this.dispatchEvent(new CustomEvent('error', { detail: { message: 'No active connection' } }));
              return;
         }
 
-        const totalChunks = Math.ceil(file.size / this.chunkSize);
+        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
         const transferId = crypto.randomUUID();
         const meta = { type: 'meta', name: file.name, size: file.size, mime: file.type, totalChunks, transferId };
         
@@ -162,8 +189,12 @@ export class P2PService extends EventTarget {
         sendData(meta);
 
         for (let i = 0; i < totalChunks; i++) {
-            const start = i * this.chunkSize;
-            const end = Math.min(start + this.chunkSize, file.size);
+            while (getBufferedAmount() > BUFFER_THRESHOLD) {
+                await new Promise(r => setTimeout(r, 50));
+            }
+
+            const start = i * CHUNK_SIZE;
+            const end = Math.min(start + CHUNK_SIZE, file.size);
             const chunk = file.slice(start, end);
             
             let chunkData;
@@ -177,8 +208,9 @@ export class P2PService extends EventTarget {
 
             const progress = ((i + 1) / totalChunks) * 100;
             this.dispatchEvent(new CustomEvent('send-progress', { detail: { name: file.name, progress, transferId } }));
-            await new Promise(r => setTimeout(r, 10));
+            if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
         }
+
         this.dispatchEvent(new CustomEvent('send-complete', { detail: { name: file.name, transferId } }));
     }
 
@@ -191,22 +223,15 @@ export class P2PService extends EventTarget {
         });
     }
 
-    destroy() {
-        if (this.conn) this.conn.close();
-        if (this.peer) this.peer.destroy();
-        if (this.manualService) {
-            if(this.manualService.peerConnection) this.manualService.peerConnection.close();
-            this.manualService = null;
-        }
-        this.peer = null;
-        this.conn = null;
-    }
-
     _handleConnection(conn) {
         this.conn = conn;
-        conn.on('open', () => this.dispatchEvent(new CustomEvent('connected', { detail: { peer: conn.peer } })));
+        conn.on('open', () => {
+            this._startHeartbeat();
+            this.dispatchEvent(new CustomEvent('connected', { detail: { peer: conn.peer } }));
+        });
         conn.on('data', (data) => this._handleData(data));
         conn.on('close', () => {
+            this._stopHeartbeat();
             this.dispatchEvent(new Event('disconnected'));
             this.conn = null;
         });
@@ -214,6 +239,8 @@ export class P2PService extends EventTarget {
     }
 
     _handleData(data) {
+        if (data && data.type === 'ping') return;
+
         if (data.type === 'chunk' && typeof data.data === 'string' && data.data.startsWith('data:')) {
              fetch(data.data).then(res => res.arrayBuffer()).then(buffer => {
                  data.data = buffer;
@@ -246,7 +273,7 @@ export class P2PService extends EventTarget {
                     return;
                 }
             } catch (err) {
-                console.warn('[P2P] File Picker cancelled or failed, falling back to RAM.', err);
+                console.warn('[P2P] File Picker cancelled or failed, falling back to IDB.', err);
             }
 
             this.receivingChunks.set(data.transferId, {
@@ -256,8 +283,9 @@ export class P2PService extends EventTarget {
                 mime: data.mime,
                 name: data.name
             });
-            db.deleteFileChunks(data.transferId).catch(e => console.warn('Failed to clear old chunks', e));
-            this.dispatchEvent(new CustomEvent('transfer-start', { detail: data })); // data already has transferId
+
+            db.deleteFileChunks(data.transferId).catch(e => console.warn(e));
+            this.dispatchEvent(new CustomEvent('transfer-start', { detail: data }));
             return;
         }
 
@@ -297,7 +325,7 @@ export class P2PService extends EventTarget {
                         detail: { blob: safeBlob, name: fileData.name, mime: fileData.mime, transferId: data.transferId }
                     }));
                 }
-                
+
                 await db.deleteFileChunks(data.transferId);
                 this.receivingChunks.delete(data.transferId);
             }
@@ -319,6 +347,34 @@ export class P2PService extends EventTarget {
 
     _generatePIN() {
         return Math.floor(1000 + Math.random() * 9000).toString();
+    }
+    
+    _startHeartbeat() {
+        this._stopHeartbeat();
+        this.heartbeatInterval = setInterval(() => {
+            const ping = { type: 'ping' };
+            if (this.mode === 'online' && this.conn) this.conn.send(ping);
+            else if (this.mode === 'manual' && this.manualService) this.manualService.send(ping);
+        }, HEARTBEAT_INTERVAL);
+    }
+
+    _stopHeartbeat() {
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = null;
+        }
+    }
+
+    destroy() {
+        this._stopHeartbeat();
+        if (this.conn) this.conn.close();
+        if (this.peer) this.peer.destroy();
+        if (this.manualService) {
+            if(this.manualService.peerConnection) this.manualService.peerConnection.close();
+            this.manualService = null;
+        }
+        this.peer = null;
+        this.conn = null;
     }
 }
 
