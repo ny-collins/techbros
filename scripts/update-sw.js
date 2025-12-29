@@ -15,7 +15,7 @@ const pkg = JSON.parse(fs.readFileSync(PKG_PATH, 'utf-8'));
 const appVersion = `v${pkg.version}-${Date.now().toString().slice(-6)}`;
 
 const assets = fs.readdirSync(path.join(DIST_DIR, 'assets'));
-const cssFile = assets.find(f => f.startsWith('main-') && f.endsWith('.css'));
+const cssFile = assets.find(f => (f.startsWith('main-') || f.startsWith('style-')) && f.endsWith('.css'));
 const jsFile = assets.find(f => f.startsWith('main-') && f.endsWith('.js'));
 const workerFile = assets.find(f => f.startsWith('search-worker-') && f.endsWith('.js'));
 
