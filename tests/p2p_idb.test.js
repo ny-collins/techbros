@@ -4,6 +4,7 @@ import { db } from '../src/db.js';
 jest.mock('../src/db.js', () => ({
     db: {
         addChunk: jest.fn(() => Promise.resolve()),
+        countChunks: jest.fn(() => Promise.resolve(0)),
         getFileChunks: jest.fn(() => Promise.resolve([new ArrayBuffer(10), new ArrayBuffer(10)])),
         deleteFileChunks: jest.fn(() => Promise.resolve()),
         open: jest.fn(() => Promise.resolve({}))

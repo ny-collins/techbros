@@ -209,23 +209,25 @@ export class P2PService extends EventTarget {
         }
 
         const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-        const transferId = crypto.randomUUID();
+        const transferId = this._generateTransferId(file);
         const meta = { type: 'meta', name: file.name, size: file.size, mime: file.type, totalChunks, transferId };
 
         this.dispatchEvent(new CustomEvent('transfer-start', { detail: { ...meta, isOutgoing: true } }));
         sendData(meta);
 
+        let resumeIndex = 0;
+
         try {
-            await new Promise((resolve, reject) => {
+            const response = await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
                     this.pendingTransfers.delete(transferId);
                     reject(new Error('Transfer timed out waiting for peer acceptance'));
                 }, 30000);
 
                 this.pendingTransfers.set(transferId, {
-                    resolve: () => {
+                    resolve: (data) => {
                         clearTimeout(timeout);
-                        resolve();
+                        resolve(data);
                     },
                     reject: (err) => {
                         clearTimeout(timeout);
@@ -233,12 +235,15 @@ export class P2PService extends EventTarget {
                     }
                 });
             });
+            if (response && response.resumeIndex) {
+                resumeIndex = response.resumeIndex;
+            }
         } catch (error) {
             this.dispatchEvent(new CustomEvent('error', { detail: { message: error.message } }));
             return;
         }
 
-        for (let i = 0; i < totalChunks; i++) {
+        for (let i = resumeIndex; i < totalChunks; i++) {
             if (getBufferedAmount() > BUFFER_THRESHOLD) {
                 await new Promise(resolve => {
                     const channel = this.mode === 'online' ? this.conn.dataChannel : this.manualService.dataChannel;
@@ -327,7 +332,7 @@ export class P2PService extends EventTarget {
         const pending = this.pendingTransfers.get(data.transferId);
         if (pending) {
             if (data.type === 'transfer-accepted') {
-                pending.resolve();
+                pending.resolve(data);
             } else {
                 pending.reject(new Error('Transfer rejected by peer'));
             }
@@ -362,16 +367,25 @@ export class P2PService extends EventTarget {
                 console.warn('[P2P] File Picker cancelled or failed, falling back to IDB.', err);
             }
 
+            const existingCount = await db.countChunks(data.transferId);
+            
             this.receivingChunks.set(data.transferId, {
-                received: 0,
+                received: existingCount,
                 total: data.totalChunks,
                 size: data.size,
                 mime: data.mime,
                 name: data.name
             });
 
-            db.deleteFileChunks(data.transferId).catch(e => console.warn(e));
-            this._send({ type: 'transfer-accepted', transferId: data.transferId });
+            if (existingCount === 0) {
+                db.deleteFileChunks(data.transferId).catch(e => console.warn(e));
+            }
+
+            this._send({ 
+                type: 'transfer-accepted', 
+                transferId: data.transferId,
+                resumeIndex: existingCount
+            });
             this.dispatchEvent(new CustomEvent('transfer-start', { detail: data }));
             return;
         }
@@ -459,6 +473,10 @@ export class P2PService extends EventTarget {
 
     _generatePIN() {
         return Math.floor(1000 + Math.random() * 9000).toString();
+    }
+
+    _generateTransferId(file) {
+        return `${file.name}-${file.size}-${file.lastModified}`;
     }
 
     _startHeartbeat() {

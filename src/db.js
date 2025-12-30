@@ -46,6 +46,18 @@ export const db = {
 
     /* === OPERATIONS === */
 
+    async countChunks(fileName) {
+        const database = await this.open();
+        return new Promise((resolve, reject) => {
+            const tx = database.transaction([STORE_NAME], 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const index = store.index('file');
+            const request = index.count(IDBKeyRange.only(fileName));
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = (e) => reject(e.target.error);
+        });
+    },
+
     async addChunk(fileName, index, data) {
         const database = await this.open();
         return new Promise((resolve, reject) => {

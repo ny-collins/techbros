@@ -57,13 +57,16 @@ describe('P2P Transfer Logic', () => {
             name: 'test.txt'
         }));
 
+        const metaPacket = sendSpy.mock.calls[0][0];
+        const transferId = metaPacket.transferId;
+
         await new Promise(resolve => setTimeout(resolve, 50));
 
         expect(sendSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'chunk' }));
 
         sender._handleData({
             type: 'transfer-accepted',
-            transferId: 'test-uuid-1234'
+            transferId: transferId
         });
 
         await new Promise(resolve => setTimeout(resolve, 50));

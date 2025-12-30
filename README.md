@@ -12,6 +12,7 @@ TechBros Library is a specialized Progressive Web Application (PWA) built to bri
 
 *   **Offline-First:** Works fully without internet after initial load.
 *   **Peer-to-Peer (P2P):** Share large files directly between devices using WebRTC (AirShare).
+*   **Resumable Transfers:** Interrupted transfers automatically resume from where they left off.
 *   **Zero-Data:** "Download Once, Share Forever" architecture.
 *   **Smart Search:** Fuzzy search algorithm tolerates typos.
 *   **Cross-Platform:** Responsive design for Mobile, Tablet, and Desktop.
