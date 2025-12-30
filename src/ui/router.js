@@ -8,6 +8,8 @@ export const router = {
     },
     currentView: 'library',
 
+    /* === INITIALIZATION === */
+
     init(onViewChange) {
         this.onViewChange = onViewChange || (() => {});
 
@@ -39,23 +41,27 @@ export const router = {
         }
     },
 
-    navigateTo(viewId, addToHistory = true) {
-        if (this.elements.views) this.elements.views.forEach(el => el.classList.remove('active'));
-        
-        const target = document.getElementById(`${viewId}-view`);
-        
-        if (viewId === 'resource') {
-            if (this.elements.topBar) this.elements.topBar.classList.add('hidden');
-        } else {
-            if (this.elements.topBar) this.elements.topBar.classList.remove('hidden');
-        }
-
-        if (target) {
-            target.classList.add('active');
-            this.currentView = viewId;
-
-            if (viewId !== 'resource' && this.elements.navLinks) {
-                this.elements.navLinks.forEach(link => {
+        /* === NAVIGATION === */
+    
+        navigateTo(viewId, addToHistory = true) {
+            if (viewId === this.currentView) return;
+    
+            if (this.elements.views) this.elements.views.forEach(el => el.classList.remove('active'));
+            
+            const target = document.getElementById(`${viewId}-view`);
+            
+            if (viewId === 'resource') {
+                if (this.elements.topBar) this.elements.topBar.classList.add('hidden');
+            } else {
+                if (this.elements.topBar) this.elements.topBar.classList.remove('hidden');
+            }
+    
+            if (target) {
+                target.classList.add('active');
+                this.currentView = viewId;
+                window.scrollTo(0, 0);
+    
+                if (viewId !== 'resource' && this.elements.navLinks) {                this.elements.navLinks.forEach(link => {
                     link.classList.remove('active');
                     if (link.getAttribute('href') === `#${viewId}`) link.classList.add('active');
                 });

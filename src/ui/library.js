@@ -12,6 +12,8 @@ export const library = {
     },
     activeFilter: 'all',
 
+    /* === INITIALIZATION === */
+
     init(router, viewer) {
         this._bindSearch();
         this._bindViewToggles();
@@ -35,25 +37,27 @@ export const library = {
         this.renderList(store.getResources(), viewer, router);
     },
 
+    /* === RENDERING === */
+
     renderFilters(resources) {
         if (!this.elements.filterContainer) return;
-        
+
         const types = new Set(['all']);
         resources.forEach(r => types.add(r.type));
-        
+
         this.elements.filterContainer.innerHTML = '';
-        
+
         types.forEach(type => {
             const btn = document.createElement('button');
             btn.className = `chip ${this.activeFilter === type ? 'active' : ''}`;
             btn.textContent = type.charAt(0).toUpperCase() + type.slice(1) + (type === 'all' ? '' : 's');
             btn.dataset.filter = type;
-            
+
             btn.addEventListener('click', () => {
                 this.activeFilter = type;
                 this.elements.filterContainer.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
                 btn.classList.add('active');
-                
+
                 if (type === 'all') {
                     this.renderList(store.getResources());
                 } else {
@@ -61,7 +65,7 @@ export const library = {
                     this.renderList(filtered);
                 }
             });
-            
+
             this.elements.filterContainer.appendChild(btn);
         });
     },
@@ -101,7 +105,7 @@ export const library = {
         div.addEventListener('click', () => {
             if (this.viewer && this.router) this.viewer.open(data, this.router);
         });
-        
+
         div.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -133,10 +137,10 @@ export const library = {
 
         const meta = document.createElement('div');
         meta.className = 'meta';
-        
+
         const typeSpan = document.createElement('span');
         typeSpan.textContent = data.type.toUpperCase();
-        
+
         const sizeSpan = document.createElement('span');
         sizeSpan.textContent = common.formatBytes(data.size || 0);
 
@@ -156,6 +160,8 @@ export const library = {
         const map = { video: 'video', audio: 'music-note', pdf: 'file-pdf' };
         return `<i class="ph ph-${map[type] || 'file'}"></i>`;
     },
+
+    /* === EVENT BINDINGS === */
 
     _bindSearch() {
         if (!this.elements.searchInput) return;
@@ -197,7 +203,7 @@ export const library = {
                         try {
                             const originalIcon = this.elements.btnClearCache.innerHTML;
                             this.elements.btnClearCache.innerHTML = '<i class="ph ph-spinner ph-spin"></i>';
-                            
+
                             await caches.delete('techbros-resources-v1');
                             localStorage.removeItem('techbros_settings');
                             common.showToast('Cache cleared. Reloading...', 'success');

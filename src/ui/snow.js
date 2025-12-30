@@ -1,3 +1,5 @@
+/* === VISUAL EFFECTS === */
+
 export class SnowSystem {
   constructor() {
     this.canvas = null;
@@ -10,6 +12,8 @@ export class SnowSystem {
     this.mouse = { x: -1000, y: -1000 };
   }
 
+  /* === INITIALIZATION === */
+
   init() {
     this.canvas = document.createElement('canvas');
     this.canvas.id = 'snow-canvas';
@@ -21,7 +25,7 @@ export class SnowSystem {
     this.canvas.style.height = '100%';
     this.canvas.style.pointerEvents = 'none';
     this.canvas.style.zIndex = '9999';
-    
+
     document.body.appendChild(this.canvas);
     this.boundResize = this.resize.bind(this);
     window.addEventListener('resize', this.boundResize);
@@ -43,13 +47,15 @@ export class SnowSystem {
         this.mouse.x = clientX;
         this.mouse.y = clientY;
     };
-    
+
     window.addEventListener('mousemove', this.boundMouseMove);
     window.addEventListener('touchmove', this.boundMouseMove, { passive: true });
     window.addEventListener('touchstart', this.boundMouseMove, { passive: true });
     this.createFlakes(); 
     this.loop();
   }
+
+  /* === CONTROLS === */
 
   pause() {
     if (this.canvas) this.canvas.style.display = 'none';
@@ -72,6 +78,8 @@ export class SnowSystem {
     this.canvas.width = this.width;
     this.canvas.height = this.height;
   }
+
+  /* === RENDER LOGIC === */
 
   createFlakes() {
     this.flakes = [];
@@ -115,16 +123,16 @@ export class SnowSystem {
 
   draw() {
     this.ctx.clearRect(0, 0, this.width, this.height);
-    
+
     this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
     this.ctx.beginPath();
-    
+
     for (let i = 0; i < this.flakeCount; i++) {
       let flake = this.flakes[i];
       this.ctx.moveTo(flake.x + flake.radius, flake.y);
       this.ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2, true);
     }
-    
+
     this.ctx.fill();
   }
 

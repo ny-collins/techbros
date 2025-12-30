@@ -1,9 +1,17 @@
+/* === CONSTANTS === */
+
 const DB_NAME = 'techbros-transfer-db';
 const DB_VERSION = 1;
 const STORE_NAME = 'file-chunks';
 
 export const db = {
+    _connection: null,
+
+    /* === CONNECTION === */
+
     async open() {
+        if (this._connection) return this._connection;
+
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(DB_NAME, DB_VERSION);
 
@@ -17,9 +25,26 @@ export const db = {
                 }
             };
 
-            request.onsuccess = (event) => resolve(event.target.result);
+            request.onsuccess = (event) => {
+                this._connection = event.target.result;
+                this._connection.onclose = () => { this._connection = null; };
+                this._connection.onversionchange = () => {
+                    this._connection.close();
+                    this._connection = null;
+                };
+                resolve(this._connection);
+            };
         });
     },
+
+    close() {
+        if (this._connection) {
+            this._connection.close();
+            this._connection = null;
+        }
+    },
+
+    /* === OPERATIONS === */
 
     async addChunk(fileName, index, data) {
         const database = await this.open();
@@ -39,7 +64,7 @@ export const db = {
             const store = tx.objectStore(STORE_NAME);
             const index = store.index('file');
             const request = index.getAll(IDBKeyRange.only(fileName));
-            
+
             request.onsuccess = () => {
                 const sorted = request.result.sort((a, b) => a.index - b.index);
                 resolve(sorted.map(item => item.data));
@@ -55,7 +80,7 @@ export const db = {
              const store = tx.objectStore(STORE_NAME);
              const index = store.index('file');
              const keyRange = IDBKeyRange.only(fileName);
-             
+
              const request = index.openKeyCursor(keyRange);
              request.onsuccess = (e) => {
                  const cursor = e.target.result;

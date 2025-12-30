@@ -7,6 +7,8 @@ export const viewer = {
         backButton: document.getElementById('btn-back-library'),
     },
 
+    /* === INITIALIZATION === */
+
     init(router) {
         if (this.elements.backButton) {
             this.elements.backButton.addEventListener('click', () => {
@@ -20,7 +22,7 @@ export const viewer = {
     open(resource, router) {
         common.closeSidebar();
         this.clear();
-        
+
         if (window.snowSystem) window.snowSystem.resume();
 
         const container = this.elements.container;
@@ -43,6 +45,8 @@ export const viewer = {
     clear() {
         if (this.elements.container) this.elements.container.innerHTML = '';
     },
+
+    /* === RENDERERS === */
 
     _renderAudio(resource, container) {
         const card = document.createElement('div');
@@ -84,8 +88,8 @@ export const viewer = {
     _renderVideo(resource, container) {
         const video = document.createElement('video');
         video.className = 'full-viewer';
-        video.controls = true; 
-        video.autoplay = true; 
+        video.controls = true;
+        video.autoplay = true;
         video.src = resource.url;
         video.onerror = () => common.showToast('Error loading video', 'error');
         container.appendChild(video);
@@ -153,7 +157,7 @@ export const viewer = {
         container.style.display = 'flex';
         container.style.alignItems = 'center';
         container.style.justifyContent = 'center';
-        
+
         container.appendChild(img);
     },
 

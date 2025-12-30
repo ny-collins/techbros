@@ -1,9 +1,23 @@
 import { Peer } from 'peerjs';
 import { db } from './db.js';
 
+/* === CONSTANTS === */
+
 const CHUNK_SIZE = 64 * 1024;
 const BUFFER_THRESHOLD = 1024 * 1024;
 const HEARTBEAT_INTERVAL = 5000;
+const ALLOWED_MIME_TYPES = [
+    'application/pdf', 'text/plain', 'text/markdown', 'text/html',
+    'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+    'audio/mpeg', 'audio/wav', 'audio/ogg', 'video/mp4', 'video/webm', 'video/ogg',
+    'application/zip', 'application/x-zip-compressed'
+];
+
+/* === MANUAL SIGNALING SERVICE === */
+
 class ManualP2PService extends EventTarget {
     constructor() {
         super();
@@ -48,7 +62,7 @@ class ManualP2PService extends EventTarget {
         try {
             const signal = JSON.parse(signalStr);
             await this.peerConnection.setRemoteDescription(signal);
-            
+
             if (!this.isHost && signal.type === 'offer') {
                 const answer = await this.peerConnection.createAnswer();
                 await this.peerConnection.setLocalDescription(answer);
@@ -78,6 +92,8 @@ class ManualP2PService extends EventTarget {
     }
 }
 
+/* === MAIN P2P SERVICE === */
+
 export class P2PService extends EventTarget {
     constructor() {
         super();
@@ -90,7 +106,10 @@ export class P2PService extends EventTarget {
         this.fileStreams = new Map();
         this.pendingTransfers = new Map();
         this.heartbeatInterval = null;
+        this.chunkBuffers = new Map();
     }
+
+    /* === INITIALIZATION === */
 
     async init(customPin = null) {
         if (this.peer) this.destroy();
@@ -104,10 +123,10 @@ export class P2PService extends EventTarget {
                 config: {
                     iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
-                        { 
-                            urls: import.meta.env.VITE_TURN_URL, 
-                            username: import.meta.env.VITE_TURN_USERNAME, 
-                            credential: import.meta.env.VITE_TURN_CREDENTIAL 
+                        {
+                            urls: import.meta.env.VITE_TURN_URL,
+                            username: import.meta.env.VITE_TURN_USERNAME,
+                            credential: import.meta.env.VITE_TURN_CREDENTIAL
                         }
                     ]
                 }
@@ -119,7 +138,7 @@ export class P2PService extends EventTarget {
             });
 
             this.peer.on('connection', (conn) => this._handleConnection(conn));
-            
+
             this.peer.on('error', (err) => {
                 console.warn('[PeerJS] Error:', err);
                 if (err.type === 'unavailable-id') {
@@ -142,9 +161,11 @@ export class P2PService extends EventTarget {
              this.dispatchEvent(new CustomEvent('connected', { detail: { peer: 'Manual Peer' } }));
         });
         this.manualService.addEventListener('data', (e) => this._handleData(e.detail));
-        
+
         await this.manualService.init(isHost);
     }
+
+    /* === PUBLIC API === */
 
     async processManualSignal(signalStr) {
         if (this.manualService) await this.manualService.handleSignal(signalStr);
@@ -152,7 +173,7 @@ export class P2PService extends EventTarget {
 
     connect(remotePin) {
         if (this.mode === 'online' && this.peer) {
-            const conn = this.peer.connect(remotePin, { 
+            const conn = this.peer.connect(remotePin, {
                 reliable: true,
                 serialization: 'binary'
             });
@@ -190,7 +211,7 @@ export class P2PService extends EventTarget {
         const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
         const transferId = crypto.randomUUID();
         const meta = { type: 'meta', name: file.name, size: file.size, mime: file.type, totalChunks, transferId };
-        
+
         this.dispatchEvent(new CustomEvent('transfer-start', { detail: { ...meta, isOutgoing: true } }));
         sendData(meta);
 
@@ -218,14 +239,25 @@ export class P2PService extends EventTarget {
         }
 
         for (let i = 0; i < totalChunks; i++) {
-            while (getBufferedAmount() > BUFFER_THRESHOLD) {
-                await new Promise(r => setTimeout(r, 50));
+            if (getBufferedAmount() > BUFFER_THRESHOLD) {
+                await new Promise(resolve => {
+                    const channel = this.mode === 'online' ? this.conn.dataChannel : this.manualService.dataChannel;
+                    if (channel) {
+                        const handler = () => {
+                            channel.removeEventListener('bufferedamountlow', handler);
+                            resolve();
+                        };
+                        channel.addEventListener('bufferedamountlow', handler);
+                    } else {
+                        setTimeout(resolve, 50);
+                    }
+                });
             }
 
             const start = i * CHUNK_SIZE;
             const end = Math.min(start + CHUNK_SIZE, file.size);
             const chunk = file.slice(start, end);
-            
+
             let chunkData;
             if (this.mode === 'manual') {
                  chunkData = await this._blobToBase64(chunk);
@@ -243,14 +275,19 @@ export class P2PService extends EventTarget {
         this.dispatchEvent(new CustomEvent('send-complete', { detail: { name: file.name, transferId } }));
     }
 
-    _blobToBase64(blob) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
+    destroy() {
+        this._stopHeartbeat();
+        if (this.conn) this.conn.close();
+        if (this.peer) this.peer.destroy();
+        if (this.manualService) {
+            if(this.manualService.peerConnection) this.manualService.peerConnection.close();
+            this.manualService = null;
+        }
+        this.peer = null;
+        this.conn = null;
     }
+
+    /* === PRIVATE HANDLERS === */
 
     _handleConnection(conn) {
         this.conn = conn;
@@ -344,7 +381,7 @@ export class P2PService extends EventTarget {
                 const stream = this.fileStreams.get(data.transferId);
                 await stream.writable.write(data.data);
                 stream.received++;
-                
+
                 const progress = (stream.received / stream.total) * 100;
                 this.dispatchEvent(new CustomEvent('receive-progress', { detail: { name: stream.name, progress, transferId: data.transferId } }));
 
@@ -359,17 +396,27 @@ export class P2PService extends EventTarget {
             const fileData = this.receivingChunks.get(data.transferId);
             if (!fileData) return;
 
-            await db.addChunk(data.transferId, data.index, data.data);
+            if (!this.chunkBuffers.has(data.transferId)) {
+                this.chunkBuffers.set(data.transferId, []);
+            }
+            const buffer = this.chunkBuffers.get(data.transferId);
+            buffer.push({ index: data.index, data: data.data });
+
             fileData.received++;
+            const isLastChunk = fileData.received === fileData.total;
+
+            if (buffer.length >= 50 || isLastChunk) {
+                await this._flushChunkBuffer(data.transferId);
+            }
 
             const progress = (fileData.received / fileData.total) * 100;
             this.dispatchEvent(new CustomEvent('receive-progress', { detail: { name: fileData.name, progress, transferId: data.transferId } }));
 
-            if (fileData.received === fileData.total) {
+            if (isLastChunk) {
                 const chunks = await db.getFileChunks(data.transferId);
                 const blob = new Blob(chunks, { type: fileData.mime });
                 const safeBlob = this._sanitizeBlob(blob, fileData.mime);
-                
+
                 if (safeBlob) {
                     this.dispatchEvent(new CustomEvent('file-received', {
                         detail: { blob: safeBlob, name: fileData.name, mime: fileData.mime, transferId: data.transferId }
@@ -378,27 +425,42 @@ export class P2PService extends EventTarget {
 
                 await db.deleteFileChunks(data.transferId);
                 this.receivingChunks.delete(data.transferId);
+                this.chunkBuffers.delete(data.transferId);
             }
         }
     }
 
+    async _flushChunkBuffer(transferId) {
+        const buffer = this.chunkBuffers.get(transferId);
+        if (!buffer || buffer.length === 0) return;
+
+        const chunksToWrite = [...buffer];
+        buffer.length = 0;
+
+        for (const item of chunksToWrite) {
+            await db.addChunk(transferId, item.index, item.data);
+        }
+    }
+
+    /* === UTILITIES === */
+
+    _blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    }
+
     _sanitizeBlob(blob, mimeType) {
-        const allowedTypes = [
-            'application/pdf', 'text/plain', 'text/markdown', 'text/html',
-            'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
-            'audio/mpeg', 'audio/wav', 'audio/ogg', 'video/mp4', 'video/webm', 'video/ogg',
-            'application/zip', 'application/x-zip-compressed'
-        ];
-        return allowedTypes.includes(mimeType) ? blob : null;
+        return ALLOWED_MIME_TYPES.includes(mimeType) ? blob : null;
     }
 
     _generatePIN() {
         return Math.floor(1000 + Math.random() * 9000).toString();
     }
-    
+
     _startHeartbeat() {
         this._stopHeartbeat();
         this.heartbeatInterval = setInterval(() => {
@@ -413,18 +475,6 @@ export class P2PService extends EventTarget {
             clearInterval(this.heartbeatInterval);
             this.heartbeatInterval = null;
         }
-    }
-
-    destroy() {
-        this._stopHeartbeat();
-        if (this.conn) this.conn.close();
-        if (this.peer) this.peer.destroy();
-        if (this.manualService) {
-            if(this.manualService.peerConnection) this.manualService.peerConnection.close();
-            this.manualService = null;
-        }
-        this.peer = null;
-        this.conn = null;
     }
 }
 

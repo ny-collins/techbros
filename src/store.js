@@ -15,10 +15,11 @@ class Store {
         };
     }
 
+    /* === INITIALIZATION === */
+
     async init() {
         this._loadSettings();
         await this._fetchResources();
-        console.log('[Store] Initialized with', this.state.resources.length, 'resources.');
     }
 
     async _fetchResources() {
@@ -40,6 +41,8 @@ class Store {
             this.state.resources = [];
         }
     }
+
+    /* === STATE MANAGEMENT === */
 
     _loadSettings() {
         const saved = localStorage.getItem('techbros_settings');
@@ -64,6 +67,24 @@ class Store {
     getVersion() {
         return this.state.version;
     }
+
+    getSettings() {
+        return this.state.settings;
+    }
+
+    updateSetting(key, value) {
+        if (key in this.state.settings) {
+            this.state.settings[key] = value;
+            this._saveSettings();
+        }
+    }
+
+    setUserPeerId(id, pin) {
+        this.state.user.peerId = id;
+        this.state.user.pin = pin;
+    }
+
+    /* === SEARCH LOGIC === */
 
     search(query) {
         return new Promise((resolve) => {
@@ -109,6 +130,8 @@ class Store {
         });
     }
 
+    /* === UTILITIES === */
+
     _levenshtein(a, b) {
         if (a.length === 0) return b.length;
         if (b.length === 0) return a.length;
@@ -140,22 +163,6 @@ class Store {
         }
 
         return matrix[b.length][a.length];
-    }
-
-    getSettings() {
-        return this.state.settings;
-    }
-
-    updateSetting(key, value) {
-        if (key in this.state.settings) {
-            this.state.settings[key] = value;
-            this._saveSettings();
-        }
-    }
-
-    setUserPeerId(id, pin) {
-        this.state.user.peerId = id;
-        this.state.user.pin = pin;
     }
 }
 

@@ -13,6 +13,8 @@ export const common = {
         overlay: document.getElementById('sidebar-overlay'),
     },
 
+    /* === INITIALIZATION === */
+
     init() {
         const themeToggle = document.getElementById('theme-toggle');
         if (themeToggle) {
@@ -23,7 +25,7 @@ export const common = {
                 this.updateTheme(newTheme);
             });
         }
-        
+
         this.updateTheme(store.getSettings().theme);
 
         const brandToggle = document.getElementById('brand-toggle');
@@ -34,7 +36,7 @@ export const common = {
         if (mobileMenuToggle) mobileMenuToggle.addEventListener('click', () => this.toggleSidebar());
         if (sidebarClose) sidebarClose.addEventListener('click', () => this.closeSidebar());
         if (this.elements.overlay) this.elements.overlay.addEventListener('click', () => this.closeSidebar());
-        
+
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') this.closeSidebar();
         });
@@ -60,8 +62,10 @@ export const common = {
         }
     },
 
-    updateTheme(theme) { 
-        document.documentElement.setAttribute('data-theme', theme); 
+    /* === THEME & LAYOUT === */
+
+    updateTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
     },
 
     toggleSidebar() {
@@ -88,10 +92,12 @@ export const common = {
         }
     },
 
+    /* === FEEDBACK & DIALOGS === */
+
     showToast(message, type = 'info') {
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
-        toast.innerHTML = message; 
+        toast.innerHTML = message;
         if (this.elements.toastContainer) {
             this.elements.toastContainer.appendChild(toast);
             requestAnimationFrame(() => toast.classList.add('show'));
@@ -127,6 +133,8 @@ export const common = {
             this.elements.p2pStatus.className = `status-indicator ${type}`;
         }
     },
+
+    /* === UTILITIES === */
 
     sanitizeText(str) {
         if (!str) return '';

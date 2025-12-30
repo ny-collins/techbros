@@ -1,3 +1,5 @@
+/* === CONFIGURATION === */
+
 const CACHE_VERSION = 'v2.0.0';
 const APP_CACHE = `techbros-app-${CACHE_VERSION}`;
 const RESOURCE_CACHE = 'techbros-resources-v1';
@@ -32,6 +34,8 @@ const ASSETS = [
     '/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2'
 ];
 
+/* === INSTALLATION === */
+
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(APP_CACHE)
@@ -45,6 +49,8 @@ self.addEventListener('install', event => {
             })
     );
 });
+
+/* === ACTIVATION === */
 
 self.addEventListener('activate', event => {
     event.waitUntil(
@@ -60,6 +66,8 @@ self.addEventListener('activate', event => {
         }).then(() => self.clients.claim())
     );
 });
+
+/* === FETCH HANDLING === */
 
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
@@ -86,6 +94,8 @@ self.addEventListener('fetch', event => {
         })
     );
 });
+
+/* === RESOURCE STRATEGIES === */
 
 async function handleResourceRequest(request) {
     const cache = await caches.open(RESOURCE_CACHE);

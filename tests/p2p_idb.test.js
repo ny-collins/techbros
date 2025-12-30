@@ -44,8 +44,6 @@ describe('P2PService - IndexedDB Fallback', () => {
         const chunk0 = { type: 'chunk', index: 0, total: totalChunks, data: new ArrayBuffer(500), name: fileName, transferId };
         await p2p._processChunk(chunk0);
 
-        expect(db.addChunk).toHaveBeenCalledWith(transferId, 0, chunk0.data);
-
         const chunk1 = { type: 'chunk', index: 1, total: totalChunks, data: new ArrayBuffer(500), name: fileName, transferId };
 
         const receivedSpy = jest.fn();
@@ -53,7 +51,10 @@ describe('P2PService - IndexedDB Fallback', () => {
 
         await p2p._processChunk(chunk1);
 
+        expect(db.addChunk).toHaveBeenCalledTimes(2);
+        expect(db.addChunk).toHaveBeenCalledWith(transferId, 0, chunk0.data);
         expect(db.addChunk).toHaveBeenCalledWith(transferId, 1, chunk1.data);
+
         expect(db.getFileChunks).toHaveBeenCalledWith(transferId);
         expect(db.deleteFileChunks).toHaveBeenCalledTimes(2);
         

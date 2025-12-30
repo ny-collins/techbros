@@ -17,9 +17,9 @@ class UIManager {
         };
     }
 
+    /* === INITIALIZATION === */
+
     init() {
-        console.log('[UI] Initializing modules...');
-        
         common.init();
 
         p2pUI.init();
@@ -36,11 +36,11 @@ class UIManager {
         p2p.init().catch(console.error);
 
         this._checkInstallation();
-
-        console.log('[UI] All modules initialized.');
     }
 
-    _checkInstallation() {
+    /* === PWA INSTALLATION === */
+
+    async _checkInstallation() {
         let deferredPrompt;
         const installBtn = document.getElementById('btn-install-pwa');
         const installContainer = document.getElementById('install-container');
@@ -54,6 +54,18 @@ class UIManager {
                     </div>`;
             }
         };
+
+        if ('getInstalledRelatedApps' in navigator) {
+            try {
+                const relatedApps = await navigator.getInstalledRelatedApps();
+                if (relatedApps.length > 0) {
+                    showInstalledState();
+                    return;
+                }
+            } catch (error) {
+                console.warn('[UI] getInstalledRelatedApps failed:', error);
+            }
+        }
 
         if (window.matchMedia('(display-mode: standalone)').matches) {
             showInstalledState();

@@ -1,89 +1,86 @@
-# TechBros Library
+# TechBros Library v2.0.0
 
-**Offline-First Educational Resource Platform with Peer-to-Peer File Sharing**
+**Offline-First Educational Resource Platform & P2P Sharing System**
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue?style=flat-square)](https://github.com/ny-collins/techbros)
-[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)](https://github.com/ny-collins/techbros/actions)
+![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
+![Build](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)
+![Platform](https://img.shields.io/badge/platform-PWA-blue?style=flat-square)
 
-TechBros Library is a Progressive Web Application (PWA) designed to provide educational resource access in low-bandwidth and offline environments. It leverages client-side storage and WebRTC-based peer-to-peer networking to distribute content without reliance on centralized infrastructure.
+TechBros Library is a specialized Progressive Web Application (PWA) built to bridge the digital divide. It enables users to download, organize, and share educational resources (PDFs, Audio, Video) without relying on consistent internet access.
 
-## System Overview
+## Key Features
 
-The application functions as a local repository for educational materials (PDFs, Audio, Video). It employs a "Download Once, Read Forever" architecture, utilizing Service Workers for caching and IndexedDB for state management.
+*   **Offline-First:** Works fully without internet after initial load.
+*   **Peer-to-Peer (P2P):** Share large files directly between devices using WebRTC (AirShare).
+*   **Zero-Data:** "Download Once, Share Forever" architecture.
+*   **Smart Search:** Fuzzy search algorithm tolerates typos.
+*   **Cross-Platform:** Responsive design for Mobile, Tablet, and Desktop.
 
-### Core Capabilities
+## Architecture Overview
 
-*   **Offline-First Architecture:** Resources are cached locally, allowing full application functionality without network connectivity.
-*   **Peer-to-Peer Distribution:** Enables direct file transfer between client devices using WebRTC. Supports both signaling server-mediated connections (Online) and QR code-based manual signaling (Offline/LAN).
-*   **Zero-Backend Deployment:** Operates as a static site with no server-side database requirements.
-*   **Cross-Platform Compatibility:** Responsive design supporting Mobile, Tablet, and Desktop environments.
+The system runs entirely client-side (Static Site).
 
-## Technical Specifications
+```ascii
+[ User A ] <=== ( WebRTC Data Channel ) ===> [ User B ]
+    |                                            |
+[ Local Storage ]                            [ Local Storage ]
+(IndexedDB / Cache)                          (IndexedDB / Cache)
+```
 
-### Library Management
-*   **Search Algorithm:** Implements Levenshtein distance for fuzzy search capability.
-*   **Format Support:** In-app PDF rendering via PDF.js, plus native MP4 and MP3 support.
-*   **Interface:** Customizable Grid and List views with persistent theme preferences (Dark/Light).
+For a deep dive into the technical design, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-### P2P File Transfer Protocol
-*   **Transport:** WebRTC Data Channels via PeerJS.
-*   **Signaling:**
-    *   **Online:** WebSocket connection to PeerJS cloud signaling.
-    *   **Offline:** Manual Session Description Protocol (SDP) exchange via QR Codes.
-*   **Performance:** Implements File System Access API for streaming writes, mitigating memory constraints during large file transfers.
-*   **Security:** File type validation and Content Security Policy (CSP) enforcement.
+## Installation & Setup
 
-## Installation and Setup
+### Prerequisites
+*   **Node.js** (v16 or higher)
+*   **NPM**
 
-### User Installation
-Access the application via a supported web browser. For offline persistence, install the application to the device home screen when prompted.
+### Quick Start
 
-### Developer Setup
-
-**Prerequisites:** Node.js (v16+)
-
-1.  **Clone Repository**
+1.  **Clone the repository**
     ```bash
     git clone https://github.com/ny-collins/techbros.git
     cd techbros
     ```
 
-2.  **Setup Environment Variables**
-    Copy the example configuration and add your credentials (e.g., TURN server).
-    ```bash
-    cp .env.example .env
-    # Edit .env with your keys
-    ```
-
-3.  **Install Dependencies**
+2.  **Install dependencies**
     ```bash
     npm install
     ```
 
-4.  **Development Server**
-    Start the Vite development server with hot module replacement:
+3.  **Start Development Server**
     ```bash
     npm run dev
     ```
+    Access the app at `http://localhost:3000`.
 
-5.  **Production Build**
-    Generate optimized static assets in the `dist/` directory:
-    ```bash
-    npm run build
-    ```
+### Building for Production
 
-6.  **Testing**
-    Execute the test suite using Jest:
-    ```bash
-    npm test
-    ```
+To create an optimized build for deployment (e.g., Cloudflare Pages, Netlify):
 
-## Documentation
+```bash
+npm run build
+```
+This generates a `dist/` folder containing the static assets.
 
-*   **[Architecture Guide](docs/ARCHITECTURE.md):** Detailed system design, data flow, and security model.
-*   **[Contributing Guidelines](docs/CONTRIBUTING.md):** Code standards and pull request process.
+## Testing
+
+Run the test suite to ensure system stability:
+
+```bash
+npm test
+```
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
+
+1.  Fork the Project
+2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4.  Push to the Branch (`git push origin feature/AmazingFeature`)
+5.  Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+Distributed under the MIT License. See `LICENSE` for more information.

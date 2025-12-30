@@ -1,134 +1,119 @@
-# Architecture and Design Documentation
+# Architecture & Design - TechBros v2.0.0
 
-**Version:** 2.0.0
-**Last Updated:** December 2025
 **Author:** Collins Mwangi
+**Version:** 2.0.0
+
+## 1. System Overview
+
+TechBros Library is a **Static Progressive Web Application**. It relies on the browser's advanced APIs (Service Workers, IndexedDB, WebRTC, File System Access) to deliver a native-app-like experience without a backend server.
+
+### Design Philosophy
+1.  **Client-Heavy:** Logic lives in the browser, not the server.
+2.  **Offline-Default:** Network access is treated as an enhancement, not a requirement.
+3.  **Ephemeral Signaling:** Servers are only used to handshake; data transfer is direct.
 
 ---
 
-## 1. Executive Summary
-
-TechBros Library is an offline-first Progressive Web Application (PWA) engineered to facilitate the distribution of educational resources in environments with limited or no internet connectivity. The system utilizes a static client-side architecture combined with peer-to-peer (P2P) networking protocols to achieve decentralized content sharing.
-
-### Design Principles
-
-*   **Minimal Dependency:** Utilization of vanilla JavaScript (ES Modules) to reduce bundle size and runtime overhead.
-*   **Offline Autonomy:** Full system functionality, including peer discovery and file transfer, operates independently of external network infrastructure.
-*   **Static Deployment:** Elimination of server-side dependencies to minimize operational costs and deployment complexity.
-
----
-
-## 2. System Architecture
-
-The application follows a modular client-side architecture managed by a central application entry point.
+## 2. Core Architecture
 
 ### Component Diagram
 
-```
-[ Client Browser ]
-    |
-    |--- [ Presentation Layer ]
-    |       |-- Sidebar Navigation
-    |       |-- Search & Filter Interface
-    |       |-- Resource Viewer (PDF/Media)
-    |       |-- Settings & Configuration
-    |
-    |--- [ Application Core (src/app.js) ]
-    |       |
-    |       |-- [ State Manager (src/store.js) ]
-    |       |       Manages application state, user preferences, and resource index.
-    |       |
-    |       |-- [ UI Facade (src/ui.js) ]
-    |       |       Orchestrates UI modules:
-    |       |       |-- [ Router (src/ui/router.js) ]: Navigation & History
-    |       |       |-- [ Library (src/ui/library.js) ]: List rendering & filtering
-    |       |       |-- [ Viewer (src/ui/viewer.js) ]: Media & PDF display
-    |       |       |       |-- [ PDFViewer (src/pdf-viewer.js) ]: PDF.js wrapper
-    |       |       |-- [ P2P UI (src/ui/p2p-ui.js) ]: Transfer controls
-    |       |
-    |       |-- [ P2P Service (src/p2p.js) ]
-    |               |-- Online Signaling (PeerJS)
-    |               |-- Offline Signaling (Manual/QR)
-    |               |-- Data Channel Management
-    |
-    |--- [ Storage Layer ]
-            |-- LocalStorage (User Preferences)
-            |-- IndexedDB / Static JSON (Resource Index)
-            |-- IndexedDB (File Chunks - Fallback)
-            |-- Service Worker Cache (Application Assets & Content)
-            |-- File System Access API (Streaming Downloads)
+```ascii
+[ Browser Runtime ]
++-------------------------------------------------------+
+|  [ UI Layer ]                                         |
+|   - Router (Navigation)                               |
+|   - Library (Grid/List View)                          |
+|   - Viewer (PDF/Media Player)                         |
+|   - P2P UI (QR Scanner, Transfer Monitor)             |
++-------------------------------------------------------+
+        |                   ^
+        v                   |
++-------------------------------------------------------+
+|  [ Logic Layer ]                                      |
+|   - App Controller (Bootstrapper)                     |
+|   - Store (State Management)                          |
+|   - P2P Service (WebRTC Engine)                       |
++-------------------------------------------------------+
+        |                   ^
+        v                   |
++-------------------------------------------------------+
+|  [ Data / Storage Layer ]                             |
+|   - IndexedDB (File Chunks, Metadata)                 |
+|   - Cache API (App Shell, Assets)                     |
+|   - File System Access API (Streaming Writes)         |
++-------------------------------------------------------+
 ```
 
 ---
 
-## 3. Technology Stack
+## 3. P2P Subsystem (AirShare)
 
-*   **Runtime:** ECMAScript 2020+ (ES6 Modules)
-*   **Build System:** Vite (Rollup-based bundling and minification)
-*   **Networking:** WebRTC (Peer-to-Peer Data Channels)
-*   **Signaling:** PeerJS (Online) / QR Code Encoding (Offline)
-*   **Storage:** Cache API, LocalStorage, File System Access API, IndexedDB
-*   **Testing:** Jest (Unit and Integration Testing)
-*   **Libraries:** `pdfjs-dist` (PDF Rendering), `html5-qrcode`, `qrcode`.
+The core innovation of TechBros is its peer-to-peer file sharing engine. It supports two modes: **Online** (Signaling Server) and **Offline** (Manual/QR).
 
----
+### 3.1 Data Flow: File Transfer
 
-## 4. Core Modules
+We use a streaming architecture to handle large files (e.g., 500MB videos) on mobile devices with limited RAM.
 
-### 4.1. Peer-to-Peer Service (`src/p2p.js`)
+```ascii
+[ SENDER ]                               [ RECEIVER ]
+   |                                          |
+(File Input)                                  |
+   |                                          |
+[ Slice Chunk (64KB) ]                        |
+   |                                          |
+   v                                          |
+(WebRTC DataChannel) ---------------------> (Buffer)
+                                              |
+                                     [ Backpressure Check ]
+                                              |
+                                     (BufferedAmountLow ?)
+                                              |
+                                              v
+                                     [ Batch Buffer (50 Chunks) ]
+                                              |
+                                              v
+                                     [ IndexedDB / FileHandle ]
+```
 
-The P2P module implements a dual-mode signaling strategy to ensure connectivity in diverse network conditions.
+### 3.2 Optimization Strategies
 
-#### Online Mode
-Uses a WebSocket connection to a public signaling server to exchange ICE candidates and Session Description Protocol (SDP) data. This mode requires internet access for the initial handshake.
-
-#### Offline (Manual) Mode
-Bypasses external servers by encoding signaling data into QR codes.
-1.  **Offer Generation:** The host device creates a WebRTC offer and encodes the SDP data into a QR code.
-2.  **Scanning:** The client device scans the QR code to ingest the offer.
-3.  **Answer Generation:** The client generates an answer SDP, displayed as a counter-QR code.
-4.  **Connection:** The host scans the client's answer to establish the peer-to-peer data channel.
-
-### 4.2. File Stream Management
-To mitigate memory exhaustion risks on resource-constrained devices, the application implements streaming writes for file transfers.
-*   **Protocol:** Incoming data chunks are written directly to the device storage using the `FileSystemWritableFileStream` interface.
-*   **Memory Footprint:** Keeps only the current chunk (~64KB) in memory, rather than the entire file blob.
-
-### 4.3. IndexedDB Fallback (`src/db.js`)
-If the File System Access API is unavailable (e.g., on Mobile or Firefox), the system falls back to storing file chunks in IndexedDB.
-*   **Process:** Chunks are written to an object store as they arrive.
-*   **Assembly:** Once all chunks are received, they are concatenated into a Blob and offered for download.
-*   **Cleanup:** The database is cleared after successful assembly or initialization.
+*   **No Busy-Waiting:** The sender utilizes the `bufferedamountlow` event listener to pause sending when the network buffer is full, ensuring smooth transmission without freezing the main thread.
+*   **Batch Writes:** The receiver groups incoming chunks into batches (approx 3MB) before writing to disk/DB. This significantly reduces the overhead of database transactions.
+*   **Connection Caching:** The IndexedDB wrapper (`db.js`) keeps the database connection open to avoid the cost of opening/closing it for every write.
 
 ---
 
-## 5. Security Architecture
+## 4. State Management
 
-### Content Security Policy (CSP)
-A strict CSP is enforced to mitigate Cross-Site Scripting (XSS) risks.
-*   `default-src 'self'`: Restricts resource loading to the application origin.
-*   `connect-src`: Permits WebSocket connections for signaling.
-*   `script-src`: Disallows inline scripts and `eval()`.
-*   `frame-ancestors 'self'`: Allows the app to frame its own content (required for PDF viewer).
+The application state is managed by a centralized `Store` singleton (`src/store.js`).
 
-### Resource Validation
-*   **MIME Type Verification:** Incoming files are validated against an allowlist of educational formats (PDF, MP4, MP3).
-*   **Sanitization:** User input and file metadata are sanitized before rendering to prevent DOM injection attacks.
-
-### Storage Quota Management
-Prior to initiating a file transfer, the system queries the `navigator.storage` API to verify sufficient available disk space, preventing incomplete transfers and storage saturation.
+*   **Resources:** Loaded from `resources.json` into memory.
+*   **Settings:** Persisted in `localStorage`.
+*   **Search:** Offloaded to a Web Worker (`src/search-worker.js`) to prevent UI jank during fuzzy searches on large datasets.
 
 ---
 
-## 6. Build and Deployment
+## 5. Security Model
 
-The project utilizes Vite for compilation and asset optimization.
+*   **CSP:** Strict Content Security Policy prevents XSS and restricts external connections to known signaling servers.
+*   **Sanitization:** All user-generated content (file names) is sanitized before rendering.
+*   **Origin Isolation:** The app is designed to work within the secure context (`https://`) required for Service Workers and WebRTC.
 
-*   **Development:** `npm run dev` starts a local server with Hot Module Replacement.
-*   **Production:** `npm run build` generates a `dist/` directory containing minified JavaScript, CSS, and optimized assets suitable for deployment to static hosting environments (e.g., Cloudflare Pages, Nginx, Apache).
+---
 
-## 7. Configuration
+## 6. Directory Structure
 
-Sensitive configuration (like TURN server credentials) is managed via environment variables.
-*   **Local:** Create a `.env` file (see `.env.example`).
-*   **Build:** Vite injects these variables (prefixed with `VITE_`) into the client-side bundle at build time.
+```
+/
+├── public/             # Static Assets (Manifest, Icons, Resources)
+├── src/
+│   ├── ui/             # UI Components (Renderers, Event Handlers)
+│   ├── app.js          # Entry Point
+│   ├── db.js           # IndexedDB Wrapper
+│   ├── p2p.js          # WebRTC Logic
+│   ├── store.js        # State Manager
+│   └── style.css       # Global Styles
+├── scripts/            # Build & Maintenance Scripts
+└── tests/              # Jest Unit Tests
+```

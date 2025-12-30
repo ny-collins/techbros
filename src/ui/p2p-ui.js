@@ -29,9 +29,11 @@ export const p2pUI = {
         dropZone: document.getElementById('dashboard-drop-zone'),
         fileInput: document.getElementById('file-upload'),
     },
-    
+
     scanner: null,
     currentRole: null,
+
+    /* === INITIALIZATION === */
 
     init() {
         this._bindRoleSelection();
@@ -39,6 +41,8 @@ export const p2pUI = {
         this._bindDashboard();
         this._bindP2PEvents();
     },
+
+    /* === ROLE SELECTION === */
 
     _bindRoleSelection() {
         if (this.elements.btnHost) {
@@ -77,18 +81,25 @@ export const p2pUI = {
     },
 
     _resetHandshake() {
+        if (this.scanner) {
+            this.scanner.clear().catch(error => console.warn("Failed to clear scanner", error));
+            this.scanner = null;
+        }
+
         this.elements.roleSelection.style.display = 'grid';
         this.elements.hostPanel.classList.add('hidden');
         this.elements.joinPanel.classList.add('hidden');
         this.elements.handshakeView.classList.remove('hidden');
         this.elements.dashboardView.classList.add('hidden');
-        
+
         if (this.elements.hostQrDisplay) this.elements.hostQrDisplay.classList.add('hidden');
         if (this.elements.manualSwitchHost) this.elements.manualSwitchHost.checked = false;
         if (this.elements.remotePinInput) this.elements.remotePinInput.value = '';
 
         this.elements.transferFeed.innerHTML = '<div class="system-message">Connection established. You can now share files.</div>';
     },
+
+    /* === CONNECTION LOGIC === */
 
     _bindConnectionLogic() {
         if (this.elements.manualSwitchHost) {
@@ -120,10 +131,10 @@ export const p2pUI = {
             this.elements.btnScan.addEventListener('click', () => {
                 const readerElem = document.getElementById('qr-reader');
                 readerElem.classList.remove('hidden');
-                
+
                 if (this.scanner) this.scanner.clear();
                 this.scanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
-                
+
                 this.scanner.render((decodedText) => {
                     p2p.processManualSignal(decodedText);
                     this.scanner.clear();
@@ -133,6 +144,8 @@ export const p2pUI = {
             });
         }
     },
+
+    /* === DASHBOARD === */
 
     _bindDashboard() {
         if (this.elements.btnDisconnect) {
@@ -147,7 +160,7 @@ export const p2pUI = {
         if (!dropZone || !fileInput) return;
 
         dropZone.addEventListener('click', () => fileInput.click());
-        
+
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropZone.classList.add('active');
@@ -173,6 +186,8 @@ export const p2pUI = {
         p2p.sendFile(file);
     },
 
+    /* === EVENT LISTENERS === */
+
     _bindP2PEvents() {
         p2p.addEventListener('ready', (e) => {
             if (this.elements.pinDisplay) this.elements.pinDisplay.textContent = e.detail.id;
@@ -181,9 +196,9 @@ export const p2pUI = {
         p2p.addEventListener('connected', (e) => {
             this.elements.handshakeView.classList.add('hidden');
             this.elements.dashboardView.classList.remove('hidden');
-            
+
             if(this.elements.btnConnect) this.elements.btnConnect.textContent = 'Connect';
-            
+
             const peerId = e.detail.peer || 'Unknown';
             if (this.elements.statusText) this.elements.statusText.textContent = `Connected to ${peerId}`;
             common.showToast('Connected!', 'success');
@@ -210,6 +225,8 @@ export const p2pUI = {
         p2p.addEventListener('send-complete', (e) => this._completeBubble(e.detail, 'sent'));
     },
 
+    /* === UI COMPONENTS === */
+
     _addBubble(data) {
         this._getOrCreateBubble(data.transferId, data.name, data.isOutgoing);
     },
@@ -220,9 +237,9 @@ export const p2pUI = {
             bubble = document.createElement('div');
             bubble.id = `transfer-${id}`;
             bubble.className = `chat-bubble ${isOutgoing ? 'outgoing' : 'incoming'}`;
-            
+
             const icon = isOutgoing ? 'upload-simple' : 'download-simple';
-            
+
             bubble.innerHTML = `
                 <div class="bubble-content">
                     <div class="bubble-icon"><i class="ph ph-${icon}"></i></div>
@@ -245,10 +262,10 @@ export const p2pUI = {
     _updateBubble(data, state) {
         const isOutgoing = state === 'sending';
         const bubble = this._getOrCreateBubble(data.transferId, data.name, isOutgoing);
-        
+
         const fill = bubble.querySelector('.progress-fill');
         const status = bubble.querySelector('.status');
-        
+
         if (status) {
             status.classList.remove('pulse');
             status.textContent = `${Math.round(data.progress)}%`;
@@ -259,14 +276,14 @@ export const p2pUI = {
     _completeBubble(data, state) {
         const isOutgoing = state === 'sent';
         const bubble = this._getOrCreateBubble(data.transferId, data.name, isOutgoing);
-        
+
         const fill = bubble.querySelector('.progress-fill');
         const status = bubble.querySelector('.status');
         const actionArea = bubble.querySelector('.action-area');
-        
+
         if (fill) fill.style.width = '100%';
         if (status) status.textContent = isOutgoing ? 'Sent' : 'Received';
-        
+
         if (state === 'received' && data.blob) {
             const url = URL.createObjectURL(data.blob);
             actionArea.style.display = 'block';
