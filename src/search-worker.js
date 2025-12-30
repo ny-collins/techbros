@@ -1,3 +1,5 @@
+/* === HANDLER === */
+
 self.onmessage = function(e) {
     const { query, resources } = e.data;
 

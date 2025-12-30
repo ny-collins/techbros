@@ -82,6 +82,40 @@ We use a streaming architecture to handle large files (e.g., 500MB videos) on mo
 *   **Batch Writes:** The receiver groups incoming chunks into batches (approx 3MB) before writing to disk/DB. This significantly reduces the overhead of database transactions.
 *   **Connection Caching:** The IndexedDB wrapper (`db.js`) keeps the database connection open to avoid the cost of opening/closing it for every write.
 
+### 3.3 Data Protocol
+
+Communication over the WebRTC DataChannel uses JSON payloads:
+
+**File Transfer:**
+```json
+{
+  "type": "meta",
+  "name": "lecture.mp4",
+  "size": 524288000,
+  "mime": "video/mp4",
+  "totalChunks": 8000,
+  "transferId": "lecture.mp4-524288000-1700000000"
+}
+```
+
+**File Chunk:**
+```json
+{
+  "type": "chunk",
+  "index": 0,
+  "data": "base64..." // or ArrayBuffer
+}
+```
+
+**Text Chat:**
+```json
+{
+  "type": "chat",
+  "text": "Hello world",
+  "timestamp": 1700000000
+}
+```
+
 ---
 
 ## 4. State Management

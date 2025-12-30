@@ -168,7 +168,7 @@ export const p2pUI = {
                 if (e.target.files.length) this._handleFileUpload(e.target.files[0]);
             });
         }
-    }
+    },
 
     _bindChat() {
         const { chatInput, btnSendChat } = this.elements;
@@ -186,7 +186,7 @@ export const p2pUI = {
         chatInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') sendMsg();
         });
-    }
+    },
 
     _handleFileUpload(file) {
 

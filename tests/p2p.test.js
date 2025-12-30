@@ -1,5 +1,7 @@
 import { p2p } from '../src/p2p.js';
 
+/* === MOCKS === */
+
 jest.mock('peerjs', () => {
     return {
         Peer: jest.fn().mockImplementation(() => ({
@@ -26,6 +28,8 @@ global.RTCPeerConnection = jest.fn().mockImplementation(() => ({
     ondatachannel: null,
     close: jest.fn()
 }));
+
+/* === TESTS === */
 
 describe('P2PService', () => {
     beforeEach(() => {

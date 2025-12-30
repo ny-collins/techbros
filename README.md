@@ -1,4 +1,4 @@
-# TechBros Library v2.0.0
+# TechBros Library v3.0.0
 
 **Offline-First Educational Resource Platform & P2P Sharing System**
 
@@ -12,6 +12,8 @@ TechBros Library is a specialized Progressive Web Application (PWA) built to bri
 
 *   **Offline-First:** Works fully without internet after initial load.
 *   **Peer-to-Peer (P2P):** Share large files directly between devices using WebRTC (AirShare).
+*   **Instant Text Chat:** Communicate with peers directly in the app while transferring files (Works Offline!).
+*   **Universal Viewer:** Preview PDFs, Video, Audio, and Code/Text files directly in the browser.
 *   **Resumable Transfers:** Interrupted transfers automatically resume from where they left off.
 *   **Zero-Data:** "Download Once, Share Forever" architecture.
 *   **Smart Search:** Fuzzy search algorithm tolerates typos.
