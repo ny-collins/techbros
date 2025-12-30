@@ -26,8 +26,10 @@ export const p2pUI = {
         manualSwitchHost: document.getElementById('manual-mode-switch-host'),
 
         transferFeed: document.getElementById('transfer-feed'),
-        dropZone: document.getElementById('dashboard-drop-zone'),
         fileInput: document.getElementById('file-upload'),
+        btnAttach: document.getElementById('btn-attach'),
+        chatInput: document.getElementById('chat-msg-input'),
+        btnSendChat: document.getElementById('btn-send-chat'),
     },
 
     scanner: null,
@@ -39,6 +41,7 @@ export const p2pUI = {
         this._bindRoleSelection();
         this._bindConnectionLogic();
         this._bindDashboard();
+        this._bindChat();
         this._bindP2PEvents();
     },
 
@@ -156,32 +159,37 @@ export const p2pUI = {
             });
         }
 
-        const { dropZone, fileInput } = this.elements;
-        if (!dropZone || !fileInput) return;
+        if (this.elements.btnAttach) {
+            this.elements.btnAttach.addEventListener('click', () => this.elements.fileInput.click());
+        }
 
-        dropZone.addEventListener('click', () => fileInput.click());
+        if (this.elements.fileInput) {
+            this.elements.fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) this._handleFileUpload(e.target.files[0]);
+            });
+        }
+    }
 
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('active');
+    _bindChat() {
+        const { chatInput, btnSendChat } = this.elements;
+        if (!chatInput || !btnSendChat) return;
+
+        const sendMsg = () => {
+            const text = chatInput.value.trim();
+            if (text) {
+                p2p.sendChat(text);
+                chatInput.value = '';
+            }
+        };
+
+        btnSendChat.addEventListener('click', sendMsg);
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendMsg();
         });
-
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('active');
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('active');
-            if (e.dataTransfer.files.length) this._handleFileUpload(e.dataTransfer.files[0]);
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length) this._handleFileUpload(e.target.files[0]);
-        });
-    },
+    }
 
     _handleFileUpload(file) {
+
         if (!file) return;
         p2p.sendFile(file);
     },
@@ -218,6 +226,8 @@ export const p2pUI = {
             if(this.elements.btnConnect) this.elements.btnConnect.textContent = 'Connect';
         });
 
+        p2p.addEventListener('chat', (e) => this._renderChatBubble(e.detail));
+
         p2p.addEventListener('transfer-start', (e) => this._addBubble(e.detail));
         p2p.addEventListener('send-progress', (e) => this._updateBubble(e.detail, 'sending'));
         p2p.addEventListener('receive-progress', (e) => this._updateBubble(e.detail, 'receiving'));
@@ -226,6 +236,21 @@ export const p2pUI = {
     },
 
     /* === UI COMPONENTS === */
+
+    _renderChatBubble(data) {
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble ${data.isOutgoing ? 'outgoing' : 'incoming'}`;
+        
+        const time = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        bubble.innerHTML = `
+            <div class="bubble-text">${common.sanitizeText(data.text)}</div>
+            <span class="bubble-meta">${time}</span>
+        `;
+
+        this.elements.transferFeed.appendChild(bubble);
+        this.elements.transferFeed.scrollTop = this.elements.transferFeed.scrollHeight;
+    },
 
     _addBubble(data) {
         this._getOrCreateBubble(data.transferId, data.name, data.isOutgoing);

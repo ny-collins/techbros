@@ -67,7 +67,7 @@
                 <div id="p2p-status" class="status-indicator neutral">
                     <span class="dot"></span> <span class="text">Offline</span>
                 </div>
-                <small id="app-version-sidebar">v2.0.0</small>
+                <small id="app-version-sidebar">v3.0.0</small>
             </div>
         </aside>
 
@@ -128,24 +128,32 @@
                 <div id="p2p-handshake-view" class="p2p-container">
                     <div class="header-text center">
                         <h2>AirShare</h2>
-                        <p class="subtitle">Connect to a nearby device to start sharing</p>
+                        <p class="subtitle">Fast, serverless file sharing & chat</p>
                     </div>
 
                     <div class="p2p-role-selection">
                         <button id="btn-role-host" class="role-card">
                             <div class="icon-wrapper"><i class="ph ph-broadcast"></i></div>
                             <h3>Receive</h3>
-                            <p>I am the Host</p>
+                            <p>Host a session</p>
                         </button>
                         <button id="btn-role-join" class="role-card">
                             <div class="icon-wrapper"><i class="ph ph-paper-plane-right"></i></div>
                             <h3>Send</h3>
-                            <p>I am a Guest</p>
+                            <p>Join a session</p>
                         </button>
                     </div>
 
                     <div id="host-panel" class="p2p-panel hidden">
                         <button class="btn-back-role"><i class="ph ph-arrow-left"></i> Back</button>
+                        
+                        <div class="connection-guide">
+                            <div class="guide-step">
+                                <i class="ph ph-wifi-high"></i>
+                                <p><strong>Step 1:</strong> Ensure the sender is on your Wi-Fi or Hotspot.</p>
+                            </div>
+                        </div>
+
                         <div class="p2p-identity-card">
                             <div class="radar-container">
                                 <div class="radar-scan"></div>
@@ -155,7 +163,7 @@
                                     <span id="my-pin-display" class="code">....</span>
                                 </div>
                             </div>
-                            <p class="instruction">Ask the sender to enter this PIN</p>
+                            <p class="instruction">Waiting for connection...</p>
                             
                             <div class="manual-mode-toggle">
                                 <input type="checkbox" id="manual-mode-switch-host">
@@ -167,6 +175,14 @@
 
                     <div id="join-panel" class="p2p-panel hidden">
                         <button class="btn-back-role"><i class="ph ph-arrow-left"></i> Back</button>
+
+                        <div class="connection-guide">
+                            <div class="guide-step">
+                                <i class="ph ph-link"></i>
+                                <p><strong>Step 1:</strong> Connect to the Receiver's Wi-Fi or Hotspot.</p>
+                            </div>
+                        </div>
+
                         <div class="p2p-card">
                             <h3>Enter Host PIN</h3>
                             <div class="connection-form">
@@ -197,16 +213,22 @@
                     </div>
 
                     <div id="transfer-feed" class="transfer-feed">
-                        <!-- Chat bubbles will go here -->
-                        <div class="system-message">Connection established. You can now share files.</div>
+                        <div class="system-message">Connection established. You can now share files and chat.</div>
                     </div>
 
-                    <div class="dashboard-footer">
-                        <div id="dashboard-drop-zone" class="mini-drop-zone">
-                            <i class="ph ph-plus-circle"></i>
-                            <span>Tap to send file</span>
-                            <input type="file" id="file-upload" hidden>
+                    <div class="dashboard-footer chat-footer">
+                        <div class="chat-input-wrapper">
+                            <button id="btn-attach" class="btn-icon attachment-btn" title="Send File">
+                                <i class="ph ph-plus"></i>
+                            </button>
+                            <div class="chat-input-container">
+                                <input type="text" id="chat-msg-input" placeholder="Type a message..." autocomplete="off">
+                            </div>
+                            <button id="btn-send-chat" class="btn-icon send-btn" title="Send Message">
+                                <i class="ph ph-paper-plane-right-fill"></i>
+                            </button>
                         </div>
+                        <input type="file" id="file-upload" hidden>
                     </div>
                 </div>
             </section>

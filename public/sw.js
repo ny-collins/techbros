@@ -1,6 +1,6 @@
 /* === CONFIGURATION === */
 
-const CACHE_VERSION = 'v2.0.0';
+const CACHE_VERSION = 'v2.0.0'; // Replaced by build script
 const APP_CACHE = `techbros-app-${CACHE_VERSION}`;
 const RESOURCE_CACHE = 'techbros-resources-v1';
 const ASSETS = [

@@ -181,6 +181,18 @@ export class P2PService extends EventTarget {
         }
     }
 
+    sendChat(text) {
+        if (!text || text.trim() === '') return;
+        const chatData = {
+            type: 'chat',
+            text: text.trim(),
+            timestamp: Date.now()
+        };
+        this._send(chatData);
+        // Also dispatch locally so the UI can show the outgoing message
+        this.dispatchEvent(new CustomEvent('chat', { detail: { ...chatData, isOutgoing: true } }));
+    }
+
     _send(data) {
         if (this.mode === 'online' && this.conn) this.conn.send(data);
         else if (this.mode === 'manual' && this.manualService) this.manualService.send(data);
@@ -275,8 +287,19 @@ export class P2PService extends EventTarget {
         this.dispatchEvent(new CustomEvent('send-complete', { detail: { name: file.name, transferId } }));
     }
 
-    destroy() {
+    async destroy() {
         this._stopHeartbeat();
+        
+        // Close any open file streams
+        for (const [id, stream] of this.fileStreams) {
+            try {
+                await stream.writable.abort();
+            } catch (e) { /* Ignore */ }
+        }
+        this.fileStreams.clear();
+        this.receivingChunks.clear();
+        this.chunkBuffers.clear();
+
         if (this.conn) this.conn.close();
         if (this.peer) this.peer.destroy();
         if (this.manualService) {
@@ -307,6 +330,11 @@ export class P2PService extends EventTarget {
     _handleData(data) {
         if (!data) return;
         if (data.type === 'ping') return;
+
+        if (data.type === 'chat') {
+            this.dispatchEvent(new CustomEvent('chat', { detail: { ...data, isOutgoing: false } }));
+            return;
+        }
 
         if (data.type === 'transfer-accepted' || data.type === 'transfer-rejected') {
             this._handleTransferSignal(data);

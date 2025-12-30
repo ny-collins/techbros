@@ -28,6 +28,12 @@ export const viewer = {
         const container = this.elements.container;
         if (!container) return;
 
+        // Reset container styles potentially set by image viewer
+        container.style.overflow = '';
+        container.style.display = '';
+        container.style.alignItems = '';
+        container.style.justifyContent = '';
+
         if (resource.type === 'audio') {
             this._renderAudio(resource, container);
         } else if (resource.type === 'video') {
@@ -35,18 +41,75 @@ export const viewer = {
         } else if (resource.type === 'pdf') {
             if (window.snowSystem) window.snowSystem.pause();
             this._renderPDF(resource, container);
-        } else {
+        } else if (resource.type === 'image') {
             this._renderImage(resource, container);
+        } else if (resource.type === 'text') {
+            this._renderText(resource, container);
+        } else {
+            this._renderGeneric(resource, container);
         }
 
         router.navigateTo('resource');
     },
 
-    clear() {
-        if (this.elements.container) this.elements.container.innerHTML = '';
+    /* === RENDERERS === */
+
+    async _renderText(resource, container) {
+        container.innerHTML = '<div class="loading-bar"><div class="loading-progress"></div></div>';
+        
+        try {
+            const response = await fetch(resource.url);
+            if (!response.ok) throw new Error('Failed to load text');
+            const text = await response.text();
+
+            const pre = document.createElement('pre');
+            pre.style.padding = '2rem';
+            pre.style.whiteSpace = 'pre-wrap';
+            pre.style.fontFamily = 'monospace';
+            pre.style.color = 'var(--text-main)';
+            pre.style.overflow = 'auto';
+            pre.style.height = '100%';
+            pre.textContent = text;
+            
+            container.innerHTML = '';
+            container.appendChild(pre);
+        } catch (e) {
+            common.showToast('Could not load text file', 'error');
+            this._renderGeneric(resource, container);
+        }
     },
 
-    /* === RENDERERS === */
+    _renderGeneric(resource, container) {
+        const wrapper = document.createElement('div');
+        wrapper.style.display = 'flex';
+        wrapper.style.flexDirection = 'column';
+        wrapper.style.alignItems = 'center';
+        wrapper.style.justifyContent = 'center';
+        wrapper.style.height = '100%';
+        wrapper.style.gap = '2rem';
+
+        const icon = document.createElement('i');
+        icon.className = 'ph ph-file';
+        if (resource.type === 'archive') icon.className = 'ph ph-file-archive';
+        if (resource.type === 'document') icon.className = 'ph ph-file-doc';
+        icon.style.fontSize = '8rem';
+        icon.style.color = 'var(--primary)';
+
+        const msg = document.createElement('p');
+        msg.textContent = 'This file type cannot be previewed.';
+        msg.style.color = 'var(--text-muted)';
+
+        const btn = document.createElement('a');
+        btn.href = resource.url;
+        btn.download = resource.title;
+        btn.className = 'btn primary';
+        btn.innerHTML = '<i class="ph ph-download-simple"></i> Download File';
+
+        wrapper.appendChild(icon);
+        wrapper.appendChild(msg);
+        wrapper.appendChild(btn);
+        container.appendChild(wrapper);
+    },
 
     _renderAudio(resource, container) {
         const card = document.createElement('div');

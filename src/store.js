@@ -1,7 +1,7 @@
 class Store {
     constructor() {
         this.state = {
-            version: '2.1.0',
+            version: __APP_VERSION__,
             resources: [],
             settings: {
                 theme: 'dark',

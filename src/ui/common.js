@@ -60,12 +60,28 @@ export const common = {
                 this.elements.splashScreen.classList.add('hidden');
             }, 800);
         }
+
+        const versionEl = document.getElementById('app-version-sidebar');
+        if (versionEl) {
+            // Check if __APP_VERSION__ is defined (it might not be in pure dev mode without vite processing)
+            const v = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'Dev';
+            versionEl.textContent = `v${v}`;
+        }
     },
 
     /* === THEME & LAYOUT === */
 
     updateTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
+        const toggleBtn = document.getElementById('theme-toggle');
+        if (toggleBtn) {
+            const icon = toggleBtn.querySelector('i');
+            if (icon) {
+                // If current theme is dark, show sun (to switch to light)
+                // If current theme is light, show moon (to switch to dark)
+                icon.className = theme === 'dark' ? 'ph ph-sun' : 'ph ph-moon';
+            }
+        }
     },
 
     toggleSidebar() {
