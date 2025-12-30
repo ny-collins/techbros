@@ -116,4 +116,16 @@ The application state is managed by a centralized `Store` singleton (`src/store.
 │   └── style.css       # Global Styles
 ├── scripts/            # Build & Maintenance Scripts
 └── tests/              # Jest Unit Tests
+
+---
+
+## 7. Cloud Infrastructure (Optional)
+
+While the app functions offline, it connects to Cloudflare for global resource synchronization when online.
+
+*   **Hosting:** Cloudflare Pages (Static Assets).
+*   **API:** Cloudflare Functions (`/functions/api/`) for listing and uploading files.
+*   **Storage:** Cloudflare R2 (S3-compatible object storage) for hosting the actual media/PDF files.
+
+This hybrid approach allows the app to be "Offline First" but "Cloud Enhanced".
 ```

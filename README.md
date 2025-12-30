@@ -19,13 +19,18 @@ TechBros Library is a specialized Progressive Web Application (PWA) built to bri
 
 ## Architecture Overview
 
-The system runs entirely client-side (Static Site).
+The system operates on a **Hybrid Architecture**:
+*   **Core:** Client-side Static Site (offline-capable).
+*   **Cloud:** Serverless Functions (Cloudflare Pages) for centralized resource listing and uploads.
 
 ```ascii
-[ User A ] <=== ( WebRTC Data Channel ) ===> [ User B ]
-    |                                            |
-[ Local Storage ]                            [ Local Storage ]
-(IndexedDB / Cache)                          (IndexedDB / Cache)
+[ User A ] <=== ( WebRTC ) ===> [ User B ]
+    |                               |
+[ Local Storage ]               [ Local Storage ]
+    ^                               ^
+    | (Sync)                        | (Sync)
+    v                               v
+[ Cloudflare CDN ] <==> [ Cloudflare Functions ] <==> [ R2 Bucket ]
 ```
 
 For a deep dive into the technical design, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).

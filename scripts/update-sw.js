@@ -2,12 +2,16 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+/* === CONSTANTS === */
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '..');
 const DIST_DIR = path.join(ROOT_DIR, 'dist');
 const SW_PATH = path.join(DIST_DIR, 'sw.js');
 const PKG_PATH = path.join(ROOT_DIR, 'package.json');
+
+/* === MAIN LOGIC === */
 
 console.log('🚧 Updating Service Worker assets...');
 

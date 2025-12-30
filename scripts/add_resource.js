@@ -6,6 +6,8 @@ import chalk from 'chalk';
 import { createRequire } from 'module';
 import { parseFile } from 'music-metadata';
 
+/* === SETUP === */
+
 const require = createRequire(import.meta.url);
 const { PDFDocument } = require('pdf-lib');
 
@@ -21,6 +23,8 @@ const TYPE_MAP = {
     '.mp3': 'audio', '.wav': 'audio', '.m4a': 'audio', '.ogg': 'audio',
     '.jpg': 'image', '.jpeg': 'image', '.png': 'image', '.webp': 'image', '.gif': 'image'
 };
+
+/* === HELPERS === */
 
 const formatSize = (bytes) => {
     const units = ['B', 'KB', 'MB', 'GB'];
@@ -62,6 +66,8 @@ const getAudioMetadata = async (filePath, filename) => {
         return { title: null, coverUrl: null };
     }
 };
+
+/* === MAIN LOGIC === */
 
 async function main() {
     console.clear();

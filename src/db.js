@@ -25,6 +25,11 @@ export const db = {
                 }
             };
 
+            request.onblocked = () => {
+                console.error('[DB] Upgrade blocked. Please close other tabs of this app.');
+                reject('DB Upgrade blocked');
+            };
+
             request.onsuccess = (event) => {
                 this._connection = event.target.result;
                 this._connection.onclose = () => { this._connection = null; };

@@ -74,11 +74,19 @@ self.addEventListener('fetch', event => {
 
     if (!url.protocol.startsWith('http')) return;
 
+    // Strategy: Cache First for Resources
     if (url.pathname.startsWith('/resources/')) {
         event.respondWith(handleResourceRequest(event.request));
         return;
     }
 
+    // Strategy: Network First for API and resources.json
+    if (url.pathname.startsWith('/api/') || url.pathname.endsWith('/resources.json')) {
+        event.respondWith(handleApiRequest(event.request));
+        return;
+    }
+
+    // Strategy: Cache First for App Shell & Static Assets
     event.respondWith(
         caches.match(event.request).then(cachedRes => {
             const fetchPromise = fetch(event.request).then(networkRes => {
@@ -88,12 +96,32 @@ self.addEventListener('fetch', event => {
                 }
                 return networkRes;
             }).catch(() => {
+                // If offline and no cache, let it fail (or show offline page)
             });
 
             return cachedRes || fetchPromise;
         })
     );
 });
+
+/* === API STRATEGY (Network First) === */
+
+async function handleApiRequest(request) {
+    try {
+        const networkResponse = await fetch(request);
+        if (networkResponse.status === 200) {
+            const cache = await caches.open(APP_CACHE);
+            cache.put(request, networkResponse.clone());
+        }
+        return networkResponse;
+    } catch (error) {
+        console.log('[SW] API offline, falling back to cache');
+        const cachedResponse = await caches.match(request);
+        return cachedResponse || new Response(JSON.stringify([]), { 
+            headers: { 'Content-Type': 'application/json' } 
+        });
+    }
+}
 
 /* === RESOURCE STRATEGIES === */
 

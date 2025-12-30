@@ -187,11 +187,6 @@ export class P2PService extends EventTarget {
     }
 
     async sendFile(file) {
-        const sendData = (data) => {
-            if (this.mode === 'online' && this.conn) this.conn.send(data);
-            else if (this.mode === 'manual' && this.manualService) this.manualService.send(data);
-        };
-
         const getBufferedAmount = () => {
             if (this.mode === 'online' && this.conn && this.conn.dataChannel) {
                 return this.conn.dataChannel.bufferedAmount;
@@ -213,7 +208,7 @@ export class P2PService extends EventTarget {
         const meta = { type: 'meta', name: file.name, size: file.size, mime: file.type, totalChunks, transferId };
 
         this.dispatchEvent(new CustomEvent('transfer-start', { detail: { ...meta, isOutgoing: true } }));
-        sendData(meta);
+        this._send(meta);
 
         let resumeIndex = 0;
 
@@ -222,7 +217,7 @@ export class P2PService extends EventTarget {
                 const timeout = setTimeout(() => {
                     this.pendingTransfers.delete(transferId);
                     reject(new Error('Transfer timed out waiting for peer acceptance'));
-                }, 30000);
+                }, 60000);
 
                 this.pendingTransfers.set(transferId, {
                     resolve: (data) => {
@@ -270,7 +265,7 @@ export class P2PService extends EventTarget {
                  chunkData = await chunk.arrayBuffer();
             }
 
-            sendData({ type: 'chunk', index: i, total: totalChunks, data: chunkData, name: file.name, transferId });
+            this._send({ type: 'chunk', index: i, total: totalChunks, data: chunkData, name: file.name, transferId });
 
             const progress = ((i + 1) / totalChunks) * 100;
             this.dispatchEvent(new CustomEvent('send-progress', { detail: { name: file.name, progress, transferId } }));

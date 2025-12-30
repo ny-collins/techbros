@@ -9,6 +9,7 @@ export const library = {
         btnGrid: document.getElementById('view-grid'),
         btnList: document.getElementById('view-list'),
         btnClearCache: document.getElementById('btn-clear-cache'),
+        fileInput: null 
     },
     activeFilter: 'all',
 
@@ -18,6 +19,7 @@ export const library = {
         this._bindSearch();
         this._bindViewToggles();
         this._bindCacheClear();
+        this._bindUpload();
 
         const resources = store.getResources();
         this.renderFilters(resources);
@@ -68,6 +70,17 @@ export const library = {
 
             this.elements.filterContainer.appendChild(btn);
         });
+
+        const uploadBtn = document.createElement('button');
+        uploadBtn.className = 'chip special-action';
+        uploadBtn.innerHTML = '<i class="ph ph-upload-simple"></i> Upload';
+        uploadBtn.style.marginLeft = 'auto';
+        uploadBtn.style.backgroundColor = 'var(--accent-color)';
+        uploadBtn.style.color = '#000';
+        uploadBtn.style.fontWeight = 'bold';
+        
+        uploadBtn.addEventListener('click', () => this.triggerUploadFlow());
+        this.elements.filterContainer.appendChild(uploadBtn);
     },
 
     renderList(resources, viewer = null, router = null) {
@@ -124,6 +137,17 @@ export const library = {
                 div.appendChild(badge);
             }
         }
+        
+        if (data.isCloud) {
+            const cloudBadge = document.createElement('span');
+            cloudBadge.className = 'badge-cloud';
+            cloudBadge.innerHTML = '<i class="ph ph-cloud"></i>';
+            cloudBadge.style.position = 'absolute';
+            cloudBadge.style.top = '10px';
+            cloudBadge.style.right = '10px';
+            cloudBadge.style.color = 'var(--accent-color)';
+            div.appendChild(cloudBadge);
+        }
 
         const iconDiv = document.createElement('div');
         iconDiv.className = 'card-icon';
@@ -157,8 +181,54 @@ export const library = {
     },
 
     _getIconForType(type) {
-        const map = { video: 'video', audio: 'music-note', pdf: 'file-pdf' };
+        const map = { 
+            video: 'video', 
+            audio: 'music-note', 
+            pdf: 'file-pdf', 
+            image: 'image',
+            archive: 'file-archive',
+            text: 'file-text',
+            document: 'file-doc'
+        };
         return `<i class="ph ph-${map[type] || 'file'}"></i>`;
+    },
+
+    /* === UPLOAD LOGIC === */
+
+    _bindUpload() {
+        this.elements.fileInput = document.createElement('input');
+        this.elements.fileInput.type = 'file';
+        this.elements.fileInput.style.display = 'none';
+        document.body.appendChild(this.elements.fileInput);
+
+        this.elements.fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const pin = prompt("Enter Admin Upload PIN:");
+            if (!pin) {
+                this.elements.fileInput.value = ''; // Reset
+                return;
+            }
+
+            try {
+                common.showToast(`Uploading ${file.name}...`, 'info');
+                await store.uploadResource(file, pin);
+                common.showToast('Upload successful!', 'success');
+                this.renderList(store.getResources()); // Refresh UI
+            } catch (err) {
+                console.error(err);
+                common.showToast('Upload failed: ' + err.message, 'error');
+            }
+            
+            this.elements.fileInput.value = ''; // Reset
+        });
+    },
+
+    triggerUploadFlow() {
+        if (this.elements.fileInput) {
+            this.elements.fileInput.click();
+        }
     },
 
     /* === EVENT BINDINGS === */

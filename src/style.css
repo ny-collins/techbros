@@ -60,9 +60,9 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar { width: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; border: 2px solid var(--bg-body); }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 /* === LOADING & SPLASH === */
