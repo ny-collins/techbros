@@ -76,14 +76,29 @@ body {
 #splash-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 
 .splash-content { text-align: center; display: flex; flex-direction: column; align-items: center; }
-.splash-logo { width: 80px; height: 80px; margin-bottom: 1.5rem; filter: drop-shadow(0 0 20px var(--primary-glow)); animation: float 3s ease-in-out infinite; }
-.splash-title { font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; margin-bottom: 2rem; background: linear-gradient(to right, var(--text-main), var(--text-muted)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.splash-logo { 
+    width: 80px; height: 80px; margin-bottom: 1.5rem; 
+    filter: drop-shadow(0 0 20px var(--primary-glow)); 
+    animation: float 3s ease-in-out infinite, fadeIn 0.8s ease-out; 
+}
+.splash-title { 
+    font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; margin-bottom: 2rem; 
+    background: linear-gradient(to right, var(--text-main), var(--text-muted)); 
+    -webkit-background-clip: text; background-clip: text; color: transparent; 
+    animation: slideUpFade 0.8s ease-out 0.2s backwards;
+}
 
-.loading-bar { width: 140px; height: 4px; background: var(--glass-border); border-radius: 2px; overflow: hidden; position: relative; }
+.loading-bar { 
+    width: 140px; height: 4px; background: var(--glass-border); border-radius: 2px; 
+    overflow: hidden; position: relative; 
+    animation: fadeIn 0.8s ease-out 0.4s backwards;
+}
 .loading-progress { width: 100%; height: 100%; background: var(--primary); transform-origin: left; animation: load 1.5s infinite; }
 
 @keyframes load { 0% { transform: scaleX(0); } 50% { transform: scaleX(0.7); } 100% { transform: scaleX(0); transform-origin: right; } }
 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUpFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 /* === LAYOUT === */
 

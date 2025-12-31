@@ -5,8 +5,8 @@
   "version": "3.0.0",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#2563eb",
-  "theme_color": "#2563eb",
+  "background_color": "#0a0a0c",
+  "theme_color": "#0a0a0c",
   "orientation": "portrait-primary",
   "categories": ["education", "productivity", "utilities"],
   "icons": [

@@ -5,6 +5,8 @@ import { SnowSystem } from './ui/snow.js';
 /* === BOOTSTRAP === */
 
 const bootApp = async () => {
+    const minDisplayTime = new Promise(resolve => setTimeout(resolve, 3000));
+
     try {
         await store.init();
     } catch (error) {
@@ -46,6 +48,7 @@ const bootApp = async () => {
         }
     }
 
+    await minDisplayTime;
     ui.modules.common.hideSplashScreen();
 };
 
