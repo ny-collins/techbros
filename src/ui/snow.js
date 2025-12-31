@@ -51,7 +51,7 @@ export class SnowSystem {
     window.addEventListener('mousemove', this.boundMouseMove);
     window.addEventListener('touchmove', this.boundMouseMove, { passive: true });
     window.addEventListener('touchstart', this.boundMouseMove, { passive: true });
-    this.createFlakes(); 
+    this.createFlakes();
     this.loop();
   }
 

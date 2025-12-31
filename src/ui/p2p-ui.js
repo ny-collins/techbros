@@ -240,7 +240,7 @@ export const p2pUI = {
     _renderChatBubble(data) {
         const bubble = document.createElement('div');
         bubble.className = `chat-bubble ${data.isOutgoing ? 'outgoing' : 'incoming'}`;
-        
+
         const time = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         bubble.innerHTML = `

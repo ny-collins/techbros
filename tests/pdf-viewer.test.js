@@ -31,7 +31,7 @@ describe('PDFViewer', () => {
 
     test('initializes and renders UI', async () => {
         await viewer.init();
-        
+
         expect(container.querySelector('.pdf-toolbar')).not.toBeNull();
         expect(container.querySelector('canvas')).not.toBeNull();
         expect(container.querySelector('#page_count').textContent).toBe('5');
@@ -40,10 +40,10 @@ describe('PDFViewer', () => {
 
     test('navigates pages', async () => {
         await viewer.init();
-        
+
         viewer.onNextPage();
         expect(viewer.pageNum).toBe(2);
-        
+
         viewer.onPrevPage();
         expect(viewer.pageNum).toBe(1);
     });
@@ -51,11 +51,11 @@ describe('PDFViewer', () => {
     test('handles zoom', async () => {
         await viewer.init();
         const initialScale = viewer.scale;
-        
+
         container.querySelector('#zoom_in').click();
         expect(viewer.scale).toBeGreaterThan(initialScale);
-        
+
         container.querySelector('#zoom_out').click();
-        expect(viewer.scale).toBe(initialScale); 
+        expect(viewer.scale).toBe(initialScale);
     });
 });

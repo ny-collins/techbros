@@ -22,7 +22,7 @@ export class PDFViewer {
 
     async init() {
         this._renderUI();
-        
+
         try {
             this.container.classList.add('loading');
 
@@ -34,7 +34,7 @@ export class PDFViewer {
 
             this.pdfDoc = await loadingTask.promise;
             this.container.classList.remove('loading');
-            
+
             this._updatePageLabel();
             this.renderPage(this.pageNum);
 
@@ -71,7 +71,7 @@ export class PDFViewer {
 
         const canvasWrapper = document.createElement('div');
         canvasWrapper.className = 'pdf-canvas-wrapper';
-        
+
         this.canvas = document.createElement('canvas');
         this.ctx = this.canvas.getContext('2d');
         canvasWrapper.appendChild(this.canvas);
@@ -81,16 +81,16 @@ export class PDFViewer {
 
         toolbar.querySelector('#prev').addEventListener('click', () => this.onPrevPage());
         toolbar.querySelector('#next').addEventListener('click', () => this.onNextPage());
-        
-        toolbar.querySelector('#zoom_out').addEventListener('click', () => { 
-            this.scale = Math.max(0.5, this.scale - 0.2); 
-            this.renderPage(this.pageNum); 
+
+        toolbar.querySelector('#zoom_out').addEventListener('click', () => {
+            this.scale = Math.max(0.5, this.scale - 0.2);
+            this.renderPage(this.pageNum);
         });
-        toolbar.querySelector('#zoom_in').addEventListener('click', () => { 
-            this.scale = Math.min(3.0, this.scale + 0.2); 
-            this.renderPage(this.pageNum); 
+        toolbar.querySelector('#zoom_in').addEventListener('click', () => {
+            this.scale = Math.min(3.0, this.scale + 0.2);
+            this.renderPage(this.pageNum);
         });
-        
+
         this.pageLabel = toolbar.querySelector('#page_num');
         this._setupInteraction(canvasWrapper);
     }
@@ -110,10 +110,10 @@ export class PDFViewer {
                 const dist = this._getTouchDistance(e.touches);
                 const ratio = dist / this.touchStartDist;
                 this.currentTransform = Math.max(0.5, Math.min(3.0, this.touchStartScale * ratio));
-                const cssScale = ratio; 
+                const cssScale = ratio;
                 this.canvas.style.transform = `scale(${cssScale})`;
                 this.canvas.style.transformOrigin = 'center center';
-                
+
                 e.preventDefault();
             }
         }, { passive: false });
@@ -132,10 +132,10 @@ export class PDFViewer {
         element.addEventListener('wheel', (e) => {
             if (e.ctrlKey) {
                 e.preventDefault();
-                
+
                 const delta = e.deltaY * -0.01;
                 const newScale = Math.min(Math.max(0.5, this.scale + delta), 3.0);
-                
+
                 if (Math.abs(newScale - this.scale) > 0.1) {
                     this.scale = newScale;
                     this.renderPage(this.pageNum);
@@ -153,7 +153,7 @@ export class PDFViewer {
 
     async renderPage(num) {
         this.pageRendering = true;
-        
+
         try {
             const page = await this.pdfDoc.getPage(num);
             const wrapper = this.container.querySelector('.pdf-canvas-wrapper');
@@ -179,12 +179,12 @@ export class PDFViewer {
                 viewport: viewport,
                 transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null
             };
-            
+
             const renderTask = page.render(renderContext);
 
             await renderTask.promise;
             this.pageRendering = false;
-            
+
             if (this.pageNumPending !== null) {
                 this.renderPage(this.pageNumPending);
                 this.pageNumPending = null;

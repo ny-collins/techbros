@@ -1,6 +1,6 @@
 /* === CONFIGURATION === */
 
-const CACHE_VERSION = 'v2.0.0'; // Replaced by build script
+const CACHE_VERSION = 'v3.0.0';
 const APP_CACHE = `techbros-app-${CACHE_VERSION}`;
 const RESOURCE_CACHE = 'techbros-resources-v1';
 const ASSETS = [
@@ -74,19 +74,16 @@ self.addEventListener('fetch', event => {
 
     if (!url.protocol.startsWith('http')) return;
 
-    // Strategy: Cache First for Resources
     if (url.pathname.startsWith('/resources/')) {
         event.respondWith(handleResourceRequest(event.request));
         return;
     }
 
-    // Strategy: Network First for API and resources.json
     if (url.pathname.startsWith('/api/') || url.pathname.endsWith('/resources.json')) {
         event.respondWith(handleApiRequest(event.request));
         return;
     }
 
-    // Strategy: Cache First for App Shell & Static Assets
     event.respondWith(
         caches.match(event.request).then(cachedRes => {
             const fetchPromise = fetch(event.request).then(networkRes => {
@@ -96,7 +93,6 @@ self.addEventListener('fetch', event => {
                 }
                 return networkRes;
             }).catch(() => {
-                // If offline and no cache, let it fail (or show offline page)
             });
 
             return cachedRes || fetchPromise;
@@ -152,7 +148,7 @@ async function handleRangeResponse(response, request) {
     const blob = await response.blob();
     const rangeHeader = request.headers.get('range');
     const range = rangeHeader.match(/bytes=(\d+)-(\d+)?/);
-    
+
     if (!range) return response;
 
     const start = parseInt(range[1]);

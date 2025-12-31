@@ -55,12 +55,11 @@ describe('P2PService', () => {
         test('generates signal ready event', async () => {
             const spy = jest.fn();
             p2p.addEventListener('signal-generated', spy);
-            
             await p2p.initManual(true);
-            
+
             const mockOffer = JSON.stringify({ type: 'offer', sdp: 'mock-sdp' });
             p2p.manualService.dispatchEvent(new CustomEvent('signal-ready', { detail: mockOffer }));
-            
+
             expect(spy).toHaveBeenCalledWith(expect.objectContaining({
                 detail: mockOffer
             }));
@@ -68,10 +67,10 @@ describe('P2PService', () => {
 
         test('processes incoming manual signal', async () => {
             await p2p.initManual(false);
-            
+
             const mockSignal = JSON.stringify({ type: 'offer', sdp: 'remote-sdp' });
             await p2p.processManualSignal(mockSignal);
-            
+
             expect(p2p.manualService.peerConnection.setRemoteDescription).toHaveBeenCalled();
         });
     });
@@ -80,9 +79,9 @@ describe('P2PService', () => {
         test('fails if no connection', async () => {
             const spy = jest.fn();
             p2p.addEventListener('error', spy);
-            
+
             await p2p.sendFile({ name: 'test.txt', size: 100 });
-            
+
             expect(spy).toHaveBeenCalledWith(expect.objectContaining({
                 detail: { message: 'No active connection' }
             }));

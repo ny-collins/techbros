@@ -40,7 +40,7 @@ describe('P2PService - IndexedDB Fallback', () => {
 
         expect(db.deleteFileChunks).toHaveBeenCalledWith(transferId);
         expect(p2p.receivingChunks.has(transferId)).toBe(true);
-        expect(p2p.receivingChunks.get(transferId).storage).toBeUndefined(); 
+        expect(p2p.receivingChunks.get(transferId).storage).toBeUndefined();
 
         const chunk0 = { type: 'chunk', index: 0, total: totalChunks, data: new ArrayBuffer(500), name: fileName, transferId };
         await p2p._processChunk(chunk0);
@@ -58,7 +58,7 @@ describe('P2PService - IndexedDB Fallback', () => {
 
         expect(db.getFileChunks).toHaveBeenCalledWith(transferId);
         expect(db.deleteFileChunks).toHaveBeenCalledTimes(2);
-        
+
         expect(receivedSpy).toHaveBeenCalledWith(expect.objectContaining({
             detail: expect.objectContaining({
                 name: fileName,

@@ -71,7 +71,7 @@ const getAudioMetadata = async (filePath, filename) => {
 
 async function main() {
     console.clear();
-    console.log(chalk.cyan.bold('📚  TechBros Resource Manager v2.0.0'));
+    console.log(chalk.cyan.bold('📚  TechBros Resource Manager v3.0.0'));
     console.log(chalk.gray('    Offline-First Library Management System'));
     console.log(chalk.gray('    ---------------------------------------\n'));
 

@@ -189,7 +189,6 @@ export class P2PService extends EventTarget {
             timestamp: Date.now()
         };
         this._send(chatData);
-        // Also dispatch locally so the UI can show the outgoing message
         this.dispatchEvent(new CustomEvent('chat', { detail: { ...chatData, isOutgoing: true } }));
     }
 
@@ -289,12 +288,11 @@ export class P2PService extends EventTarget {
 
     async destroy() {
         this._stopHeartbeat();
-        
-        // Close any open file streams
+
         for (const [id, stream] of this.fileStreams) {
             try {
                 await stream.writable.abort();
-            } catch (e) { /* Ignore */ }
+            } catch (e) {}
         }
         this.fileStreams.clear();
         this.receivingChunks.clear();
@@ -391,7 +389,7 @@ export class P2PService extends EventTarget {
             }
 
             const existingCount = await db.countChunks(data.transferId);
-            
+
             this.receivingChunks.set(data.transferId, {
                 received: existingCount,
                 total: data.totalChunks,
@@ -404,8 +402,8 @@ export class P2PService extends EventTarget {
                 db.deleteFileChunks(data.transferId).catch(e => console.warn(e));
             }
 
-            this._send({ 
-                type: 'transfer-accepted', 
+            this._send({
+                type: 'transfer-accepted',
                 transferId: data.transferId,
                 resumeIndex: existingCount
             });

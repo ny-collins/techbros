@@ -36,7 +36,7 @@ let swContent = fs.readFileSync(SW_PATH, 'utf-8');
 swContent = swContent
     .replace("'/src/style.css'", `'/assets/${cssFile}'`)
     .replace("'/src/app.js'", `'/assets/${jsFile}'`)
-    .replace("const CACHE_VERSION = 'v2.0.0';", `const CACHE_VERSION = '${appVersion}';`);
+    .replace("const CACHE_VERSION = 'v3.0.0';", `const CACHE_VERSION = '${appVersion}';`);
 
 if (workerFile) {
     swContent = swContent.replace("'/src/search-worker.js'", `'/assets/${workerFile}'`);

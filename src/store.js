@@ -28,7 +28,7 @@ class Store {
             const staticPromise = fetch('/resources.json')
                 .then(res => res.ok ? res.json() : [])
                 .catch(() => []);
-            
+
             const cloudPromise = fetch('/api/list')
                 .then(res => res.ok ? res.json() : [])
                 .catch(() => []);

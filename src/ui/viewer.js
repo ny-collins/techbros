@@ -28,7 +28,6 @@ export const viewer = {
         const container = this.elements.container;
         if (!container) return;
 
-        // Reset container styles potentially set by image viewer
         container.style.overflow = '';
         container.style.display = '';
         container.style.alignItems = '';
@@ -56,7 +55,7 @@ export const viewer = {
 
     async _renderText(resource, container) {
         container.innerHTML = '<div class="loading-bar"><div class="loading-progress"></div></div>';
-        
+
         try {
             const response = await fetch(resource.url);
             if (!response.ok) throw new Error('Failed to load text');
@@ -70,7 +69,7 @@ export const viewer = {
             pre.style.overflow = 'auto';
             pre.style.height = '100%';
             pre.textContent = text;
-            
+
             container.innerHTML = '';
             container.appendChild(pre);
         } catch (e) {

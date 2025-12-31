@@ -44,7 +44,7 @@ class UIManager {
         let deferredPrompt;
         const installBtn = document.getElementById('btn-install-pwa');
         const installContainer = document.getElementById('install-container');
-        
+
         const showInstalledState = () => {
             if (installContainer) {
                 installContainer.innerHTML = `
@@ -71,7 +71,7 @@ class UIManager {
             showInstalledState();
         } else if (installBtn) {
             installBtn.classList.remove('hidden');
-            
+
             installBtn.onclick = async () => {
                 if (deferredPrompt) {
                     installBtn.disabled = true;

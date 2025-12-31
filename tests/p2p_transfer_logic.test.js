@@ -32,7 +32,7 @@ if (!Blob.prototype.arrayBuffer) {
 describe('P2P Transfer Logic', () => {
     let sender;
     let receiver;
-    
+
     beforeEach(() => {
         sender = new P2PService();
         receiver = new P2PService();

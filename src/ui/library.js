@@ -9,7 +9,7 @@ export const library = {
         btnGrid: document.getElementById('view-grid'),
         btnList: document.getElementById('view-list'),
         btnClearCache: document.getElementById('btn-clear-cache'),
-        fileInput: null 
+        fileInput: null
     },
     activeFilter: 'all',
 
@@ -78,7 +78,7 @@ export const library = {
         uploadBtn.style.backgroundColor = 'var(--accent-color)';
         uploadBtn.style.color = '#000';
         uploadBtn.style.fontWeight = 'bold';
-        
+
         uploadBtn.addEventListener('click', () => this.triggerUploadFlow());
         this.elements.filterContainer.appendChild(uploadBtn);
     },
@@ -137,7 +137,7 @@ export const library = {
                 div.appendChild(badge);
             }
         }
-        
+
         if (data.isCloud) {
             const cloudBadge = document.createElement('span');
             cloudBadge.className = 'badge-cloud';
@@ -181,10 +181,10 @@ export const library = {
     },
 
     _getIconForType(type) {
-        const map = { 
-            video: 'video', 
-            audio: 'music-note', 
-            pdf: 'file-pdf', 
+        const map = {
+            video: 'video',
+            audio: 'music-note',
+            pdf: 'file-pdf',
             image: 'image',
             archive: 'file-archive',
             text: 'file-text',
@@ -207,7 +207,7 @@ export const library = {
 
             const pin = prompt("Enter Admin Upload PIN:");
             if (!pin) {
-                this.elements.fileInput.value = ''; // Reset
+                this.elements.fileInput.value = '';
                 return;
             }
 
@@ -215,13 +215,12 @@ export const library = {
                 common.showToast(`Uploading ${file.name}...`, 'info');
                 await store.uploadResource(file, pin);
                 common.showToast('Upload successful!', 'success');
-                this.renderList(store.getResources()); // Refresh UI
+                this.renderList(store.getResources());
             } catch (err) {
                 console.error(err);
                 common.showToast('Upload failed: ' + err.message, 'error');
             }
-            
-            this.elements.fileInput.value = ''; // Reset
+            this.elements.fileInput.value = '';
         });
     },
 
