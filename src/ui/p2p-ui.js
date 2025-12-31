@@ -34,6 +34,7 @@ export const p2pUI = {
 
     scanner: null,
     currentRole: null,
+    activeTransfers: new Set(),
 
     /* === INITIALIZATION === */
 
@@ -43,6 +44,10 @@ export const p2pUI = {
         this._bindDashboard();
         this._bindChat();
         this._bindP2PEvents();
+    },
+
+    hasActiveTransfers() {
+        return this.activeTransfers.size > 0;
     },
 
     /* === ROLE SELECTION === */
@@ -153,9 +158,21 @@ export const p2pUI = {
     _bindDashboard() {
         if (this.elements.btnDisconnect) {
             this.elements.btnDisconnect.addEventListener('click', () => {
-                p2p.destroy();
-                this._resetHandshake();
-                common.showToast('Disconnected', 'info');
+                const doDisconnect = () => {
+                    p2p.destroy();
+                    this._resetHandshake();
+                    this.activeTransfers.clear();
+                    common.showToast('Disconnected', 'info');
+                };
+
+                if (this.hasActiveTransfers()) {
+                    common.showConfirmationDialog(
+                        'Transfers are in progress. Disconnecting will cancel them. Are you sure?',
+                        doDisconnect
+                    );
+                } else {
+                    doDisconnect();
+                }
             });
         }
 
@@ -228,11 +245,27 @@ export const p2pUI = {
 
         p2p.addEventListener('chat', (e) => this._renderChatBubble(e.detail));
 
-        p2p.addEventListener('transfer-start', (e) => this._addBubble(e.detail));
+        p2p.addEventListener('transfer-start', (e) => {
+            this.activeTransfers.add(e.detail.transferId);
+            this._addBubble(e.detail);
+        });
         p2p.addEventListener('send-progress', (e) => this._updateBubble(e.detail, 'sending'));
         p2p.addEventListener('receive-progress', (e) => this._updateBubble(e.detail, 'receiving'));
-        p2p.addEventListener('file-received', (e) => this._completeBubble(e.detail, 'received'));
-        p2p.addEventListener('send-complete', (e) => this._completeBubble(e.detail, 'sent'));
+        p2p.addEventListener('file-received', (e) => {
+            this.activeTransfers.delete(e.detail.transferId);
+            this._completeBubble(e.detail, 'received');
+        });
+        p2p.addEventListener('file-saved', (e) => {
+            this.activeTransfers.delete(e.detail.transferId);
+        });
+        p2p.addEventListener('send-complete', (e) => {
+            this.activeTransfers.delete(e.detail.transferId);
+            this._completeBubble(e.detail, 'sent');
+        });
+        p2p.addEventListener('error', (e) => {
+            common.showToast(e.detail.message || 'Connection Error', 'error');
+            if(this.elements.btnConnect) this.elements.btnConnect.textContent = 'Connect';
+        });
     },
 
     /* === UI COMPONENTS === */

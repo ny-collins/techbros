@@ -19,6 +19,12 @@ export const viewer = {
         }
     },
 
+    clear() {
+        if (this.elements.container) {
+            this.elements.container.innerHTML = '';
+        }
+    },
+
     open(resource, router) {
         common.closeSidebar();
         this.clear();

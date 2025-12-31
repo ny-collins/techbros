@@ -45,6 +45,8 @@ const bootApp = async () => {
             window.addEventListener('load', registerSW);
         }
     }
+
+    ui.modules.common.hideSplashScreen();
 };
 
 bootApp();

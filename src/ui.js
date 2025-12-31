@@ -33,6 +33,19 @@ class UIManager {
             }
         });
 
+        router.setGuard((currentView, nextView) => {
+            if (currentView === 'p2p' && p2pUI.hasActiveTransfers()) {
+                return new Promise((resolve) => {
+                    common.showConfirmationDialog(
+                        'Transfers are in progress. Leaving this page might interrupt them. Continue?',
+                        () => resolve(true),
+                        () => resolve(false)
+                    );
+                });
+            }
+            return true;
+        });
+
         p2p.init().catch(console.error);
 
         this._checkInstallation();

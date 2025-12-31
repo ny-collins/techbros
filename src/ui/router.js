@@ -7,6 +7,7 @@ export const router = {
         topBar: document.getElementById('main-header'),
     },
     currentView: 'library',
+    guard: null,
 
     /* === INITIALIZATION === */
 
@@ -41,10 +42,24 @@ export const router = {
         }
     },
 
+    setGuard(fn) {
+        this.guard = fn;
+    },
+
     /* === NAVIGATION === */
 
-    navigateTo(viewId, addToHistory = true) {
+    async navigateTo(viewId, addToHistory = true) {
         if (viewId === this.currentView) return;
+
+        if (this.guard) {
+            const shouldProceed = await this.guard(this.currentView, viewId);
+            if (!shouldProceed) {
+                if (addToHistory && viewId !== this.currentView) {
+                    history.pushState({ view: this.currentView }, '', `#${this.currentView}`);
+                }
+                return;
+            }
+        }
 
         if (this.elements.views) {
             this.elements.views.forEach(el => el.classList.remove('active'));

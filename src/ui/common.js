@@ -42,29 +42,33 @@ export const common = {
         });
 
         window.addEventListener('online', () => {
-            this.updateStatus('Online', 'success');
+            this.updateStatus('Internet Connected', 'success');
             this.showToast('Back online!', 'success');
         });
 
         window.addEventListener('offline', () => {
-            this.updateStatus('Offline', 'neutral');
+            this.updateStatus('No Internet', 'neutral');
             this.showToast('You are offline.', 'warning');
         });
 
         if (navigator.onLine) {
-            this.updateStatus('Online', 'success');
-        }
-
-        if (this.elements.splashScreen) {
-            setTimeout(() => {
-                this.elements.splashScreen.classList.add('hidden');
-            }, 800);
+            this.updateStatus('Internet Connected', 'success');
+        } else {
+             this.updateStatus('No Internet', 'neutral');
         }
 
         const versionEl = document.getElementById('app-version-sidebar');
         if (versionEl) {
             const v = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'Dev';
             versionEl.textContent = `v${v}`;
+        }
+    },
+
+    /* === SPLASH SCREEN === */
+
+    hideSplashScreen() {
+        if (this.elements.splashScreen) {
+            this.elements.splashScreen.classList.add('hidden');
         }
     },
 
@@ -118,7 +122,7 @@ export const common = {
         }
     },
 
-    showConfirmationDialog(message, onConfirm) {
+    showConfirmationDialog(message, onConfirm, onCancel = null) {
         const { confirmOverlay, confirmMessage, confirmBtn, cancelBtn } = this.elements;
         if (!confirmOverlay) return;
 
@@ -136,7 +140,10 @@ export const common = {
             close();
         };
 
-        cancelBtn.onclick = close;
+        cancelBtn.onclick = () => {
+            if (onCancel) onCancel();
+            close();
+        };
     },
 
     updateStatus(msg, type = 'neutral') {
