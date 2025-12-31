@@ -41,40 +41,43 @@ export const router = {
         }
     },
 
-        /* === NAVIGATION === */
+    /* === NAVIGATION === */
 
-        navigateTo(viewId, addToHistory = true) {
-            if (viewId === this.currentView) return;
+    navigateTo(viewId, addToHistory = true) {
+        if (viewId === this.currentView) return;
 
-            if (this.elements.views) this.elements.views.forEach(el => el.classList.remove('active'));
+        if (this.elements.views) {
+            this.elements.views.forEach(el => el.classList.remove('active'));
+        }
 
-            const target = document.getElementById(`${viewId}-view`);
+        const target = document.getElementById(`${viewId}-view`);
 
-            if (viewId === 'resource') {
-                if (this.elements.topBar) this.elements.topBar.classList.add('hidden');
-            } else {
-                if (this.elements.topBar) this.elements.topBar.classList.remove('hidden');
-            }
+        if (viewId === 'resource') {
+            if (this.elements.topBar) this.elements.topBar.classList.add('hidden');
+        } else {
+            if (this.elements.topBar) this.elements.topBar.classList.remove('hidden');
+        }
 
-            if (target) {
-                target.classList.add('active');
-                this.currentView = viewId;
-                window.scrollTo(0, 0);
+        if (target) {
+            target.classList.add('active');
+            this.currentView = viewId;
+            window.scrollTo(0, 0);
 
-                if (viewId !== 'resource' && this.elements.navLinks) {                this.elements.navLinks.forEach(link => {
+            if (viewId !== 'resource' && this.elements.navLinks) {
+                this.elements.navLinks.forEach(link => {
                     link.classList.remove('active');
                     if (link.getAttribute('href') === `#${viewId}`) link.classList.add('active');
                 });
             }
-
-            if (addToHistory) {
-                const url = viewId === 'library' ? '/' : `#${viewId}`;
-                history.pushState({ view: viewId }, '', url);
-            }
-
-            if (window.innerWidth <= 768) common.closeSidebar();
-
-            this.onViewChange(viewId);
         }
+
+        if (addToHistory) {
+            const url = viewId === 'library' ? '/' : `#${viewId}`;
+            history.pushState({ view: viewId }, '', url);
+        }
+
+        if (window.innerWidth <= 768) common.closeSidebar();
+
+        this.onViewChange(viewId);
     }
 };

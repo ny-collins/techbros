@@ -192,17 +192,11 @@ export class P2PService extends EventTarget {
         this.dispatchEvent(new CustomEvent('chat', { detail: { ...chatData, isOutgoing: true } }));
     }
 
-    _send(data) {
-        if (this.mode === 'online' && this.conn) this.conn.send(data);
-        else if (this.mode === 'manual' && this.manualService) this.manualService.send(data);
-    }
-
     async sendFile(file) {
         const getBufferedAmount = () => {
             if (this.mode === 'online' && this.conn && this.conn.dataChannel) {
                 return this.conn.dataChannel.bufferedAmount;
             }
-
             if (this.mode === 'manual' && this.manualService && this.manualService.dataChannel) {
                 return this.manualService.dataChannel.bufferedAmount;
             }
@@ -310,6 +304,11 @@ export class P2PService extends EventTarget {
 
     /* === PRIVATE HANDLERS === */
 
+    _send(data) {
+        if (this.mode === 'online' && this.conn) this.conn.send(data);
+        else if (this.mode === 'manual' && this.manualService) this.manualService.send(data);
+    }
+
     _handleConnection(conn) {
         this.conn = conn;
         conn.on('open', () => {
@@ -363,105 +362,119 @@ export class P2PService extends EventTarget {
 
     async _processChunk(data) {
         if (data.type === 'meta') {
-            if ('storage' in navigator && 'estimate' in navigator.storage) {
-                const { usage, quota } = await navigator.storage.estimate();
-                if (usage + data.size > quota) {
-                    this.dispatchEvent(new CustomEvent('error', { detail: { message: 'Storage quota exceeded!' } }));
-                    this._send({ type: 'transfer-rejected', transferId: data.transferId, reason: 'Quota exceeded' });
-                    return;
-                }
+            await this._handleMetaPacket(data);
+        } else if (data.type === 'chunk') {
+            await this._handleChunkPacket(data);
+        }
+    }
+
+    async _handleMetaPacket(data) {
+        if ('storage' in navigator && 'estimate' in navigator.storage) {
+            const { usage, quota } = await navigator.storage.estimate();
+            if (usage + data.size > quota) {
+                this.dispatchEvent(new CustomEvent('error', { detail: { message: 'Storage quota exceeded!' } }));
+                this._send({ type: 'transfer-rejected', transferId: data.transferId, reason: 'Quota exceeded' });
+                return;
             }
+        }
 
-            try {
-                if ('showSaveFilePicker' in window) {
-                    const handle = await window.showSaveFilePicker({
-                        suggestedName: data.name,
-                        types: [{ description: 'File', accept: { [data.mime]: ['.' + data.name.split('.').pop()] } }]
-                    });
-                    const writable = await handle.createWritable();
-                    this.fileStreams.set(data.transferId, { writable, received: 0, total: data.totalChunks, name: data.name });
-                    this._send({ type: 'transfer-accepted', transferId: data.transferId });
-                    this.dispatchEvent(new CustomEvent('transfer-start', { detail: data }));
-                    return;
-                }
-            } catch (err) {
-                console.warn('[P2P] File Picker cancelled or failed, falling back to IDB.', err);
+        try {
+            if ('showSaveFilePicker' in window) {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: data.name,
+                    types: [{ description: 'File', accept: { [data.mime]: ['.' + data.name.split('.').pop()] } }]
+                });
+                const writable = await handle.createWritable();
+                this.fileStreams.set(data.transferId, { writable, received: 0, total: data.totalChunks, name: data.name });
+                this._send({ type: 'transfer-accepted', transferId: data.transferId });
+                this.dispatchEvent(new CustomEvent('transfer-start', { detail: data }));
+                return;
             }
+        } catch (err) {
+            console.warn('[P2P] File Picker cancelled or failed, falling back to IDB.', err);
+        }
 
-            const existingCount = await db.countChunks(data.transferId);
+        const existingCount = await db.countChunks(data.transferId);
 
-            this.receivingChunks.set(data.transferId, {
-                received: existingCount,
-                total: data.totalChunks,
-                size: data.size,
-                mime: data.mime,
-                name: data.name
-            });
+        this.receivingChunks.set(data.transferId, {
+            received: existingCount,
+            total: data.totalChunks,
+            size: data.size,
+            mime: data.mime,
+            name: data.name
+        });
 
-            if (existingCount === 0) {
-                db.deleteFileChunks(data.transferId).catch(e => console.warn(e));
+        if (existingCount === 0) {
+            db.deleteFileChunks(data.transferId).catch(e => console.warn(e));
+        }
+
+        this._send({
+            type: 'transfer-accepted',
+            transferId: data.transferId,
+            resumeIndex: existingCount
+        });
+        this.dispatchEvent(new CustomEvent('transfer-start', { detail: data }));
+    }
+
+    async _handleChunkPacket(data) {
+        if (this.fileStreams.has(data.transferId)) {
+            const stream = this.fileStreams.get(data.transferId);
+            await stream.writable.write(data.data);
+            stream.received++;
+
+            const progress = (stream.received / stream.total) * 100;
+            this.dispatchEvent(new CustomEvent('receive-progress', { detail: { name: stream.name, progress, transferId: data.transferId } }));
+
+            if (stream.received === stream.total) {
+                await stream.writable.close();
+                this.fileStreams.delete(data.transferId);
+                this.dispatchEvent(new CustomEvent('file-saved', { detail: { name: stream.name, transferId: data.transferId } }));
             }
-
-            this._send({
-                type: 'transfer-accepted',
-                transferId: data.transferId,
-                resumeIndex: existingCount
-            });
-            this.dispatchEvent(new CustomEvent('transfer-start', { detail: data }));
             return;
         }
 
-        if (data.type === 'chunk') {
-            if (this.fileStreams.has(data.transferId)) {
-                const stream = this.fileStreams.get(data.transferId);
-                await stream.writable.write(data.data);
-                stream.received++;
+        const fileData = this.receivingChunks.get(data.transferId);
+        if (!fileData) return;
 
-                const progress = (stream.received / stream.total) * 100;
-                this.dispatchEvent(new CustomEvent('receive-progress', { detail: { name: stream.name, progress, transferId: data.transferId } }));
+        if (!this.chunkBuffers.has(data.transferId)) {
+            this.chunkBuffers.set(data.transferId, []);
+        }
+        const buffer = this.chunkBuffers.get(data.transferId);
+        buffer.push({ index: data.index, data: data.data });
 
-                if (stream.received === stream.total) {
-                    await stream.writable.close();
-                    this.fileStreams.delete(data.transferId);
-                    this.dispatchEvent(new CustomEvent('file-saved', { detail: { name: stream.name, transferId: data.transferId } }));
-                }
-                return;
+        fileData.received++;
+        const isLastChunk = fileData.received === fileData.total;
+
+        if (buffer.length >= 50 || isLastChunk) {
+            await this._flushChunkBuffer(data.transferId);
+        }
+
+        const progress = (fileData.received / fileData.total) * 100;
+        this.dispatchEvent(new CustomEvent('receive-progress', { detail: { name: fileData.name, progress, transferId: data.transferId } }));
+
+        if (isLastChunk) {
+            await this._finalizeIDBTransfer(data.transferId, fileData);
+        }
+    }
+
+    async _finalizeIDBTransfer(transferId, fileData) {
+        try {
+            const chunks = await db.getFileChunks(transferId);
+            const blob = new Blob(chunks, { type: fileData.mime });
+            const safeBlob = this._sanitizeBlob(blob, fileData.mime);
+
+            if (safeBlob) {
+                this.dispatchEvent(new CustomEvent('file-received', {
+                    detail: { blob: safeBlob, name: fileData.name, mime: fileData.mime, transferId }
+                }));
             }
-
-            const fileData = this.receivingChunks.get(data.transferId);
-            if (!fileData) return;
-
-            if (!this.chunkBuffers.has(data.transferId)) {
-                this.chunkBuffers.set(data.transferId, []);
-            }
-            const buffer = this.chunkBuffers.get(data.transferId);
-            buffer.push({ index: data.index, data: data.data });
-
-            fileData.received++;
-            const isLastChunk = fileData.received === fileData.total;
-
-            if (buffer.length >= 50 || isLastChunk) {
-                await this._flushChunkBuffer(data.transferId);
-            }
-
-            const progress = (fileData.received / fileData.total) * 100;
-            this.dispatchEvent(new CustomEvent('receive-progress', { detail: { name: fileData.name, progress, transferId: data.transferId } }));
-
-            if (isLastChunk) {
-                const chunks = await db.getFileChunks(data.transferId);
-                const blob = new Blob(chunks, { type: fileData.mime });
-                const safeBlob = this._sanitizeBlob(blob, fileData.mime);
-
-                if (safeBlob) {
-                    this.dispatchEvent(new CustomEvent('file-received', {
-                        detail: { blob: safeBlob, name: fileData.name, mime: fileData.mime, transferId: data.transferId }
-                    }));
-                }
-
-                await db.deleteFileChunks(data.transferId);
-                this.receivingChunks.delete(data.transferId);
-                this.chunkBuffers.delete(data.transferId);
-            }
+        } catch (error) {
+             console.error('[P2P] Finalize failed:', error);
+             this.dispatchEvent(new CustomEvent('error', { detail: { message: 'Failed to assemble file' } }));
+        } finally {
+            await db.deleteFileChunks(transferId);
+            this.receivingChunks.delete(transferId);
+            this.chunkBuffers.delete(transferId);
         }
     }
 
