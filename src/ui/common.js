@@ -111,15 +111,77 @@ export const common = {
 
     /* === FEEDBACK & DIALOGS === */
 
-    showToast(message, type = 'info') {
+    showToast(message, type = 'info', duration = 3300) {
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
-        toast.innerHTML = message;
+        toast.innerHTML = `
+            <span class="toast-message">${message}</span>
+            <button class="toast-close" aria-label="Close">
+                <i class="ph ph-x"></i>
+            </button>
+        `;
+        
+        const closeBtn = toast.querySelector('.toast-close');
+        closeBtn.addEventListener('click', () => toast.remove());
+        
         if (this.elements.toastContainer) {
             this.elements.toastContainer.appendChild(toast);
             requestAnimationFrame(() => toast.classList.add('show'));
-            setTimeout(() => toast.remove(), 3300);
+            
+            if (duration > 0) {
+                setTimeout(() => {
+                    if (toast.parentNode) toast.remove();
+                }, duration);
+            }
         }
+        
+        return toast;
+    },
+
+    showError(error, context = 'Operation') {
+        let message = `${context} failed`;
+        
+        if (error instanceof Error) {
+            message = error.message || message;
+        } else if (typeof error === 'string') {
+            message = error;
+        } else if (error?.detail?.message) {
+            message = error.detail.message;
+        }
+        
+        console.error(`[${context}]`, error);
+        return this.showToast(message, 'error', 5000);
+    },
+
+    showRetryableError(message, retryFn, context = 'Operation') {
+        const toast = document.createElement('div');
+        toast.className = 'toast toast-error toast-retry';
+        toast.innerHTML = `
+            <span class="toast-message">${message}</span>
+            <div class="toast-actions">
+                <button class="btn btn-small btn-retry">Retry</button>
+                <button class="toast-close" aria-label="Close">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+        `;
+        
+        const retryBtn = toast.querySelector('.btn-retry');
+        const closeBtn = toast.querySelector('.toast-close');
+        
+        retryBtn.addEventListener('click', () => {
+            toast.remove();
+            retryFn();
+        });
+        
+        closeBtn.addEventListener('click', () => toast.remove());
+        
+        if (this.elements.toastContainer) {
+            this.elements.toastContainer.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('show'));
+        }
+        
+        return toast;
     },
 
     showConfirmationDialog(message, onConfirm, onCancel = null) {
@@ -174,5 +236,37 @@ export const common = {
         if (!+bytes) return '0 B';
         const i = Math.floor(Math.log(bytes) / Math.log(1024));
         return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${['B', 'KB', 'MB', 'GB'][i]}`;
+    },
+
+    /* === ERROR HANDLING === */
+
+    handleNetworkError(error, operation = 'Network operation') {
+        if (!navigator.onLine) {
+            return this.showToast('You are offline. Check your connection.', 'warning');
+        }
+        
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            return this.showToast('Connection failed. Please try again.', 'error');
+        }
+        
+        return this.showError(error, operation);
+    },
+
+    createLoadingElement(message = 'Loading...') {
+        const loader = document.createElement('div');
+        loader.className = 'loading-state';
+        loader.innerHTML = `
+            <div class="loading-spinner"></div>
+            <span class="loading-message">${message}</span>
+        `;
+        return loader;
+    },
+
+    showLoadingOverlay(message = 'Loading...') {
+        const overlay = document.createElement('div');
+        overlay.className = 'loading-overlay';
+        overlay.appendChild(this.createLoadingElement(message));
+        document.body.appendChild(overlay);
+        return overlay;
     }
 };

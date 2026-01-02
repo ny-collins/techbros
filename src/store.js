@@ -8,6 +8,7 @@ class Store {
                 layout: 'grid',
                 lastSeen: Date.now()
             },
+            pinned: [], // Array of resource IDs
             user: {
                 peerId: null,
                 pin: null
@@ -19,19 +20,109 @@ class Store {
 
     async init() {
         this._loadSettings();
+        this._loadPinned();
         await this._fetchResources();
         console.log('[Store] Initialized with', this.state.resources.length, 'resources.');
     }
 
+    /* === PINNING LOGIC === */
+
+    _loadPinned() {
+        const saved = localStorage.getItem('techbros_pinned');
+        if (saved) {
+            try {
+                this.state.pinned = JSON.parse(saved);
+            } catch (e) {
+                this.state.pinned = [];
+            }
+        }
+    }
+
+    _savePinned() {
+        localStorage.setItem('techbros_pinned', JSON.stringify(this.state.pinned));
+    }
+
+    async togglePin(resourceId) {
+        const resource = this.state.resources.find(r => r.id === resourceId);
+        if (!resource) return false;
+
+        const isPinned = this.state.pinned.includes(resourceId);
+        const cacheName = 'techbros-resources-v1'; // Must match SW constant
+
+        try {
+            const cache = await caches.open(cacheName);
+            
+            if (isPinned) {
+                // Unpin: Remove from Cache & State
+                await cache.delete(resource.url);
+                this.state.pinned = this.state.pinned.filter(id => id !== resourceId);
+            } else {
+                // Pin: Fetch & Cache
+                const response = await fetch(resource.url);
+                if (!response.ok) throw new Error('Download failed');
+                await cache.put(resource.url, response);
+                this.state.pinned.push(resourceId);
+            }
+
+            this._savePinned();
+            return !isPinned; // Return new state
+        } catch (error) {
+            console.error('[Store] Pinning failed:', error);
+            throw error;
+        }
+    }
+
+    isPinned(resourceId) {
+        return this.state.pinned.includes(resourceId);
+    }
+
+    getPinnedResources() {
+        return this.state.resources.filter(r => this.state.pinned.includes(r.id));
+    }
+
     async _fetchResources() {
         try {
-            const staticPromise = fetch('/resources.json')
-                .then(res => res.ok ? res.json() : [])
-                .catch(() => []);
+            const staticPromise = fetch('/resources.json', { 
+                cache: 'no-cache',
+                signal: AbortSignal.timeout(10000)
+            })
+                .then(res => {
+                    if (!res.ok) {
+                        console.warn('[Store] Static resources fetch failed:', res.status);
+                        return [];
+                    }
+                    return res.json();
+                })
+                .catch(error => {
+                    if (error.name === 'TimeoutError') {
+                        console.warn('[Store] Static resources timeout');
+                    } else if (!navigator.onLine) {
+                        console.log('[Store] Offline - using cached static resources');
+                    }
+                    return [];
+                });
 
-            const cloudPromise = fetch('/api/list')
-                .then(res => res.ok ? res.json() : [])
-                .catch(() => []);
+            const cloudPromise = fetch('/api/list', {
+                cache: 'no-cache',
+                signal: AbortSignal.timeout(15000)
+            })
+                .then(res => {
+                    if (!res.ok) {
+                        console.warn('[Store] Cloud resources fetch failed:', res.status);
+                        return [];
+                    }
+                    return res.json();
+                })
+                .catch(error => {
+                    if (error.name === 'TimeoutError') {
+                        console.warn('[Store] Cloud resources timeout');
+                    } else if (!navigator.onLine) {
+                        console.log('[Store] Offline - skipping cloud resources');
+                    } else {
+                        console.warn('[Store] Cloud resources error:', error.message);
+                    }
+                    return [];
+                });
 
             const [staticData, cloudData] = await Promise.all([staticPromise, cloudPromise]);
 

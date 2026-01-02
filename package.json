@@ -25,6 +25,8 @@
   "main": "src/app.js",
   "scripts": {
     "add": "node scripts/add_resource.js",
+    "upload": "node scripts/upload_to_r2.js",
+    "deploy": "node scripts/deploy.js",
     "dev": "vite",
     "build": "vite build && node scripts/update-sw.js",
     "preview": "vite preview",

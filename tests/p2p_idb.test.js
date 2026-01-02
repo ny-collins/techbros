@@ -6,6 +6,12 @@ jest.mock('../src/db.js', () => ({
         addChunk: jest.fn(() => Promise.resolve()),
         countChunks: jest.fn(() => Promise.resolve(0)),
         getFileChunks: jest.fn(() => Promise.resolve([new ArrayBuffer(10), new ArrayBuffer(10)])),
+        getFileChunkStream: jest.fn(() => Promise.resolve({
+            async *[Symbol.asyncIterator]() {
+                yield [new ArrayBuffer(10)];
+                yield [new ArrayBuffer(10)];
+            }
+        })),
         deleteFileChunks: jest.fn(() => Promise.resolve()),
         open: jest.fn(() => Promise.resolve({}))
     }

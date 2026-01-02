@@ -1,7 +1,8 @@
 // functions/cdn/[[path]].js
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
-  const filename = url.pathname.replace('/cdn/', '');
+  // Decode the URL component to handle spaces and special chars correctly
+  const filename = decodeURIComponent(url.pathname.replace('/cdn/', ''));
   const object = await env.BUCKET.get(filename);
 
   if (object === null) {

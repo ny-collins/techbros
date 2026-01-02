@@ -3,28 +3,26 @@
 const CACHE_VERSION = 'v3.0.0';
 const APP_CACHE = `techbros-app-${CACHE_VERSION}`;
 const RESOURCE_CACHE = 'techbros-resources-v1';
-const ASSETS = [
+const MAX_RESOURCE_CACHE_SIZE = 50; // Max number of cached resources
+const MAX_CACHE_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+const CRITICAL_ASSETS = [
     '/',
     '/index.html',
     '/manifest.json',
-    '/resources.json',
     '/favicon.png',
     '/src/style.css',
     '/src/app.js',
+    '/fonts/inter.css'
+];
+
+const OPTIONAL_ASSETS = [
+    '/resources.json',
     '/src/search-worker.js',
-    '/vendor/peerjs.min.js',
-    '/vendor/pdf.worker.min.js',
     '/vendor/phosphor/regular.css',
     '/vendor/phosphor/bold.css',
     '/vendor/phosphor/fill.css',
     '/vendor/phosphor/duotone.css',
-    '/vendor/phosphor/Phosphor.ttf',
-    '/vendor/phosphor/Phosphor.woff',
-    '/vendor/phosphor/Phosphor.woff2',
-    '/vendor/phosphor/Phosphor-Duotone.ttf',
-    '/vendor/phosphor/Phosphor-Duotone.woff',
-    '/vendor/phosphor/Phosphor-Duotone.woff2',
-    '/fonts/inter.css',
     '/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2',
     '/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2',
     '/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2',
@@ -34,18 +32,39 @@ const ASSETS = [
     '/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2'
 ];
 
+const ON_DEMAND_ASSETS = [
+    '/vendor/peerjs.min.js',
+    '/vendor/pdf.worker.min.js',
+    '/vendor/phosphor/Phosphor.ttf',
+    '/vendor/phosphor/Phosphor.woff',
+    '/vendor/phosphor/Phosphor.woff2',
+    '/vendor/phosphor/Phosphor-Duotone.ttf',
+    '/vendor/phosphor/Phosphor-Duotone.woff',
+    '/vendor/phosphor/Phosphor-Duotone.woff2'
+];
+
 /* === INSTALLATION === */
 
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(APP_CACHE)
-            .then(cache => {
-                console.log(`[SW] Installing App Shell: ${CACHE_VERSION}`);
-                return cache.addAll(ASSETS);
+            .then(async cache => {
+                console.log(`[SW] Installing critical assets: ${CACHE_VERSION}`);
+                
+                // Cache critical assets first
+                await cache.addAll(CRITICAL_ASSETS);
+                
+                // Try to cache optional assets (non-blocking)
+                try {
+                    await cache.addAll(OPTIONAL_ASSETS);
+                    console.log('[SW] Optional assets cached successfully');
+                } catch (error) {
+                    console.warn('[SW] Some optional assets failed to cache:', error);
+                }
             })
             .then(() => self.skipWaiting())
             .catch(error => {
-                console.error('[SW] Installation failed. Check paths:', error);
+                console.error('[SW] Installation failed:', error);
             })
     );
 });
@@ -67,6 +86,49 @@ self.addEventListener('activate', event => {
     );
 });
 
+/* === CACHE MANAGEMENT === */
+
+async function cleanupResourceCache() {
+    try {
+        const cache = await caches.open(RESOURCE_CACHE);
+        const requests = await cache.keys();
+        
+        if (requests.length <= MAX_RESOURCE_CACHE_SIZE) return;
+        
+        const entries = await Promise.all(
+            requests.map(async request => {
+                const response = await cache.match(request);
+                const date = response?.headers.get('date');
+                return { request, date: date ? new Date(date) : new Date(0) };
+            })
+        );
+        
+        entries.sort((a, b) => a.date - b.date);
+        const toDelete = entries.slice(0, entries.length - MAX_RESOURCE_CACHE_SIZE);
+        
+        await Promise.all(toDelete.map(entry => cache.delete(entry.request)));
+        console.log(`[SW] Cleaned up ${toDelete.length} old cached resources`);
+    } catch (error) {
+        console.error('[SW] Cache cleanup failed:', error);
+    }
+}
+
+async function cacheOnDemandAsset(request) {
+    if (!ON_DEMAND_ASSETS.some(asset => request.url.includes(asset))) return null;
+    
+    try {
+        const response = await fetch(request);
+        if (response.ok) {
+            const cache = await caches.open(APP_CACHE);
+            cache.put(request, response.clone());
+        }
+        return response;
+    } catch (error) {
+        console.warn('[SW] Failed to cache on-demand asset:', error);
+        return null;
+    }
+}
+
 /* === FETCH HANDLING === */
 
 self.addEventListener('fetch', event => {
@@ -74,13 +136,23 @@ self.addEventListener('fetch', event => {
 
     if (!url.protocol.startsWith('http')) return;
 
-    if (url.pathname.startsWith('/resources/')) {
+    // Handle Cloudflare CDN (R2) requests
+    if (url.pathname.startsWith('/cdn/') || url.pathname.startsWith('/resources/')) {
         event.respondWith(handleResourceRequest(event.request));
         return;
     }
 
     if (url.pathname.startsWith('/api/') || url.pathname.endsWith('/resources.json')) {
         event.respondWith(handleApiRequest(event.request));
+        return;
+    }
+
+    // Handle on-demand assets
+    if (ON_DEMAND_ASSETS.some(asset => url.pathname.includes(asset))) {
+        event.respondWith(
+            caches.match(event.request)
+                .then(cached => cached || cacheOnDemandAsset(event.request))
+        );
         return;
     }
 
@@ -92,8 +164,7 @@ self.addEventListener('fetch', event => {
                     caches.open(APP_CACHE).then(cache => cache.put(event.request, clone));
                 }
                 return networkRes;
-            }).catch(() => {
-            });
+            }).catch(() => null);
 
             return cachedRes || fetchPromise;
         })
@@ -122,6 +193,7 @@ async function handleApiRequest(request) {
 /* === RESOURCE STRATEGIES === */
 
 async function handleResourceRequest(request) {
+    // Open the resource cache (populated manually by 'Pin' action)
     const cache = await caches.open(RESOURCE_CACHE);
     const cachedResponse = await cache.match(request);
 
@@ -132,15 +204,19 @@ async function handleResourceRequest(request) {
         return cachedResponse;
     }
 
+    // Network Fallback (Do NOT cache automatically)
     try {
-        const networkResponse = await fetch(request);
-        if (networkResponse.status === 200) {
-            cache.put(request, networkResponse.clone());
+        const response = await fetch(request);
+        
+        // Periodically cleanup cache (every ~20 requests)
+        if (Math.random() < 0.05) {
+            cleanupResourceCache().catch(console.warn);
         }
-        return networkResponse;
+        
+        return response;
     } catch (error) {
         console.warn('[SW] Offline resource fetch failed:', request.url);
-        return new Response('Offline', { status: 503 });
+        return new Response('Offline - File not pinned', { status: 503 });
     }
 }
 

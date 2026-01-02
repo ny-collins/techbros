@@ -6,7 +6,7 @@ import chalk from 'chalk';
 import { createRequire } from 'module';
 import { parseFile } from 'music-metadata';
 
-/* === SETUP === */
+/* === CONSTANTS === */
 
 const require = createRequire(import.meta.url);
 const { PDFDocument } = require('pdf-lib');
@@ -16,12 +16,40 @@ const __dirname = path.dirname(__filename);
 
 const RESOURCES_DIR = path.join(__dirname, '../public/resources');
 const DB_PATH = path.join(__dirname, '../public/resources.json');
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB - matches server limit
 
 const TYPE_MAP = {
     '.pdf': 'pdf',
     '.mp4': 'video', '.webm': 'video', '.mkv': 'video',
     '.mp3': 'audio', '.wav': 'audio', '.m4a': 'audio', '.ogg': 'audio',
     '.jpg': 'image', '.jpeg': 'image', '.png': 'image', '.webp': 'image', '.gif': 'image'
+};
+
+const ALLOWED_EXTENSIONS = Object.keys(TYPE_MAP).concat(['.zip', '.txt', '.md', '.html']);
+
+/* === VALIDATION === */
+
+const validateFile = (filePath, stats) => {
+    const ext = path.extname(filePath).toLowerCase();
+    const fileName = path.basename(filePath);
+    
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+        return { valid: false, error: `File type '${ext}' not supported` };
+    }
+    
+    if (!/^[a-zA-Z0-9._-]+$/.test(fileName)) {
+        return { valid: false, error: 'Filename contains invalid characters (use only letters, numbers, dots, hyphens, underscores)' };
+    }
+    
+    if (stats.size > MAX_FILE_SIZE) {
+        return { valid: false, error: `File size exceeds 500MB limit (${formatSize(stats.size)} provided)` };
+    }
+    
+    if (stats.size === 0) {
+        return { valid: false, error: 'File is empty' };
+    }
+    
+    return { valid: true };
 };
 
 /* === HELPERS === */

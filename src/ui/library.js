@@ -12,100 +12,154 @@ export const library = {
         fileInput: null
     },
     activeFilter: 'all',
+    currentFolder: null, // null means "Home" (Dashboard)
 
     /* === INITIALIZATION === */
 
     init(router, viewer) {
+        this.viewer = viewer;
+        this.router = router;
+
         this._bindSearch();
         this._bindViewToggles();
         this._bindCacheClear();
         this._bindUpload();
 
-        const resources = store.getResources();
-        this.renderFilters(resources);
-        this.renderList(resources, viewer, router);
+        this.renderHome();
     },
 
-    reset(router, viewer) {
+    reset() {
         if (this.elements.searchInput) {
             this.elements.searchInput.value = '';
         }
-        this.activeFilter = 'all';
-        if (this.elements.filterContainer) {
-            this.elements.filterContainer.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-            const allBtn = this.elements.filterContainer.querySelector('[data-filter="all"]');
-            if (allBtn) allBtn.classList.add('active');
-        }
-        this.renderList(store.getResources(), viewer, router);
+        this.renderHome();
     },
 
     /* === RENDERING === */
 
-    renderFilters(resources) {
-        if (!this.elements.filterContainer) return;
-
-        const types = new Set(['all']);
-        resources.forEach(r => types.add(r.type));
-
-        this.elements.filterContainer.innerHTML = '';
-
-        types.forEach(type => {
-            const btn = document.createElement('button');
-            btn.className = `chip ${this.activeFilter === type ? 'active' : ''}`;
-            btn.textContent = type.charAt(0).toUpperCase() + type.slice(1) + (type === 'all' ? '' : 's');
-            btn.dataset.filter = type;
-
-            btn.addEventListener('click', () => {
-                this.activeFilter = type;
-                this.elements.filterContainer.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-                btn.classList.add('active');
-
-                if (type === 'all') {
-                    this.renderList(store.getResources());
-                } else {
-                    const filtered = store.getResources().filter(r => r.type === type);
-                    this.renderList(filtered);
-                }
-            });
-
-            this.elements.filterContainer.appendChild(btn);
-        });
-
-        const uploadBtn = document.createElement('button');
-        uploadBtn.className = 'chip special-action';
-        uploadBtn.innerHTML = '<i class="ph ph-upload-simple"></i> Upload';
-        uploadBtn.style.marginLeft = 'auto';
-        uploadBtn.style.backgroundColor = 'var(--accent-color)';
-        uploadBtn.style.color = '#000';
-        uploadBtn.style.fontWeight = 'bold';
-
-        uploadBtn.addEventListener('click', () => this.triggerUploadFlow());
-        this.elements.filterContainer.appendChild(uploadBtn);
-    },
-
-    renderList(resources, viewer = null, router = null) {
-        if (viewer) this.viewer = viewer;
-        if (router) this.router = router;
-
+    renderHome() {
+        this.currentFolder = null;
         if (!this.elements.list) return;
 
-        this.elements.list.innerHTML = '';
-        const fragment = document.createDocumentFragment();
+        this._toggleViewControls(false);
 
-        if (resources.length === 0) {
-            this.elements.list.innerHTML = `
-                <div class="empty-state" style="grid-column: 1/-1; text-align:center; padding: 4rem; color: var(--text-muted);">
-                    <i class="ph ph-ghost" style="font-size: 64px; margin-bottom: 1rem; opacity: 0.8;"></i>
-                    <p style="color: var(--text-main); font-weight: 500;">No resources found.</p>
-                </div>`;
-            return;
+        this.elements.filterContainer.innerHTML = '';
+        this.elements.list.innerHTML = '';
+        this.elements.list.className = ''; 
+
+        // 1. Pinned Section
+        const pinnedResources = store.getPinnedResources();
+        const pinnedWrapper = document.createElement('section');
+        pinnedWrapper.className = 'dashboard-section';
+        pinnedWrapper.innerHTML = `
+            <div class="section-header">
+                <h2>Pinned Files</h2>
+            </div>
+        `;
+
+        if (pinnedResources.length > 0) {
+            const scrollContainer = document.createElement('div');
+            scrollContainer.className = 'pinned-scroll-container';
+            pinnedResources.forEach(res => {
+                scrollContainer.appendChild(this._createResourceCard(res));
+            });
+            pinnedWrapper.appendChild(scrollContainer);
+        } else {
+            const empty = document.createElement('div');
+            empty.className = 'empty-pinned-state';
+            empty.innerHTML = `
+                <i class="ph ph-push-pin"></i>
+                <p><strong>No pinned files yet.</strong><br>Your pinned files appear here for quick access and even offline use.</p>
+            `;
+            pinnedWrapper.appendChild(empty);
         }
 
-        resources.forEach(resource => {
-            const card = this._createResourceCard(resource);
-            fragment.appendChild(card);
+        this.elements.list.appendChild(pinnedWrapper);
+
+        // 2. Categories Section
+        const resources = store.getResources();
+        const stats = this._calculateStats(resources);
+        const categoriesWrapper = document.createElement('section');
+        categoriesWrapper.className = 'dashboard-section';
+        categoriesWrapper.innerHTML = `
+            <div class="section-header">
+                <h2>Categories <span class="header-count">${resources.length} files total</span></h2>
+            </div>
+        `;
+
+        const grid = document.createElement('div');
+        grid.className = 'category-grid';
+
+        const categories = [
+            { id: 'video', name: 'Videos', icon: 'video', count: stats.video },
+            { id: 'audio', name: 'Audio', icon: 'music-note', count: stats.audio },
+            { id: 'pdf', name: 'Documents', icon: 'file-pdf', count: stats.pdf },
+            { id: 'image', name: 'Images', icon: 'image', count: stats.image },
+            { id: 'other', name: 'Other Files', icon: 'file', count: stats.other }
+        ];
+
+        categories.forEach(cat => {
+            if (cat.count > 0) {
+                grid.appendChild(this._createCategoryCard(cat));
+            }
         });
-        this.elements.list.appendChild(fragment);
+
+        grid.appendChild(this._createCategoryCard({ 
+            id: 'upload', 
+            name: 'Upload File', 
+            icon: 'cloud-arrow-up', 
+            count: 'Add New' 
+        }));
+
+        categoriesWrapper.appendChild(grid);
+        this.elements.list.appendChild(categoriesWrapper);
+    },
+
+    renderFolder(folderId) {
+        this.currentFolder = folderId;
+        this.elements.list.className = 'resource-grid'; 
+        
+        this._toggleViewControls(true);
+        
+        const allResources = store.getResources();
+        const filtered = folderId === 'other' 
+            ? allResources.filter(r => !['video', 'audio', 'pdf', 'image'].includes(r.type))
+            : allResources.filter(r => r.type === folderId);
+
+        this._renderBreadcrumbs(folderId);
+        this.renderList(filtered);
+    },
+
+    _toggleViewControls(show) {
+        const controls = document.querySelector('.view-toggles');
+        if (controls) controls.style.display = show ? 'flex' : 'none';
+    },
+
+    _renderBreadcrumbs(folderName) {
+        this.elements.filterContainer.innerHTML = '';
+        
+        const nav = document.createElement('div');
+        nav.className = 'breadcrumb';
+
+        const home = document.createElement('span');
+        home.className = 'breadcrumb-item';
+        home.innerHTML = '<i class="ph ph-house"></i> Home';
+        home.onclick = () => this.renderHome();
+
+        const separator = document.createElement('span');
+        separator.className = 'breadcrumb-separator';
+        separator.innerHTML = '<i class="ph ph-caret-right"></i>';
+
+        const currentName = folderName.charAt(0).toUpperCase() + folderName.slice(1);
+        const current = document.createElement('span');
+        current.className = 'breadcrumb-item active';
+        current.textContent = currentName === 'Pdf' ? 'Documents' : currentName;
+
+        nav.appendChild(home);
+        nav.appendChild(separator);
+        nav.appendChild(current);
+
+        this.elements.filterContainer.appendChild(nav);
     },
 
     _createResourceCard(data) {
@@ -115,7 +169,8 @@ export const library = {
         div.setAttribute('role', 'button');
         div.setAttribute('aria-label', `Open ${common.sanitizeText(data.title)}`);
 
-        div.addEventListener('click', () => {
+        div.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-pin')) return;
             if (this.viewer && this.router) this.viewer.open(data, this.router);
         });
 
@@ -125,6 +180,41 @@ export const library = {
                 if (this.viewer && this.router) this.viewer.open(data, this.router);
             }
         });
+
+        const isPinned = store.isPinned(data.id);
+        const pinBtn = document.createElement('button');
+        pinBtn.className = `btn-pin ${isPinned ? 'active' : ''}`;
+        pinBtn.innerHTML = `<i class="ph ${isPinned ? 'ph-push-pin-fill' : 'ph-push-pin'}"></i>`;
+        
+        pinBtn.onclick = async (e) => {
+            e.stopPropagation();
+            
+            pinBtn.disabled = true;
+            const originalIcon = pinBtn.innerHTML;
+            pinBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i>';
+
+            try {
+                const newState = await store.togglePin(data.id);
+                pinBtn.classList.toggle('active', newState);
+                pinBtn.innerHTML = `<i class="ph ${newState ? 'ph-push-pin-fill' : 'ph-push-pin'}"></i>`;
+                
+                if (newState) {
+                    common.showToast('File pinned & downloaded!', 'success');
+                } else {
+                    common.showToast('File unpinned & removed from cache.', 'info');
+                }
+
+                if (this.currentFolder === null) {
+                    this.renderHome();
+                }
+            } catch (err) {
+                common.showToast('Failed to pin file. Check connection.', 'error');
+                pinBtn.innerHTML = originalIcon;
+            } finally {
+                pinBtn.disabled = false;
+            }
+        };
+        div.appendChild(pinBtn);
 
         if (data.added) {
             const addedDate = new Date(data.added);
@@ -144,7 +234,7 @@ export const library = {
             cloudBadge.innerHTML = '<i class="ph ph-cloud"></i>';
             cloudBadge.style.position = 'absolute';
             cloudBadge.style.top = '10px';
-            cloudBadge.style.right = '10px';
+            cloudBadge.style.right = '40px';
             cloudBadge.style.color = 'var(--accent-color)';
             div.appendChild(cloudBadge);
         }
@@ -162,8 +252,9 @@ export const library = {
         const meta = document.createElement('div');
         meta.className = 'meta';
 
+        const typeName = data.type.toUpperCase();
         const typeSpan = document.createElement('span');
-        typeSpan.textContent = data.type.toUpperCase();
+        typeSpan.textContent = typeName === 'PDF' ? 'DOCUMENT' : typeName;
 
         const sizeSpan = document.createElement('span');
         sizeSpan.textContent = common.formatBytes(data.size || 0);
@@ -178,6 +269,58 @@ export const library = {
         div.appendChild(contentDiv);
 
         return div;
+    },
+
+    _createCategoryCard(cat) {
+        const div = document.createElement('div');
+        div.className = 'category-card';
+        
+        if (cat.id === 'upload') {
+            div.classList.add('special-action');
+            div.onclick = () => this.triggerUploadFlow();
+        } else {
+            div.onclick = () => this.renderFolder(cat.id);
+        }
+
+        div.innerHTML = `
+            <div class="category-icon">
+                <i class="ph ph-${cat.icon}"></i>
+            </div>
+            <div class="category-info">
+                <h3>${cat.name}</h3>
+                <p>${cat.count} ${cat.id === 'upload' ? '' : 'items'}</p>
+            </div>
+        `;
+        return div;
+    },
+
+    _calculateStats(resources) {
+        const stats = { video: 0, audio: 0, pdf: 0, image: 0, other: 0 };
+        resources.forEach(r => {
+            if (stats[r.type] !== undefined) stats[r.type]++;
+            else stats.other++;
+        });
+        return stats;
+    },
+
+    renderList(resources) {
+        if (!this.elements.list) return;
+        this.elements.list.innerHTML = '';
+        
+        if (resources.length === 0) {
+            this.elements.list.innerHTML = `
+                <div class="empty-state" style="grid-column: 1/-1; text-align:center; padding: 4rem; color: var(--text-muted);">
+                    <i class="ph ph-ghost" style="font-size: 64px; margin-bottom: 1rem; opacity: 0.8;"></i>
+                    <p style="color: var(--text-main); font-weight: 500;">No resources found.</p>
+                </div>`;
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        resources.forEach(resource => {
+            fragment.appendChild(this._createResourceCard(resource));
+        });
+        this.elements.list.appendChild(fragment);
     },
 
     _getIconForType(type) {
@@ -205,22 +348,69 @@ export const library = {
             const file = e.target.files[0];
             if (!file) return;
 
-            const pin = prompt("Enter Admin Upload PIN:");
-            if (!pin) {
-                this.elements.fileInput.value = '';
-                return;
-            }
-
             try {
+                const pin = await this.requestPin();
+                if (!pin) {
+                    this.elements.fileInput.value = '';
+                    return;
+                }
+
                 common.showToast(`Uploading ${file.name}...`, 'info');
                 await store.uploadResource(file, pin);
                 common.showToast('Upload successful!', 'success');
-                this.renderList(store.getResources());
+                this.renderHome(); // Refresh dashboard stats
             } catch (err) {
-                console.error(err);
-                common.showToast('Upload failed: ' + err.message, 'error');
+                if (err !== 'cancelled') {
+                    console.error(err);
+                    common.showToast('Upload failed: ' + err.message, 'error');
+                }
             }
             this.elements.fileInput.value = '';
+        });
+    },
+
+    requestPin() {
+        return new Promise((resolve, reject) => {
+            const modal = document.getElementById('pin-modal');
+            const input = document.getElementById('upload-pin-input');
+            const confirmBtn = document.getElementById('btn-pin-confirm');
+            const cancelBtn = document.getElementById('btn-pin-cancel');
+
+            if (!modal || !input) return reject(new Error('Modal missing'));
+
+            input.value = '';
+            modal.classList.remove('hidden');
+            input.focus();
+
+            const close = () => {
+                modal.classList.add('hidden');
+                confirmBtn.onclick = null;
+                cancelBtn.onclick = null;
+                input.onkeydown = null;
+            };
+
+            const submit = () => {
+                const val = input.value;
+                if (val) {
+                    close();
+                    resolve(val);
+                }
+            };
+
+            confirmBtn.onclick = submit;
+            
+            cancelBtn.onclick = () => {
+                close();
+                reject('cancelled');
+            };
+
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') submit();
+                if (e.key === 'Escape') {
+                    close();
+                    reject('cancelled');
+                }
+            };
         });
     },
 
@@ -237,9 +427,16 @@ export const library = {
         let timeout;
         this.elements.searchInput.addEventListener('input', (e) => {
             clearTimeout(timeout);
+            const query = e.target.value.trim();
+            
             timeout = setTimeout(async () => {
-                const results = await store.search(e.target.value);
-                this.renderList(results);
+                if (query === '') {
+                    this.renderHome();
+                } else {
+                    const results = await store.search(query);
+                    this._renderBreadcrumbs('Search Results');
+                    this.renderList(results);
+                }
             }, 300);
         });
     },

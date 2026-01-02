@@ -6,6 +6,11 @@ jest.mock('../src/db.js', () => ({
     deleteFileChunks: jest.fn().mockResolvedValue(true),
     addChunk: jest.fn().mockResolvedValue(true),
     getFileChunks: jest.fn().mockResolvedValue([]),
+    getFileChunkStream: jest.fn().mockResolvedValue({
+      async *[Symbol.asyncIterator]() {
+        yield [new ArrayBuffer(1024)];
+      }
+    }),
   }
 }));
 

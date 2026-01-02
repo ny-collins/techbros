@@ -90,6 +90,41 @@ export const db = {
         });
     },
 
+    async *getFileChunkStream(fileName, batchSize = 10) {
+        const database = await this.open();
+        const tx = database.transaction([STORE_NAME], 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const index = store.index('file');
+        
+        let currentIndex = 0;
+        let batch = [];
+        
+        return new Promise((resolve, reject) => {
+            const keyRange = IDBKeyRange.only(fileName);
+            const request = index.openCursor(keyRange);
+            
+            const results = [];
+            request.onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    results.push({ index: cursor.value.index, data: cursor.value.data });
+                    cursor.continue();
+                } else {
+                    const sorted = results.sort((a, b) => a.index - b.index);
+                    resolve(this._createChunkIterator(sorted, batchSize));
+                }
+            };
+            request.onerror = (e) => reject(e.target.error);
+        });
+    },
+
+    async *_createChunkIterator(sortedChunks, batchSize) {
+        for (let i = 0; i < sortedChunks.length; i += batchSize) {
+            const batch = sortedChunks.slice(i, i + batchSize).map(item => item.data);
+            yield batch;
+        }
+    },
+
     async deleteFileChunks(fileName) {
         const database = await this.open();
         return new Promise((resolve, reject) => {

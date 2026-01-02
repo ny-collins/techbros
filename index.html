@@ -28,9 +28,6 @@
         <div class="splash-content">
             <img src="/favicon.png" alt="TechBros" class="splash-logo">
             <h1 class="splash-title">TechBros</h1>
-            <div class="loading-bar">
-                <div class="loading-progress"></div>
-            </div>
         </div>
     </div>
 
@@ -366,6 +363,20 @@
             <div class="confirmation-actions">
                 <button id="btn-confirm-cancel" class="btn secondary">Cancel</button>
                 <button id="btn-confirm-ok" class="btn danger">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pin-modal" class="confirmation-overlay hidden">
+        <div class="confirmation-dialog">
+            <h3>Admin Access</h3>
+            <p>Enter PIN to upload files</p>
+            <div class="pin-input-wrapper">
+                <input type="password" id="upload-pin-input" placeholder="****" maxlength="4" class="pin-field">
+            </div>
+            <div class="confirmation-actions">
+                <button id="btn-pin-cancel" class="btn secondary">Cancel</button>
+                <button id="btn-pin-confirm" class="btn primary">Unlock</button>
             </div>
         </div>
     </div>

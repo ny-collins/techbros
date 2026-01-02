@@ -459,14 +459,20 @@ export class P2PService extends EventTarget {
 
     async _finalizeIDBTransfer(transferId, fileData) {
         try {
-            const chunks = await db.getFileChunks(transferId);
-            const blob = new Blob(chunks, { type: fileData.mime });
-            const safeBlob = this._sanitizeBlob(blob, fileData.mime);
+            const isLargeFile = fileData.total > 100; // >6.4MB with 64KB chunks
+            
+            if (isLargeFile) {
+                await this._finalizeStreamingIDBTransfer(transferId, fileData);
+            } else {
+                const chunks = await db.getFileChunks(transferId);
+                const blob = new Blob(chunks, { type: fileData.mime });
+                const safeBlob = this._sanitizeBlob(blob, fileData.mime);
 
-            if (safeBlob) {
-                this.dispatchEvent(new CustomEvent('file-received', {
-                    detail: { blob: safeBlob, name: fileData.name, mime: fileData.mime, transferId }
-                }));
+                if (safeBlob) {
+                    this.dispatchEvent(new CustomEvent('file-received', {
+                        detail: { blob: safeBlob, name: fileData.name, mime: fileData.mime, transferId }
+                    }));
+                }
             }
         } catch (error) {
              console.error('[P2P] Finalize failed:', error);
@@ -475,6 +481,38 @@ export class P2PService extends EventTarget {
             await db.deleteFileChunks(transferId);
             this.receivingChunks.delete(transferId);
             this.chunkBuffers.delete(transferId);
+        }
+    }
+
+    async _finalizeStreamingIDBTransfer(transferId, fileData) {
+        try {
+            const stream = new ReadableStream({
+                async start(controller) {
+                    const chunkIterator = await db.getFileChunkStream(transferId, 5);
+                    
+                    for await (const batch of chunkIterator) {
+                        for (const chunk of batch) {
+                            controller.enqueue(new Uint8Array(chunk));
+                        }
+                    }
+                    controller.close();
+                }
+            });
+
+            const response = new Response(stream, {
+                headers: { 'Content-Type': fileData.mime }
+            });
+            const blob = await response.blob();
+            const safeBlob = this._sanitizeBlob(blob, fileData.mime);
+
+            if (safeBlob) {
+                this.dispatchEvent(new CustomEvent('file-received', {
+                    detail: { blob: safeBlob, name: fileData.name, mime: fileData.mime, transferId }
+                }));
+            }
+        } catch (error) {
+            console.error('[P2P] Stream assembly failed:', error);
+            throw error;
         }
     }
 
@@ -502,7 +540,22 @@ export class P2PService extends EventTarget {
     }
 
     _sanitizeBlob(blob, mimeType) {
-        return ALLOWED_MIME_TYPES.includes(mimeType) ? blob : null;
+        if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
+            console.warn('[P2P] Rejected file with disallowed MIME type:', mimeType);
+            return null;
+        }
+        
+        if (blob.size > 500 * 1024 * 1024) { // 500MB limit
+            console.warn('[P2P] Rejected file exceeding size limit:', blob.size);
+            return null;
+        }
+        
+        if (blob.size === 0) {
+            console.warn('[P2P] Rejected empty file');
+            return null;
+        }
+        
+        return blob;
     }
 
     _generatePIN() {
