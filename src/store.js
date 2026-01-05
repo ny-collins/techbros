@@ -1,3 +1,6 @@
+import { security } from './utils/security.js';
+import { errorHandler } from './utils/errorHandler.js';
+
 class Store {
     constructor() {
         this.state = {
@@ -46,30 +49,23 @@ class Store {
         const resource = this.state.resources.find(r => r.id === resourceId);
         if (!resource) return false;
 
-        const isPinned = this.state.pinned.includes(resourceId);
-        const cacheName = 'techbros-resources-v1'; // Must match SW constant
-
-        try {
+        return await errorHandler.safeIDBOperation(async () => {
+            const isPinned = this.state.pinned.includes(resourceId);
+            const cacheName = 'techbros-resources-v1';
             const cache = await caches.open(cacheName);
             
             if (isPinned) {
-                // Unpin: Remove from Cache & State
                 await cache.delete(resource.url);
                 this.state.pinned = this.state.pinned.filter(id => id !== resourceId);
             } else {
-                // Pin: Fetch & Cache
-                const response = await fetch(resource.url);
-                if (!response.ok) throw new Error('Download failed');
+                const response = await errorHandler.safeFetch(resource.url);
                 await cache.put(resource.url, response);
                 this.state.pinned.push(resourceId);
             }
 
             this._savePinned();
-            return !isPinned; // Return new state
-        } catch (error) {
-            console.error('[Store] Pinning failed:', error);
-            throw error;
-        }
+            return !isPinned;
+        }, 'Pin Toggle');
     }
 
     isPinned(resourceId) {
@@ -82,49 +78,28 @@ class Store {
 
     async _fetchResources() {
         try {
-            const staticPromise = fetch('/resources.json', { 
-                cache: 'no-cache',
-                signal: AbortSignal.timeout(10000)
+            const staticPromise = errorHandler.safeFetch('/resources.json', { 
+                cache: 'no-cache'
             })
-                .then(res => {
-                    if (!res.ok) {
-                        console.warn('[Store] Static resources fetch failed:', res.status);
-                        return [];
-                    }
-                    return res.json();
-                })
+                .then(res => res.json())
                 .catch(error => {
-                    if (error.name === 'TimeoutError') {
-                        console.warn('[Store] Static resources timeout');
-                    } else if (!navigator.onLine) {
-                        console.log('[Store] Offline - using cached static resources');
-                    }
+                    console.warn('[Store] Static resources fetch failed:', error.message);
                     return [];
                 });
 
-            const cloudPromise = fetch('/api/list', {
-                cache: 'no-cache',
-                signal: AbortSignal.timeout(15000)
+            const cloudPromise = errorHandler.safeFetch('/api/list', {
+                cache: 'no-cache'
             })
-                .then(res => {
-                    if (!res.ok) {
-                        console.warn('[Store] Cloud resources fetch failed:', res.status);
-                        return [];
-                    }
-                    return res.json();
-                })
+                .then(res => res.json())
                 .catch(error => {
-                    if (error.name === 'TimeoutError') {
-                        console.warn('[Store] Cloud resources timeout');
-                    } else if (!navigator.onLine) {
-                        console.log('[Store] Offline - skipping cloud resources');
-                    } else {
-                        console.warn('[Store] Cloud resources error:', error.message);
-                    }
+                    console.warn('[Store] Cloud resources fetch failed:', error.message);
                     return [];
                 });
 
-            const [staticData, cloudData] = await Promise.all([staticPromise, cloudPromise]);
+            const [staticData, cloudData] = await Promise.all([
+                errorHandler.safePromise(staticPromise, []),
+                errorHandler.safePromise(cloudPromise, [])
+            ]);
 
             const unified = [...staticData, ...cloudData];
 
@@ -237,13 +212,14 @@ class Store {
 
     search(query) {
         return new Promise((resolve) => {
-            if (!query) {
+            const sanitizedQuery = security.sanitizeSearchQuery(query);
+            if (!sanitizedQuery) {
                 resolve(this.state.resources);
                 return;
             }
 
             if (typeof Worker === 'undefined') {
-                const lowerQ = query.toLowerCase();
+                const lowerQ = sanitizedQuery.toLowerCase();
                 const MAX_DISTANCE = 3;
 
                 const results = this.state.resources.filter(item => {
@@ -269,7 +245,7 @@ class Store {
             }
 
             this.searchWorker.postMessage({
-                query: query,
+                query: sanitizedQuery,
                 resources: this.state.resources
             });
 

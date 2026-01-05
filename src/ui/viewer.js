@@ -23,6 +23,24 @@ export const viewer = {
         if (this.elements.container) {
             this.elements.container.innerHTML = '';
         }
+        
+        this._cleanupCurrentViewer();
+    },
+    
+    _cleanupCurrentViewer() {
+        if (this.currentPDFViewer) {
+            this.currentPDFViewer.cleanup && this.currentPDFViewer.cleanup();
+            this.currentPDFViewer = null;
+        }
+        
+        const mediaElements = this.elements.container?.querySelectorAll('audio, video');
+        if (mediaElements) {
+            mediaElements.forEach(el => {
+                el.pause();
+                el.src = '';
+                el.load();
+            });
+        }
     },
 
     open(resource, router) {
@@ -164,11 +182,14 @@ export const viewer = {
     },
 
     _renderPDF(resource, container) {
+        // Clean up previous PDF viewer
+        this._cleanupCurrentViewer();
+        
         const pdfContainer = document.createElement('div');
         pdfContainer.className = 'full-viewer pdf-viewer-root';
         container.appendChild(pdfContainer);
-        const pdfViewer = new PDFViewer(pdfContainer, resource.url);
-        pdfViewer.init();
+        this.currentPDFViewer = new PDFViewer(pdfContainer, resource.url);
+        this.currentPDFViewer.init();
     },
 
     _renderImage(resource, container) {

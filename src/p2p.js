@@ -1,5 +1,7 @@
 import { Peer } from 'peerjs';
 import { db } from './db.js';
+import { integrity } from './utils/integrity.js';
+import { errorHandler } from './utils/errorHandler.js';
 
 /* === CONSTANTS === */
 
@@ -193,6 +195,15 @@ export class P2PService extends EventTarget {
     }
 
     async sendFile(file) {
+        try {
+            errorHandler.validateFile(file, ALLOWED_MIME_TYPES);
+        } catch (error) {
+            this.dispatchEvent(new CustomEvent('error', { 
+                detail: { message: error.message } 
+            }));
+            return;
+        }
+        
         const getBufferedAmount = () => {
             if (this.mode === 'online' && this.conn && this.conn.dataChannel) {
                 return this.conn.dataChannel.bufferedAmount;
@@ -210,7 +221,24 @@ export class P2PService extends EventTarget {
 
         const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
         const transferId = this._generateTransferId(file);
-        const meta = { type: 'meta', name: file.name, size: file.size, mime: file.type, totalChunks, transferId };
+        
+        // Calculate file hash for integrity checking
+        let fileHash = null;
+        try {
+            fileHash = await integrity.calculateFileHash(file);
+        } catch (error) {
+            console.warn('[P2P] Failed to calculate file hash:', error);
+        }
+        
+        const meta = { 
+            type: 'meta', 
+            name: file.name, 
+            size: file.size, 
+            mime: file.type, 
+            totalChunks, 
+            transferId,
+            hash: fileHash
+        };
 
         this.dispatchEvent(new CustomEvent('transfer-start', { detail: { ...meta, isOutgoing: true } }));
         this._send(meta);
@@ -469,8 +497,31 @@ export class P2PService extends EventTarget {
                 const safeBlob = this._sanitizeBlob(blob, fileData.mime);
 
                 if (safeBlob) {
+                    // Verify integrity if hash was provided
+                    const transfer = this.receivingChunks.get(transferId);
+                    let verified = false;
+                    if (transfer && transfer.meta && transfer.meta.hash) {
+                        try {
+                            verified = await integrity.verifyReceivedFile(safeBlob, transfer.meta);
+                            if (!verified) {
+                                this.dispatchEvent(new CustomEvent('error', { 
+                                    detail: { message: 'File integrity verification failed. File may be corrupted.' } 
+                                }));
+                                return;
+                            }
+                        } catch (error) {
+                            console.warn('[P2P] Integrity verification failed:', error);
+                        }
+                    }
+                    
                     this.dispatchEvent(new CustomEvent('file-received', {
-                        detail: { blob: safeBlob, name: fileData.name, mime: fileData.mime, transferId }
+                        detail: { 
+                            blob: safeBlob, 
+                            name: fileData.name, 
+                            mime: fileData.mime, 
+                            transferId,
+                            verified: verified
+                        }
                     }));
                 }
             }
@@ -506,8 +557,31 @@ export class P2PService extends EventTarget {
             const safeBlob = this._sanitizeBlob(blob, fileData.mime);
 
             if (safeBlob) {
+                // Verify integrity if hash was provided
+                const transfer = this.receivingChunks.get(transferId);
+                let verified = false;
+                if (transfer && transfer.meta && transfer.meta.hash) {
+                    try {
+                        verified = await integrity.verifyReceivedFile(safeBlob, transfer.meta);
+                        if (!verified) {
+                            this.dispatchEvent(new CustomEvent('error', { 
+                                detail: { message: 'File integrity verification failed. File may be corrupted.' } 
+                            }));
+                            return;
+                        }
+                    } catch (error) {
+                        console.warn('[P2P] Integrity verification failed:', error);
+                    }
+                }
+                
                 this.dispatchEvent(new CustomEvent('file-received', {
-                    detail: { blob: safeBlob, name: fileData.name, mime: fileData.mime, transferId }
+                    detail: { 
+                        blob: safeBlob, 
+                        name: fileData.name, 
+                        mime: fileData.mime, 
+                        transferId,
+                        verified: verified
+                    }
                 }));
             }
         } catch (error) {

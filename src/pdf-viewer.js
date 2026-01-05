@@ -59,13 +59,13 @@ export class PDFViewer {
         toolbar.className = 'pdf-toolbar';
         toolbar.innerHTML = `
             <div class="pdf-controls">
-                <button id="prev" class="btn-icon small"><i class="ph ph-caret-left"></i></button>
-                <span id="page_num">Page 1</span> / <span id="page_count">--</span>
-                <button id="next" class="btn-icon small"><i class="ph ph-caret-right"></i></button>
+                <button id="prev" class="btn-icon small" aria-label="Previous page"><i class="ph ph-caret-left"></i></button>
+                <span id="page_num" aria-live="polite">Page 1</span> / <span id="page_count" aria-live="polite">--</span>
+                <button id="next" class="btn-icon small" aria-label="Next page"><i class="ph ph-caret-right"></i></button>
             </div>
             <div class="pdf-zoom">
-                <button id="zoom_out" class="btn-icon small"><i class="ph ph-minus"></i></button>
-                <button id="zoom_in" class="btn-icon small"><i class="ph ph-plus"></i></button>
+                <button id="zoom_out" class="btn-icon small" aria-label="Zoom out"><i class="ph ph-minus"></i></button>
+                <button id="zoom_in" class="btn-icon small" aria-label="Zoom in"><i class="ph ph-plus"></i></button>
             </div>
         `;
 
@@ -78,6 +78,35 @@ export class PDFViewer {
 
         this.container.appendChild(toolbar);
         this.container.appendChild(canvasWrapper);
+        
+        // Add keyboard navigation
+        this.container.setAttribute('tabindex', '0');
+        this.container.setAttribute('role', 'application');
+        this.container.setAttribute('aria-label', 'PDF Viewer');
+        
+        this.container.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowLeft':
+                case 'PageUp':
+                    e.preventDefault();
+                    this.onPrevPage();
+                    break;
+                case 'ArrowRight':
+                case 'PageDown':
+                    e.preventDefault();
+                    this.onNextPage();
+                    break;
+                case '+':
+                case '=':
+                    e.preventDefault();
+                    this._handleZoomIn();
+                    break;
+                case '-':
+                    e.preventDefault();
+                    this._handleZoomOut();
+                    break;
+            }
+        });
 
         toolbar.querySelector('#prev').addEventListener('click', () => this.onPrevPage());
         toolbar.querySelector('#next').addEventListener('click', () => this.onNextPage());
@@ -229,5 +258,42 @@ export class PDFViewer {
     _updatePageLabel() {
         const countSpan = this.container.querySelector('#page_count');
         if (countSpan && this.pdfDoc) countSpan.textContent = this.pdfDoc.numPages;
+    }
+    
+    cleanup() {
+        // Remove event listeners from toolbar buttons
+        const prevBtn = this.container.querySelector('#prev');
+        const nextBtn = this.container.querySelector('#next');
+        const zoomInBtn = this.container.querySelector('#zoom_in');
+        const zoomOutBtn = this.container.querySelector('#zoom_out');
+        
+        if (prevBtn) prevBtn.removeEventListener('click', this.onPrevPage);
+        if (nextBtn) nextBtn.removeEventListener('click', this.onNextPage);
+        if (zoomInBtn) zoomInBtn.removeEventListener('click', this._handleZoomIn);
+        if (zoomOutBtn) zoomOutBtn.removeEventListener('click', this._handleZoomOut);
+        
+        // Remove canvas event listeners
+        if (this.canvas) {
+            this.canvas.removeEventListener('wheel', this._handleWheel);
+            this.canvas.removeEventListener('touchstart', this._handleTouchStart);
+            this.canvas.removeEventListener('touchmove', this._handleTouchMove);
+            this.canvas.removeEventListener('touchend', this._handleTouchEnd);
+        }
+        
+        // Clean up PDF document
+        if (this.pdfDoc) {
+            this.pdfDoc.destroy && this.pdfDoc.destroy();
+            this.pdfDoc = null;
+        }
+        
+        // Clear canvas
+        if (this.ctx && this.canvas) {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+        
+        // Clear references
+        this.canvas = null;
+        this.ctx = null;
+        this.container = null;
     }
 }

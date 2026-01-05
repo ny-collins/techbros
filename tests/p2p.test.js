@@ -80,7 +80,9 @@ describe('P2PService', () => {
             const spy = jest.fn();
             p2p.addEventListener('error', spy);
 
-            await p2p.sendFile({ name: 'test.txt', size: 100 });
+            const mockFile = new File(['test content'], 'test.txt', { type: 'text/plain' });
+
+            await p2p.sendFile(mockFile);
 
             expect(spy).toHaveBeenCalledWith(expect.objectContaining({
                 detail: { message: 'No active connection' }

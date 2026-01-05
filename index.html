@@ -23,6 +23,8 @@
     <script src="/vendor/peerjs.min.js"></script>
 </head>
 <body>
+    <!-- Skip to main content link for screen readers -->
+    <a href="#main-content" class="skip-link visually-hidden" tabindex="1">Skip to main content</a>
 
     <div id="splash-screen">
         <div class="splash-content">
@@ -72,7 +74,7 @@
 
         <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
-        <main class="main-content">
+        <main id="main-content" class="main-content" role="main" aria-label="Application content">
             
             <header id="main-header" class="top-bar">
                 <div class="top-bar-left">
@@ -80,9 +82,11 @@
                         <i class="ph ph-list"></i>
                     </button>
                     <div class="search-container">
-                        <i class="ph ph-magnifying-glass search-icon"></i>
+                        <i class="ph ph-magnifying-glass search-icon" aria-hidden="true"></i>
                         <label for="search-input" class="visually-hidden">Search Library</label>
-                        <input type="text" id="search-input" placeholder="Search library...">
+                        <input type="text" id="search-input" placeholder="Search library..." 
+                               role="searchbox" aria-describedby="search-help">
+                        <div id="search-help" class="visually-hidden">Search through your library of resources</div>
                     </div>
                 </div>
                 

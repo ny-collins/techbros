@@ -3,8 +3,8 @@
 const CACHE_VERSION = 'v3.0.0';
 const APP_CACHE = `techbros-app-${CACHE_VERSION}`;
 const RESOURCE_CACHE = 'techbros-resources-v1';
-const MAX_RESOURCE_CACHE_SIZE = 50; // Max number of cached resources
-const MAX_CACHE_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
+const MAX_RESOURCE_CACHE_SIZE = 50;
+const MAX_CACHE_AGE = 7 * 24 * 60 * 60 * 1000;
 
 const CRITICAL_ASSETS = [
     '/',
@@ -51,10 +51,8 @@ self.addEventListener('install', event => {
             .then(async cache => {
                 console.log(`[SW] Installing critical assets: ${CACHE_VERSION}`);
                 
-                // Cache critical assets first
                 await cache.addAll(CRITICAL_ASSETS);
                 
-                // Try to cache optional assets (non-blocking)
                 try {
                     await cache.addAll(OPTIONAL_ASSETS);
                     console.log('[SW] Optional assets cached successfully');
@@ -136,7 +134,6 @@ self.addEventListener('fetch', event => {
 
     if (!url.protocol.startsWith('http')) return;
 
-    // Handle Cloudflare CDN (R2) requests
     if (url.pathname.startsWith('/cdn/') || url.pathname.startsWith('/resources/')) {
         event.respondWith(handleResourceRequest(event.request));
         return;
@@ -147,7 +144,6 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // Handle on-demand assets
     if (ON_DEMAND_ASSETS.some(asset => url.pathname.includes(asset))) {
         event.respondWith(
             caches.match(event.request)
@@ -193,7 +189,6 @@ async function handleApiRequest(request) {
 /* === RESOURCE STRATEGIES === */
 
 async function handleResourceRequest(request) {
-    // Open the resource cache (populated manually by 'Pin' action)
     const cache = await caches.open(RESOURCE_CACHE);
     const cachedResponse = await cache.match(request);
 
@@ -204,11 +199,9 @@ async function handleResourceRequest(request) {
         return cachedResponse;
     }
 
-    // Network Fallback (Do NOT cache automatically)
     try {
         const response = await fetch(request);
         
-        // Periodically cleanup cache (every ~20 requests)
         if (Math.random() < 0.05) {
             cleanupResourceCache().catch(console.warn);
         }

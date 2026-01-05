@@ -1,4 +1,6 @@
 import { store } from '../store.js';
+import { security } from '../utils/security.js';
+import { errorHandler } from '../utils/errorHandler.js';
 
 export const common = {
     elements: {
@@ -62,6 +64,28 @@ export const common = {
             const v = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'Dev';
             versionEl.textContent = `v${v}`;
         }
+        
+        window.addEventListener('app-error', (e) => {
+            const { error, context, message } = e.detail;
+            console.error(`[${context}] Application Error:`, error);
+            
+            let userMessage = message;
+            if (error.name === 'QuotaExceededError') {
+                userMessage = 'Storage full. Please clear some cached files.';
+            } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                userMessage = 'Network error. Check your connection.';
+            } else if (error.message.includes('integrity')) {
+                userMessage = 'File verification failed. File may be corrupted.';
+            }
+            
+            this.showError(userMessage, context);
+        });
+        
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('[Unhandled Promise Rejection]:', e.reason);
+            this.showError('An unexpected error occurred. Please try again.', 'System');
+            e.preventDefault();
+        });
     },
 
     /* === SPLASH SCREEN === */
@@ -114,8 +138,9 @@ export const common = {
     showToast(message, type = 'info', duration = 3300) {
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
+        const sanitizedMessage = security.sanitizeText(message);
         toast.innerHTML = `
-            <span class="toast-message">${message}</span>
+            <span class="toast-message">${sanitizedMessage}</span>
             <button class="toast-close" aria-label="Close">
                 <i class="ph ph-x"></i>
             </button>

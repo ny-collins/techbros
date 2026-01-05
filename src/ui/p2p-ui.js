@@ -1,5 +1,6 @@
 import { p2p } from '../p2p.js';
 import { common } from './common.js';
+import { security } from '../utils/security.js';
 import QRCode from 'qrcode';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 
@@ -48,6 +49,33 @@ export const p2pUI = {
 
     hasActiveTransfers() {
         return this.activeTransfers.size > 0;
+    },
+    
+    /* === CLEANUP === */
+    
+    cleanup() {
+        if (this.scanner) {
+            this.scanner.clear().catch(error => console.warn("Failed to clear scanner", error));
+            this.scanner = null;
+        }
+        
+        this.activeTransfers.clear();
+        
+        if (typeof p2p !== 'undefined' && p2p) {
+            p2p.removeEventListener('ready', this._boundHandlers?.onReady);
+            p2p.removeEventListener('connected', this._boundHandlers?.onConnected);
+            p2p.removeEventListener('disconnected', this._boundHandlers?.onDisconnected);
+            p2p.removeEventListener('error', this._boundHandlers?.onError);
+            p2p.removeEventListener('signal-generated', this._boundHandlers?.onSignalGenerated);
+            p2p.removeEventListener('transfer-start', this._boundHandlers?.onTransferStart);
+            p2p.removeEventListener('send-progress', this._boundHandlers?.onSendProgress);
+            p2p.removeEventListener('receive-progress', this._boundHandlers?.onReceiveProgress);
+            p2p.removeEventListener('send-complete', this._boundHandlers?.onSendComplete);
+            p2p.removeEventListener('file-received', this._boundHandlers?.onFileReceived);
+            p2p.removeEventListener('chat', this._boundHandlers?.onChat);
+        }
+        
+        this._boundHandlers = null;
     },
 
     /* === ROLE SELECTION === */
@@ -126,11 +154,11 @@ export const p2pUI = {
         if (this.elements.btnConnect) {
             this.elements.btnConnect.addEventListener('click', () => {
                 const pin = this.elements.remotePinInput.value;
-                if (pin.length === 4) {
+                if (security.isValidPIN(pin)) {
                     this.elements.btnConnect.textContent = 'Connecting...';
                     p2p.connect(pin);
                 } else {
-                    common.showToast('Please enter a 4-digit PIN', 'warning');
+                    common.showToast('Please enter a valid 4-digit PIN', 'warning');
                 }
             });
         }
@@ -214,58 +242,63 @@ export const p2pUI = {
     /* === EVENT LISTENERS === */
 
     _bindP2PEvents() {
-        p2p.addEventListener('ready', (e) => {
-            if (this.elements.pinDisplay) this.elements.pinDisplay.textContent = e.detail.id;
-        });
+        this._boundHandlers = {
+            onReady: (e) => {
+                if (this.elements.pinDisplay) this.elements.pinDisplay.textContent = e.detail.id;
+            },
+            onConnected: (e) => {
+                this.elements.handshakeView.classList.add('hidden');
+                this.elements.dashboardView.classList.remove('hidden');
 
-        p2p.addEventListener('connected', (e) => {
-            this.elements.handshakeView.classList.add('hidden');
-            this.elements.dashboardView.classList.remove('hidden');
+                if(this.elements.btnConnect) this.elements.btnConnect.textContent = 'Connect';
 
-            if(this.elements.btnConnect) this.elements.btnConnect.textContent = 'Connect';
+                const peerId = e.detail.peer || 'Unknown';
+                if (this.elements.statusText) this.elements.statusText.textContent = `Connected to ${peerId}`;
+                common.showToast('Connected!', 'success');
+            },
+            onSignalGenerated: (e) => {
+                QRCode.toCanvas(e.detail, { errorCorrectionLevel: 'L' }, (err, canvas) => {
+                    if (!err && this.elements.hostQrDisplay) {
+                        this.elements.hostQrDisplay.innerHTML = '';
+                        this.elements.hostQrDisplay.appendChild(canvas);
+                    }
+                });
+            },
+            onError: (e) => {
+                common.showToast(e.detail.message || 'Connection Error', 'error');
+                if(this.elements.btnConnect) this.elements.btnConnect.textContent = 'Connect';
+            },
+            onChat: (e) => this._renderChatBubble(e.detail),
+            onTransferStart: (e) => {
+                this.activeTransfers.add(e.detail.transferId);
+                this._addBubble(e.detail);
+            },
+            onSendProgress: (e) => this._updateBubble(e.detail, 'sending'),
+            onReceiveProgress: (e) => this._updateBubble(e.detail, 'receiving'),
+            onFileReceived: (e) => {
+                this.activeTransfers.delete(e.detail.transferId);
+                this._completeBubble(e.detail, 'received');
+            },
+            onFileSaved: (e) => {
+                this.activeTransfers.delete(e.detail.transferId);
+            },
+            onSendComplete: (e) => {
+                this.activeTransfers.delete(e.detail.transferId);
+                this._completeBubble(e.detail, 'sent');
+            }
+        };
 
-            const peerId = e.detail.peer || 'Unknown';
-            if (this.elements.statusText) this.elements.statusText.textContent = `Connected to ${peerId}`;
-            common.showToast('Connected!', 'success');
-        });
-
-        p2p.addEventListener('signal-generated', (e) => {
-            QRCode.toCanvas(e.detail, { errorCorrectionLevel: 'L' }, (err, canvas) => {
-                if (!err && this.elements.hostQrDisplay) {
-                    this.elements.hostQrDisplay.innerHTML = '';
-                    this.elements.hostQrDisplay.appendChild(canvas);
-                }
-            });
-        });
-
-        p2p.addEventListener('error', (e) => {
-            common.showToast(e.detail.message || 'Connection Error', 'error');
-            if(this.elements.btnConnect) this.elements.btnConnect.textContent = 'Connect';
-        });
-
-        p2p.addEventListener('chat', (e) => this._renderChatBubble(e.detail));
-
-        p2p.addEventListener('transfer-start', (e) => {
-            this.activeTransfers.add(e.detail.transferId);
-            this._addBubble(e.detail);
-        });
-        p2p.addEventListener('send-progress', (e) => this._updateBubble(e.detail, 'sending'));
-        p2p.addEventListener('receive-progress', (e) => this._updateBubble(e.detail, 'receiving'));
-        p2p.addEventListener('file-received', (e) => {
-            this.activeTransfers.delete(e.detail.transferId);
-            this._completeBubble(e.detail, 'received');
-        });
-        p2p.addEventListener('file-saved', (e) => {
-            this.activeTransfers.delete(e.detail.transferId);
-        });
-        p2p.addEventListener('send-complete', (e) => {
-            this.activeTransfers.delete(e.detail.transferId);
-            this._completeBubble(e.detail, 'sent');
-        });
-        p2p.addEventListener('error', (e) => {
-            common.showToast(e.detail.message || 'Connection Error', 'error');
-            if(this.elements.btnConnect) this.elements.btnConnect.textContent = 'Connect';
-        });
+        p2p.addEventListener('ready', this._boundHandlers.onReady);
+        p2p.addEventListener('connected', this._boundHandlers.onConnected);
+        p2p.addEventListener('signal-generated', this._boundHandlers.onSignalGenerated);
+        p2p.addEventListener('error', this._boundHandlers.onError);
+        p2p.addEventListener('chat', this._boundHandlers.onChat);
+        p2p.addEventListener('transfer-start', this._boundHandlers.onTransferStart);
+        p2p.addEventListener('send-progress', this._boundHandlers.onSendProgress);
+        p2p.addEventListener('receive-progress', this._boundHandlers.onReceiveProgress);
+        p2p.addEventListener('file-received', this._boundHandlers.onFileReceived);
+        p2p.addEventListener('file-saved', this._boundHandlers.onFileSaved);
+        p2p.addEventListener('send-complete', this._boundHandlers.onSendComplete);
     },
 
     /* === UI COMPONENTS === */
@@ -273,11 +306,13 @@ export const p2pUI = {
     _renderChatBubble(data) {
         const bubble = document.createElement('div');
         bubble.className = `chat-bubble ${data.isOutgoing ? 'outgoing' : 'incoming'}`;
-
+            bubble.setAttribute('role', 'log');
+            bubble.setAttribute('aria-live', 'polite');
+            bubble.setAttribute('aria-label', `${data.isOutgoing ? 'Sent' : 'Received'} message at ${time}`);
         const time = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         bubble.innerHTML = `
-            <div class="bubble-text">${common.sanitizeText(data.text)}</div>
+            <div class="bubble-text">${security.sanitizeText(data.text)}</div>
             <span class="bubble-meta">${time}</span>
         `;
 
@@ -302,7 +337,7 @@ export const p2pUI = {
                 <div class="bubble-content">
                     <div class="bubble-icon"><i class="ph ph-${icon}"></i></div>
                     <div class="bubble-info">
-                        <h4>${common.sanitizeText(name)}</h4>
+                        <h4>${security.sanitizeText(name)}</h4>
                         <span class="status pulse">Starting...</span>
                     </div>
                 </div>
