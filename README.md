@@ -53,12 +53,12 @@ The system operates on a client-centric architecture where business logic reside
 ```
 ┌─────────────┐          ┌──────────────┐          ┌─────────────┐
 │   Browser   │◄────────►│  IndexedDB   │          │  Cloudflare │
-│  (UI + Logic)│         │  (Local DB)  │          │    Edge     │
+│ (UI + Logic)│          │  (Local DB)  │          │    Edge     │
 └──────┬──────┘          └──────────────┘          └──────┬──────┘
-       │                                                   │
-       │                  WebRTC P2P                       │
+       │                                                  │
+       │                  WebRTC P2P                      │
        │◄──────────────────────────────────────────────►  │
-       │                                                   │
+       │                                                  │
        └───────────────── HTTP/HTTPS ─────────────────────┘
 ```
 

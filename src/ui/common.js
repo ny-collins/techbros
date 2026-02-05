@@ -209,6 +209,35 @@ export const common = {
         return toast;
     },
 
+    confirmAction(message, title = 'Confirm') {
+        return new Promise((resolve) => {
+            const { confirmOverlay, confirmMessage, confirmBtn, cancelBtn } = this.elements;
+            if (!confirmOverlay) {
+                resolve(false);
+                return;
+            }
+
+            confirmMessage.textContent = message;
+            confirmOverlay.classList.remove('hidden');
+
+            const close = () => {
+                confirmOverlay.classList.add('hidden');
+                confirmBtn.onclick = null;
+                cancelBtn.onclick = null;
+            };
+
+            confirmBtn.onclick = () => {
+                close();
+                resolve(true);
+            };
+
+            cancelBtn.onclick = () => {
+                close();
+                resolve(false);
+            };
+        });
+    },
+
     showConfirmationDialog(message, onConfirm, onCancel = null) {
         const { confirmOverlay, confirmMessage, confirmBtn, cancelBtn } = this.elements;
         if (!confirmOverlay) return;
@@ -377,7 +406,11 @@ export const common = {
 
         if (confirmed) {
             try {
-                await errorHandler.safeCachesClear();
+                // Clear all caches
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                }
                 
                 if ('indexedDB' in window) {
                     const dbs = ['techbros-db', 'p2p-transfers'];
