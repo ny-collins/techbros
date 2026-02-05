@@ -1,13 +1,6 @@
 /* === FILE INTEGRITY UTILITIES === */
 
-export const integrity = {
-    
-    /**
-     * Calculates SHA-256 hash of a file or blob
-     * @param {File|Blob} file - File to hash
-     * @returns {Promise<string>} Hex string of hash
-     */
-    async calculateFileHash(file) {
+export const integrity = {    async calculateFileHash(file) {
         try {
             const buffer = await file.arrayBuffer();
             const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
@@ -17,14 +10,7 @@ export const integrity = {
             console.error('[Integrity] Hash calculation failed:', error);
             throw new Error('Failed to calculate file hash');
         }
-    },
-    
-    /**
-     * Calculates SHA-256 hash of chunk data
-     * @param {ArrayBuffer} data - Chunk data
-     * @returns {Promise<string>} Hex string of hash
-     */
-    async calculateChunkHash(data) {
+    },    async calculateChunkHash(data) {
         try {
             const hashBuffer = await crypto.subtle.digest('SHA-256', data);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -33,14 +19,7 @@ export const integrity = {
             console.error('[Integrity] Chunk hash calculation failed:', error);
             throw new Error('Failed to calculate chunk hash');
         }
-    },
-    
-    /**
-     * Calculates hash for combined chunks in order
-     * @param {ArrayBuffer[]} chunks - Array of chunk data in order
-     * @returns {Promise<string>} Hex string of combined hash
-     */
-    async calculateCombinedHash(chunks) {
+    },    async calculateCombinedHash(chunks) {
         try {
             const totalSize = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
             const combined = new Uint8Array(totalSize);
@@ -58,25 +37,10 @@ export const integrity = {
             console.error('[Integrity] Combined hash calculation failed:', error);
             throw new Error('Failed to calculate combined hash');
         }
-    },
-    
-    /**
-     * Verifies file integrity by comparing hashes
-     * @param {string} expectedHash - Expected hash value
-     * @param {string} actualHash - Actual calculated hash
-     * @returns {boolean} Whether hashes match
-     */
-    verifyHash(expectedHash, actualHash) {
+    },    verifyHash(expectedHash, actualHash) {
         if (!expectedHash || !actualHash) return false;
         return expectedHash.toLowerCase() === actualHash.toLowerCase();
-    },
-    
-    /**
-     * Creates integrity metadata for a file
-     * @param {File} file - File to create metadata for
-     * @returns {Promise<Object>} Metadata object with hash and size
-     */
-    async createFileMetadata(file) {
+    },    async createFileMetadata(file) {
         try {
             const hash = await this.calculateFileHash(file);
             return {
@@ -90,16 +54,16 @@ export const integrity = {
             console.error('[Integrity] Failed to create file metadata:', error);
             throw error;
         }
-    },
-    
-    /**
-     * Verifies received file against metadata
-     * @param {Blob} receivedFile - Received file blob
-     * @param {Object} metadata - Original file metadata
-     * @returns {Promise<boolean>} Whether file matches metadata
-     */
-    async verifyReceivedFile(receivedFile, metadata) {
+    },    async verifyReceivedFile(receivedFile, metadata) {
         try {
+            if (!metadata || !metadata.hash || metadata.size === undefined) {
+                return true;
+            }
+            
+            if (!receivedFile) {
+                throw new Error('Received file is null or undefined');
+            }
+            
             if (receivedFile.size !== metadata.size) {
                 console.warn('[Integrity] Size mismatch:', receivedFile.size, 'vs', metadata.size);
                 return false;
@@ -116,6 +80,21 @@ export const integrity = {
         } catch (error) {
             console.error('[Integrity] File verification failed:', error);
             return false;
+        }
+    },    bytesToHex(bytes) {
+        return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    },    compareHashes(hash1, hash2) {
+        if (hash1 === '' && hash2 === '') return true;
+        if (!hash1 || !hash2) return false;
+        return hash1.trim().toLowerCase() === hash2.trim().toLowerCase();
+    },    async generateChecksum(buffer) {
+        try {
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        } catch (error) {
+            console.error('[Integrity] Checksum generation failed:', error);
+            throw new Error('Failed to generate checksum');
         }
     }
 };

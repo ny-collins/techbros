@@ -293,5 +293,114 @@ export const common = {
         overlay.appendChild(this.createLoadingElement(message));
         document.body.appendChild(overlay);
         return overlay;
+    },
+
+    /* === EXPORT FUNCTIONALITY === */
+
+    exportSettings() {
+        const settings = {
+            theme: store.state.settings.theme || 'dark',
+            layout: store.state.settings.layout || 'grid',
+            searchHistory: store.state.settings.searchHistory || [],
+            exportedAt: new Date().toISOString(),
+            version: '3.0.0'
+        };
+
+        const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `techbros-settings-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        this.showToast('Settings exported successfully', 'success');
+    },
+
+    async exportCatalog() {
+        const resources = store.state.resources || [];
+        
+        const catalog = {
+            totalFiles: resources.length,
+            exportedAt: new Date().toISOString(),
+            version: '3.0.0',
+            resources: resources.map(r => ({
+                name: r.name,
+                type: r.type,
+                size: r.size,
+                addedAt: r.addedAt || 'Unknown'
+            }))
+        };
+
+        const blob = new Blob([JSON.stringify(catalog, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `techbros-catalog-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        this.showToast(`Exported ${resources.length} resources`, 'success');
+    },
+
+    async updateStorageInfo() {
+        try {
+            if ('storage' in navigator && 'estimate' in navigator.storage) {
+                const estimate = await navigator.storage.estimate();
+                const used = estimate.usage || 0;
+                const quota = estimate.quota || 0;
+                
+                const usedMB = (used / (1024 * 1024)).toFixed(2);
+                const quotaMB = (quota / (1024 * 1024)).toFixed(2);
+                const percentage = quota > 0 ? ((used / quota) * 100).toFixed(1) : 0;
+
+                const info = document.getElementById('storage-info');
+                if (info) {
+                    info.innerHTML = `Using <strong>${usedMB} MB</strong> of <strong>${quotaMB} MB</strong> available (<strong>${percentage}%</strong>)`;
+                }
+            } else {
+                const info = document.getElementById('storage-info');
+                if (info) {
+                    info.textContent = 'Storage information not available in this browser';
+                }
+            }
+        } catch (error) {
+            console.error('[Common] Storage estimate failed:', error);
+        }
+    },
+
+    async clearAllData() {
+        const confirmed = await this.confirmAction(
+            'Are you sure you want to clear all data? This will remove all cached resources and settings. This action cannot be undone.',
+            'Clear All Data'
+        );
+
+        if (confirmed) {
+            try {
+                await errorHandler.safeCachesClear();
+                
+                if ('indexedDB' in window) {
+                    const dbs = ['techbros-db', 'p2p-transfers'];
+                    for (const dbName of dbs) {
+                        try {
+                            indexedDB.deleteDatabase(dbName);
+                        } catch (e) {
+                            console.warn(`Failed to delete ${dbName}:`, e);
+                        }
+                    }
+                }
+
+                localStorage.clear();
+                sessionStorage.clear();
+
+                this.showToast('All data cleared successfully. Reloading...', 'success');
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } catch (error) {
+                this.showError(error, 'Clear data');
+            }
+        }
     }
 };

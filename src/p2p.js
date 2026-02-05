@@ -109,6 +109,13 @@ export class P2PService extends EventTarget {
         this.pendingTransfers = new Map();
         this.heartbeatInterval = null;
         this.chunkBuffers = new Map();
+        this.flushLocks = new Map();
+        
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 5;
+        this.reconnectDelay = 1000;
+        this.isReconnecting = false;
+        this.lastRemotePin = null;
     }
 
     /* === INITIALIZATION === */
@@ -175,6 +182,7 @@ export class P2PService extends EventTarget {
 
     connect(remotePin) {
         if (this.mode === 'online' && this.peer) {
+            this.lastRemotePin = remotePin;
             const conn = this.peer.connect(remotePin, {
                 reliable: true,
                 serialization: 'binary'
@@ -222,7 +230,6 @@ export class P2PService extends EventTarget {
         const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
         const transferId = this._generateTransferId(file);
         
-        // Calculate file hash for integrity checking
         let fileHash = null;
         try {
             fileHash = await integrity.calculateFileHash(file);
@@ -314,7 +321,9 @@ export class P2PService extends EventTarget {
         for (const [id, stream] of this.fileStreams) {
             try {
                 await stream.writable.abort();
-            } catch (e) {}
+            } catch (e) {
+                console.error(`[P2P] Failed to abort stream ${id}:`, e);
+            }
         }
         this.fileStreams.clear();
         this.receivingChunks.clear();
@@ -339,7 +348,10 @@ export class P2PService extends EventTarget {
 
     _handleConnection(conn) {
         this.conn = conn;
+        this.reconnectAttempts = 0;
+        
         conn.on('open', () => {
+            this.isReconnecting = false;
             this._startHeartbeat();
             this.dispatchEvent(new CustomEvent('connected', { detail: { peer: conn.peer } }));
         });
@@ -348,8 +360,60 @@ export class P2PService extends EventTarget {
             this._stopHeartbeat();
             this.dispatchEvent(new Event('disconnected'));
             this.conn = null;
+            
+            if (this.lastRemotePin && !this.isReconnecting) {
+                this._attemptReconnect();
+            }
         });
-        conn.on('error', (err) => this.dispatchEvent(new CustomEvent('error', { detail: err })));
+        conn.on('error', (err) => {
+            console.error('[P2P] Connection error:', err);
+            this.dispatchEvent(new CustomEvent('error', { detail: err }));
+            window.dispatchEvent(new CustomEvent('p2p:error', {
+                detail: { 
+                    message: 'Connection error: ' + (err.message || 'Unknown error'),
+                    context: 'connection'
+                }
+            }));
+            
+            if (this.lastRemotePin && !this.isReconnecting) {
+                this._attemptReconnect();
+            }
+        });
+    }
+    
+    /* === Phase 3: Connection Recovery === */
+    
+    async _attemptReconnect() {
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            window.dispatchEvent(new CustomEvent('p2p:error', {
+                detail: { 
+                    message: 'Unable to reconnect after multiple attempts',
+                    context: 'reconnect'
+                }
+            }));
+            return;
+        }
+        
+        this.isReconnecting = true;
+        this.reconnectAttempts++;
+        
+        const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+        
+        console.log(`[P2P] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+        
+        this.dispatchEvent(new CustomEvent('reconnecting', { 
+            detail: { 
+                attempt: this.reconnectAttempts,
+                maxAttempts: this.maxReconnectAttempts,
+                delay: delay
+            } 
+        }));
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        if (this.peer && this.lastRemotePin) {
+            this.connect(this.lastRemotePin);
+        }
     }
 
     _handleData(data) {
@@ -429,7 +493,8 @@ export class P2PService extends EventTarget {
             total: data.totalChunks,
             size: data.size,
             mime: data.mime,
-            name: data.name
+            name: data.name,
+            hash: data.hash
         });
 
         if (existingCount === 0) {
@@ -463,6 +528,18 @@ export class P2PService extends EventTarget {
 
         const fileData = this.receivingChunks.get(data.transferId);
         if (!fileData) return;
+        
+        if ('storage' in navigator && 'estimate' in navigator.storage && data.index % 50 === 0) {
+            const { usage, quota } = await navigator.storage.estimate();
+            const remainingChunks = fileData.total - fileData.received;
+            const estimatedSize = remainingChunks * CHUNK_SIZE;
+            if (usage + estimatedSize > quota) {
+                this.dispatchEvent(new CustomEvent('error', { 
+                    detail: { message: 'Storage quota exceeded during transfer. Please free up space.' } 
+                }));
+                return;
+            }
+        }
 
         if (!this.chunkBuffers.has(data.transferId)) {
             this.chunkBuffers.set(data.transferId, []);
@@ -487,7 +564,7 @@ export class P2PService extends EventTarget {
 
     async _finalizeIDBTransfer(transferId, fileData) {
         try {
-            const isLargeFile = fileData.total > 100; // >6.4MB with 64KB chunks
+            const isLargeFile = fileData.total > 100;
             
             if (isLargeFile) {
                 await this._finalizeStreamingIDBTransfer(transferId, fileData);
@@ -497,20 +574,30 @@ export class P2PService extends EventTarget {
                 const safeBlob = this._sanitizeBlob(blob, fileData.mime);
 
                 if (safeBlob) {
-                    // Verify integrity if hash was provided
                     const transfer = this.receivingChunks.get(transferId);
                     let verified = false;
-                    if (transfer && transfer.meta && transfer.meta.hash) {
+                    if (transfer && transfer.hash) {
                         try {
-                            verified = await integrity.verifyReceivedFile(safeBlob, transfer.meta);
+                            verified = await integrity.verifyReceivedFile(safeBlob, { 
+                                hash: transfer.hash, 
+                                size: transfer.size 
+                            });
                             if (!verified) {
                                 this.dispatchEvent(new CustomEvent('error', { 
-                                    detail: { message: 'File integrity verification failed. File may be corrupted.' } 
+                                    detail: { 
+                                        message: 'File integrity verification failed. File may be corrupted. Please retry transfer.',
+                                        canRetry: true,
+                                        transferId
+                                    } 
                                 }));
                                 return;
                             }
                         } catch (error) {
-                            console.warn('[P2P] Integrity verification failed:', error);
+                            console.error('[P2P] Integrity verification failed:', error);
+                            this.dispatchEvent(new CustomEvent('error', { 
+                                detail: { message: 'Failed to verify file integrity: ' + error.message } 
+                            }));
+                            return;
                         }
                     }
                     
@@ -523,15 +610,22 @@ export class P2PService extends EventTarget {
                             verified: verified
                         }
                     }));
+                    
+
+                    await db.deleteFileChunks(transferId);
+                    this.receivingChunks.delete(transferId);
+                    this.chunkBuffers.delete(transferId);
+                } else {
+                    this.dispatchEvent(new CustomEvent('error', { 
+                        detail: { message: 'Received file failed security validation' } 
+                    }));
                 }
             }
         } catch (error) {
              console.error('[P2P] Finalize failed:', error);
-             this.dispatchEvent(new CustomEvent('error', { detail: { message: 'Failed to assemble file' } }));
-        } finally {
-            await db.deleteFileChunks(transferId);
-            this.receivingChunks.delete(transferId);
-            this.chunkBuffers.delete(transferId);
+             this.dispatchEvent(new CustomEvent('error', { 
+                 detail: { message: 'Failed to assemble file: ' + error.message } 
+             }));
         }
     }
 
@@ -557,20 +651,30 @@ export class P2PService extends EventTarget {
             const safeBlob = this._sanitizeBlob(blob, fileData.mime);
 
             if (safeBlob) {
-                // Verify integrity if hash was provided
                 const transfer = this.receivingChunks.get(transferId);
                 let verified = false;
-                if (transfer && transfer.meta && transfer.meta.hash) {
+                if (transfer && transfer.hash) {
                     try {
-                        verified = await integrity.verifyReceivedFile(safeBlob, transfer.meta);
+                        verified = await integrity.verifyReceivedFile(safeBlob, { 
+                            hash: transfer.hash, 
+                            size: transfer.size 
+                        });
                         if (!verified) {
                             this.dispatchEvent(new CustomEvent('error', { 
-                                detail: { message: 'File integrity verification failed. File may be corrupted.' } 
+                                detail: { 
+                                    message: 'File integrity verification failed. File may be corrupted. Please retry transfer.',
+                                    canRetry: true,
+                                    transferId
+                                } 
                             }));
                             return;
                         }
                     } catch (error) {
-                        console.warn('[P2P] Integrity verification failed:', error);
+                        console.error('[P2P] Integrity verification failed:', error);
+                        this.dispatchEvent(new CustomEvent('error', { 
+                            detail: { message: 'Failed to verify file integrity: ' + error.message } 
+                        }));
+                        return;
                     }
                 }
                 
@@ -583,6 +687,14 @@ export class P2PService extends EventTarget {
                         verified: verified
                     }
                 }));
+                
+                await db.deleteFileChunks(transferId);
+                this.receivingChunks.delete(transferId);
+                this.chunkBuffers.delete(transferId);
+            } else {
+                this.dispatchEvent(new CustomEvent('error', { 
+                    detail: { message: 'Received file failed security validation' } 
+                }));
             }
         } catch (error) {
             console.error('[P2P] Stream assembly failed:', error);
@@ -591,14 +703,24 @@ export class P2PService extends EventTarget {
     }
 
     async _flushChunkBuffer(transferId) {
+        if (this.flushLocks.has(transferId)) {
+            return;
+        }
+        
         const buffer = this.chunkBuffers.get(transferId);
         if (!buffer || buffer.length === 0) return;
 
-        const chunksToWrite = [...buffer];
-        buffer.length = 0;
+        this.flushLocks.set(transferId, true);
+        
+        try {
+            const chunksToWrite = [...buffer];
+            buffer.length = 0;
 
-        for (const item of chunksToWrite) {
-            await db.addChunk(transferId, item.index, item.data);
+            for (const item of chunksToWrite) {
+                await db.addChunk(transferId, item.index, item.data);
+            }
+        } finally {
+            this.flushLocks.delete(transferId);
         }
     }
 
@@ -619,7 +741,7 @@ export class P2PService extends EventTarget {
             return null;
         }
         
-        if (blob.size > 500 * 1024 * 1024) { // 500MB limit
+        if (blob.size > 500 * 1024 * 1024) {
             console.warn('[P2P] Rejected file exceeding size limit:', blob.size);
             return null;
         }

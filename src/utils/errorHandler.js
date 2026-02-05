@@ -1,15 +1,6 @@
 /* === ERROR HANDLING UTILITIES === */
 
-export const errorHandler = {
-    
-    /**
-     * Wraps async functions with error handling
-     * @param {Function} asyncFn - Async function to wrap
-     * @param {string} context - Context for error reporting
-     * @param {Function} fallback - Fallback function on error
-     * @returns {Function} Wrapped function
-     */
-    wrapAsync(asyncFn, context = 'Operation', fallback = null) {
+export const errorHandler = {    wrapAsync(asyncFn, context = 'Operation', fallback = null) {
         return async (...args) => {
             try {
                 return await asyncFn.apply(this, args);
@@ -28,16 +19,7 @@ export const errorHandler = {
                 throw error;
             }
         };
-    },
-    
-    /**
-     * Wraps sync functions with error handling
-     * @param {Function} syncFn - Sync function to wrap
-     * @param {string} context - Context for error reporting
-     * @param {Function} fallback - Fallback function on error
-     * @returns {Function} Wrapped function
-     */
-    wrapSync(syncFn, context = 'Operation', fallback = null) {
+    },    wrapSync(syncFn, context = 'Operation', fallback = null) {
         return (...args) => {
             try {
                 return syncFn.apply(this, args);
@@ -56,16 +38,7 @@ export const errorHandler = {
                 throw error;
             }
         };
-    },
-    
-    /**
-     * Handles fetch operations with retry logic
-     * @param {string} url - URL to fetch
-     * @param {Object} options - Fetch options
-     * @param {number} maxRetries - Maximum retry attempts
-     * @returns {Promise<Response>} Fetch response
-     */
-    async safeFetch(url, options = {}, maxRetries = 3) {
+    },    async safeFetch(url, options = {}, maxRetries = 3) {
         let lastError = null;
         
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -101,15 +74,7 @@ export const errorHandler = {
         }
         
         throw lastError;
-    },
-    
-    /**
-     * Handles IndexedDB operations with error recovery
-     * @param {Function} operation - IDB operation function
-     * @param {string} context - Operation context
-     * @returns {Promise} Operation result
-     */
-    async safeIDBOperation(operation, context = 'IDB Operation') {
+    },    async safeIDBOperation(operation, context = 'IDB Operation') {
         try {
             return await operation();
         } catch (error) {
@@ -135,16 +100,7 @@ export const errorHandler = {
             
             throw error;
         }
-    },
-    
-    /**
-     * Handles file operations with validation
-     * @param {File} file - File to validate
-     * @param {Array} allowedTypes - Allowed MIME types
-     * @param {number} maxSize - Maximum file size in bytes
-     * @returns {boolean} Whether file is valid
-     */
-    validateFile(file, allowedTypes = [], maxSize = 500 * 1024 * 1024) {
+    },    validateFile(file, allowedTypes = [], maxSize = 500 * 1024 * 1024) {
         if (!file || !(file instanceof File)) {
             throw new Error('Invalid file object');
         }
@@ -162,14 +118,7 @@ export const errorHandler = {
         }
         
         return true;
-    },
-    
-    /**
-     * Dispatches error events for UI handling
-     * @param {Error} error - Error object
-     * @param {string} context - Error context
-     */
-    dispatchError(error, context) {
+    },    dispatchError(error, context) {
         const errorEvent = new CustomEvent('app-error', {
             detail: {
                 error: error,
@@ -182,13 +131,7 @@ export const errorHandler = {
         if (typeof window !== 'undefined') {
             window.dispatchEvent(errorEvent);
         }
-    },
-    
-    /**
-     * Clears old cache entries to free up space
-     * @returns {Promise<void>}
-     */
-    async clearOldCache() {
+    },    async clearOldCache() {
         try {
             const cacheNames = await caches.keys();
             const oldCaches = cacheNames.filter(name => 
@@ -196,19 +139,10 @@ export const errorHandler = {
             );
             
             await Promise.all(oldCaches.map(name => caches.delete(name)));
-            console.log('[ErrorHandler] Cleared old caches:', oldCaches.length);
         } catch (error) {
             console.warn('[ErrorHandler] Cache cleanup failed:', error);
         }
-    },
-    
-    /**
-     * Creates a safe promise that won't reject
-     * @param {Promise} promise - Promise to wrap
-     * @param {any} defaultValue - Default value on error
-     * @returns {Promise} Safe promise
-     */
-    async safePromise(promise, defaultValue = null) {
+    },    async safePromise(promise, defaultValue = null) {
         try {
             return await promise;
         } catch (error) {

@@ -28,7 +28,7 @@ class UIManager {
         try {
             const [p2pModule, p2pUIModule] = await Promise.all([
                 import('./p2p.js'),
-                import('./ui/p2p-ui.js')
+                import('./ui/p2p_ui.js')
             ]);
             
             p2p = p2pModule.p2p;
@@ -46,6 +46,8 @@ class UIManager {
     /* === INITIALIZATION === */
 
     init() {
+        this._setupGlobalErrorHandler();
+        
         common.init();
         viewer.init(router);
         library.init(router, viewer);
@@ -55,6 +57,10 @@ class UIManager {
                 library.reset(router, viewer);
             } else if (viewId === 'p2p') {
                 this._initP2PView();
+            } else if (viewId === 'export') {
+                common.updateStorageInfo();
+            } else if (viewId === 'about') {
+                this._updateAboutVersion();
             }
         });
 
@@ -71,6 +77,7 @@ class UIManager {
             return true;
         });
 
+        this._setupExportButtons();
         this._checkInstallation();
     }
 
@@ -85,11 +92,43 @@ class UIManager {
             p2pUIModule.init();
             await p2pModule.init();
             
+            if (typeof router !== 'undefined' && router.setP2PUI) {
+                router.setP2PUI(p2pUIModule);
+            }
+            
             if (loadingToast) loadingToast.remove();
             common.showToast('P2P ready!', 'success');
         } catch (error) {
             common.showToast('Failed to load P2P features', 'error');
             router.navigateTo('library');
+        }
+    }
+
+    /* === EXPORT DATA SETUP === */
+
+    _setupExportButtons() {
+        const exportSettingsBtn = document.getElementById('btn-export-settings');
+        const exportCatalogBtn = document.getElementById('btn-export-catalog');
+        const clearAllDataBtn = document.getElementById('btn-clear-all-data');
+
+        if (exportSettingsBtn) {
+            exportSettingsBtn.onclick = () => common.exportSettings();
+        }
+
+        if (exportCatalogBtn) {
+            exportCatalogBtn.onclick = () => common.exportCatalog();
+        }
+
+        if (clearAllDataBtn) {
+            clearAllDataBtn.onclick = () => common.clearAllData();
+        }
+    }
+
+    _updateAboutVersion() {
+        const versionElement = document.getElementById('app-version-about');
+        if (versionElement) {
+            const pkg = { version: '3.0.0' };
+            versionElement.textContent = `Version ${pkg.version}`;
         }
     }
 
@@ -153,6 +192,33 @@ class UIManager {
         window.addEventListener('appinstalled', () => {
             showInstalledState();
             common.showToast('App installed successfully!', 'success');
+        });
+    }
+    
+    /* === PHASE 3: ERROR HANDLING === */
+    
+    _setupGlobalErrorHandler() {
+        window.addEventListener('store:error', (e) => {
+            const { message, context } = e.detail;
+            console.error(`[Store Error - ${context}]:`, message);
+            common.showToast(message, 'error');
+        });
+        
+        window.addEventListener('p2p:error', (e) => {
+            const { message, context } = e.detail;
+            console.error(`[P2P Error - ${context}]:`, message);
+            common.showToast(message, 'error');
+        });
+        
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('[Unhandled Promise Rejection]:', e.reason);
+            
+            if (e.reason === 'cancelled') return;
+            
+            const message = e.reason?.message || e.reason || 'An unexpected error occurred';
+            if (!message.includes('Failed to fetch')) {
+                common.showToast(`Error: ${message}`, 'error');
+            }
         });
     }
 }

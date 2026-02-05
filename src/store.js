@@ -3,15 +3,16 @@ import { errorHandler } from './utils/errorHandler.js';
 
 class Store {
     constructor() {
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         this.state = {
             version: __APP_VERSION__,
             resources: [],
             settings: {
-                theme: 'dark',
+                theme: systemTheme,
                 layout: 'grid',
                 lastSeen: Date.now()
             },
-            pinned: [], // Array of resource IDs
+            pinned: [],
             user: {
                 peerId: null,
                 pin: null
@@ -47,7 +48,15 @@ class Store {
 
     async togglePin(resourceId) {
         const resource = this.state.resources.find(r => r.id === resourceId);
-        if (!resource) return false;
+        if (!resource) {
+            window.dispatchEvent(new CustomEvent('store:error', {
+                detail: { 
+                    message: 'Resource not found',
+                    context: 'pin'
+                }
+            }));
+            return false;
+        }
 
         return await errorHandler.safeIDBOperation(async () => {
             const isPinned = this.state.pinned.includes(resourceId);
@@ -59,6 +68,9 @@ class Store {
                 this.state.pinned = this.state.pinned.filter(id => id !== resourceId);
             } else {
                 const response = await errorHandler.safeFetch(resource.url);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch resource for caching: ${response.status} ${response.statusText}`);
+                }
                 await cache.put(resource.url, response);
                 this.state.pinned.push(resourceId);
             }
@@ -101,7 +113,21 @@ class Store {
                 errorHandler.safePromise(cloudPromise, [])
             ]);
 
-            const unified = [...staticData, ...cloudData];
+            const resourceMap = new Map();
+            
+            staticData.forEach(resource => {
+                if (resource.id) {
+                    resourceMap.set(resource.id, { ...resource, source: 'static' });
+                }
+            });
+            
+            cloudData.forEach(resource => {
+                if (resource.id) {
+                    resourceMap.set(resource.id, { ...resource, source: 'cloud' });
+                }
+            });
+            
+            const unified = Array.from(resourceMap.values());
 
             unified.sort((a, b) => {
                 const dateA = new Date(a.date || 0);
@@ -110,6 +136,15 @@ class Store {
             });
 
             this.state.resources = unified;
+            
+            if (staticData.length === 0 && cloudData.length === 0) {
+                window.dispatchEvent(new CustomEvent('store:error', {
+                    detail: { 
+                        message: 'Unable to load resources. Check your connection.',
+                        context: 'fetch'
+                    }
+                }));
+            }
 
         } catch (error) {
             console.error('[Store] Critical error fetching resources:', error);
@@ -118,18 +153,33 @@ class Store {
 
     /* === UPLOAD CAPABILITY === */
 
-    async uploadResource(file, pin) {
+    async uploadResource(file, pin, progressCallback) {
+        let safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        safeName = safeName.replace(/_+/g, '_').substring(0, 255);
+
         const headers = {
             'X-Custom-Auth': pin,
-            'Content-Type': file.type
+            'Content-Type': 'application/json'
         };
 
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const url = `/api/upload?filename=${encodeURIComponent(safeName)}`;
+        const MULTIPART_THRESHOLD = 10 * 1024 * 1024;
+        
+        if (file.size <= MULTIPART_THRESHOLD) {
+            return await this._simpleUpload(file, safeName, pin, progressCallback);
+        } else {
+            return await this._multipartUpload(file, safeName, pin, progressCallback);
+        }
+    }
 
+    async _simpleUpload(file, safeName, pin, progressCallback) {
+        const url = `/api/upload?filename=${encodeURIComponent(safeName)}`;
+        
         const response = await fetch(url, {
             method: 'PUT',
-            headers: headers,
+            headers: {
+                'X-Custom-Auth': pin,
+                'Content-Type': file.type
+            },
             body: file
         });
 
@@ -139,6 +189,8 @@ class Store {
         }
 
         const result = await response.json();
+        
+        if (progressCallback) progressCallback(100, file.size, file.size);
 
         const newResource = {
             id: result.key,
@@ -153,6 +205,145 @@ class Store {
 
         this.state.resources.unshift(newResource);
         return newResource;
+    }
+
+    async _multipartUpload(file, safeName, pin, progressCallback) {
+        const CHUNK_SIZE = 6 * 1024 * 1024;
+        const MAX_RETRIES = 3;
+        
+        const headers = {
+            'X-Custom-Auth': pin,
+            'Content-Type': 'application/json'
+        };
+
+        let uploadId = null;
+        let key = safeName;
+
+        try {
+            const initResponse = await fetch('/api/upload_init', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    filename: safeName,
+                    contentType: file.type,
+                    contentLength: file.size
+                })
+            });
+
+            if (!initResponse.ok) {
+                const error = await initResponse.json();
+                throw new Error(error.error || 'Failed to initialize upload');
+            }
+
+            const initData = await initResponse.json();
+            uploadId = initData.uploadId;
+            key = initData.key;
+
+            const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+            const uploadedParts = [];
+            let uploadedBytes = 0;
+
+            for (let partNumber = 1; partNumber <= totalChunks; partNumber++) {
+                const start = (partNumber - 1) * CHUNK_SIZE;
+                const end = Math.min(start + CHUNK_SIZE, file.size);
+                const chunk = file.slice(start, end);
+
+                let attempt = 0;
+                let partUploaded = false;
+                let lastError = null;
+
+                while (attempt < MAX_RETRIES && !partUploaded) {
+                    try {
+                        const partUrl = `/api/upload_part?key=${encodeURIComponent(key)}&uploadId=${encodeURIComponent(uploadId)}&partNumber=${partNumber}`;
+                        
+                        const partResponse = await fetch(partUrl, {
+                            method: 'PUT',
+                            headers: {
+                                'X-Custom-Auth': pin,
+                                'Content-Type': 'application/octet-stream'
+                            },
+                            body: chunk
+                        });
+
+                        if (!partResponse.ok) {
+                            const error = await partResponse.json();
+                            throw new Error(error.error || 'Part upload failed');
+                        }
+
+                        const partData = await partResponse.json();
+                        uploadedParts.push({
+                            partNumber: partData.partNumber,
+                            etag: partData.etag
+                        });
+
+                        uploadedBytes += chunk.size;
+                        partUploaded = true;
+
+                        if (progressCallback) {
+                            const progress = Math.round((uploadedBytes / file.size) * 100);
+                            progressCallback(progress, uploadedBytes, file.size);
+                        }
+
+                    } catch (err) {
+                        lastError = err;
+                        attempt++;
+                        
+                        if (attempt < MAX_RETRIES) {
+                            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+                        }
+                    }
+                }
+
+                if (!partUploaded) {
+                    throw new Error(`Failed to upload part ${partNumber} after ${MAX_RETRIES} attempts: ${lastError.message}`);
+                }
+            }
+
+            const completeResponse = await fetch('/api/upload_complete', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    key: key,
+                    uploadId: uploadId,
+                    parts: uploadedParts
+                })
+            });
+
+            if (!completeResponse.ok) {
+                const error = await completeResponse.json();
+                throw new Error(error.error || 'Failed to complete upload');
+            }
+
+            const result = await completeResponse.json();
+
+            const newResource = {
+                id: result.key,
+                title: result.key.split('.')[0].replace(/_/g, ' '),
+                type: this._determineType(file.name),
+                url: `/cdn/${result.key}`,
+                size: file.size,
+                date: new Date().toISOString(),
+                isCloud: true,
+                added: new Date().toISOString()
+            };
+
+            this.state.resources.unshift(newResource);
+            return newResource;
+
+        } catch (err) {
+            if (uploadId && key) {
+                try {
+                    await fetch('/api/upload_abort', {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify({ key, uploadId })
+                    });
+                } catch (abortErr) {
+                    console.error('Failed to abort upload:', abortErr);
+                }
+            }
+            throw err;
+        }
     }
 
     _determineType(filename) {
@@ -241,7 +432,7 @@ class Store {
             }
 
             if (!this.searchWorker) {
-                this.searchWorker = new Worker(new URL('./search-worker.js', import.meta.url), { type: 'module' });
+                this.searchWorker = new Worker(new URL('./search_worker.js', import.meta.url), { type: 'module' });
             }
 
             this.searchWorker.postMessage({

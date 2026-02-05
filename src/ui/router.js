@@ -8,6 +8,7 @@ export const router = {
     },
     currentView: 'library',
     guard: null,
+    p2pUI: null,
 
     /* === INITIALIZATION === */
 
@@ -45,11 +46,23 @@ export const router = {
     setGuard(fn) {
         this.guard = fn;
     },
+    
+    setP2PUI(p2pUIInstance) {
+        this.p2pUI = p2pUIInstance;
+    },
 
     /* === NAVIGATION === */
 
     async navigateTo(viewId, addToHistory = true) {
         if (viewId === this.currentView) return;
+        
+        if (this.currentView === 'p2p' && viewId !== 'p2p' && this.p2pUI) {
+            try {
+                this.p2pUI.cleanup();
+            } catch (error) {
+                console.warn('[Router] P2P cleanup failed:', error);
+            }
+        }
 
         if (this.guard) {
             const shouldProceed = await this.guard(this.currentView, viewId);

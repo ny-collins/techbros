@@ -11,7 +11,7 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/png" href="/favicon.png">
 
-    <script src="/theme-init.js"></script>
+    <script src="/theme_init.js"></script>
 
     <link rel="stylesheet" href="/fonts/inter.css">
     <link rel="stylesheet" href="/src/style.css">
@@ -26,10 +26,30 @@
     <!-- Skip to main content link for screen readers -->
     <a href="#main-content" class="skip-link visually-hidden" tabindex="1">Skip to main content</a>
 
-    <div id="splash-screen">
+    <div id="splash-screen" role="status" aria-live="polite">
         <div class="splash-content">
-            <img src="/favicon.png" alt="TechBros" class="splash-logo">
+            <img src="/favicon.png" alt="TechBros Logo" class="splash-logo">
             <h1 class="splash-title">TechBros</h1>
+            <p class="splash-tagline">Offline-First Education Platform</p>
+            
+            <div class="splash-loader">
+                <div class="loader-bar">
+                    <div class="loader-progress" id="splash-progress"></div>
+                </div>
+                <p class="splash-status" id="splash-status">Initializing...</p>
+            </div>
+
+            <div class="splash-error hidden" id="splash-error">
+                <i class="ph ph-warning-circle"></i>
+                <p>Failed to load application</p>
+                <button class="btn small primary" onclick="location.reload()">Retry</button>
+            </div>
+
+            <button class="splash-skip" id="splash-skip" aria-label="Skip splash screen">
+                <span>Press ESC to skip</span>
+            </button>
+
+            <small class="splash-version">v3.0.0</small>
         </div>
     </div>
 
@@ -164,15 +184,18 @@
                                 <div class="pin-wrapper">
                                     <span class="label">MY SIGNAL</span>
                                     <span id="my-pin-display" class="code">....</span>
+                                    <button id="btn-copy-pin" class="btn-copy-pin" title="Copy PIN">
+                                        <i class="ph ph-copy"></i>
+                                    </button>
                                 </div>
                             </div>
-                            <p class="instruction">Waiting for connection...</p>
+                            <p class="instruction">Share this PIN with the sender</p>
                             
                             <div class="manual-mode-toggle">
                                 <input type="checkbox" id="manual-mode-switch-host">
                                 <label for="manual-mode-switch-host">Show Offline QR Code</label>
                             </div>
-                            <div id="host-qr-display" class="hidden"></div>
+                            <div id="host-qr-display" class="qr-display hidden"></div>
                         </div>
                     </div>
 
@@ -238,122 +261,358 @@
 
             <section id="export-view" class="view-section">
                 <div class="header-text">
-                    <h2>Export Data</h2>
-                    <p class="subtitle">Manage your local data</p>
+                    <h2><i class="ph ph-database"></i> Export Data</h2>
+                    <p class="subtitle">Download and manage your local data</p>
                 </div>
                 
                 <div class="settings-list">
                     <div class="setting-item">
-                        <div class="setting-content">
-                            <h3>Settings Backup</h3>
-                            <p>Download a JSON file containing your theme preferences, layout settings, and search history. Useful when moving to a new device.</p>
-                            <button class="btn primary small">Export JSON</button>
+                        <div class="setting-info">
+                            <div class="setting-icon">
+                                <i class="ph ph-gear-six"></i>
+                            </div>
+                            <div class="setting-content">
+                                <h3>Settings Backup</h3>
+                                <p>Download a JSON file containing your theme preferences, layout settings, and search history. Useful when moving to a new device.</p>
+                            </div>
                         </div>
+                        <button id="btn-export-settings" class="btn primary small">
+                            <i class="ph ph-download-simple"></i> Export JSON
+                        </button>
                     </div>
                     
                     <div class="setting-item">
-                        <div class="setting-content">
-                            <h3>Library Catalog</h3>
-                            <p>Generate a complete manifest of all files currently stored in your offline library. This list can be shared with others to compare collections.</p>
-                            <button class="btn secondary small">Export Catalog</button>
+                        <div class="setting-info">
+                            <div class="setting-icon">
+                                <i class="ph ph-list-bullets"></i>
+                            </div>
+                            <div class="setting-content">
+                                <h3>Library Catalog</h3>
+                                <p>Generate a complete manifest of all files currently stored in your offline library. This list can be shared with others to compare collections.</p>
+                            </div>
                         </div>
+                        <button id="btn-export-catalog" class="btn secondary small">
+                            <i class="ph ph-file-text"></i> Export Catalog
+                        </button>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-icon">
+                                <i class="ph ph-database"></i>
+                            </div>
+                            <div class="setting-content">
+                                <h3>Storage Information</h3>
+                                <p id="storage-info">Calculating storage usage...</p>
+                            </div>
+                        </div>
+                        <button id="btn-clear-all-data" class="btn danger small">
+                            <i class="ph ph-trash"></i> Clear All Data
+                        </button>
                     </div>
                 </div>
             </section>
 
             <section id="about-view" class="view-section">
-                <div class="hero-section">
-                    <img src="/favicon.png" alt="TechBros" class="hero-logo">
-                    <h2>TechBros Library</h2>
-                    <p>Knowledge Without Boundaries</p>
+                <div class="header-text">
+                    <div class="about-header-content">
+                        <img src="/favicon.png" alt="TechBros" class="about-logo">
+                        <div>
+                            <h2>TechBros Library</h2>
+                            <p class="subtitle">Offline-first educational platform</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="about-content">
                     <div class="about-block">
-                        <h3>Our Mission</h3>
-                        <p>TechBros is built on a simple belief: <strong>Education should not depend on your internet connection.</strong> We provide a platform where high-quality educational resources—textbooks, video lectures, and audio guides—live permanently on your device, accessible anytime, anywhere.</p>
+                        <div class="block-header">
+                            <i class="ph-bold ph-target"></i>
+                            <h3>Mission</h3>
+                        </div>
+                        <p>Education shouldn't depend on your internet connection. TechBros provides an offline-first platform where educational resources—PDFs, videos, and audio—live permanently on your device, accessible anytime, anywhere.</p>
                     </div>
 
                     <div class="about-block">
-                        <h3>Key Capabilities</h3>
+                        <div class="block-header">
+                            <i class="ph-bold ph-sparkle"></i>
+                            <h3>Key Features</h3>
+                        </div>
                         
-                        <div class="capability-item">
-                            <h4><i class="ph ph-books"></i> Smart Offline Library</h4>
-                            <p>Your entire study collection is organized, searchable, and instantly accessible. Our fuzzy-search technology helps you find resources even if you make a typo. Support for PDFs, MP4 videos, and MP3 audio means you can learn in the way that suits you best.</p>
-                        </div>
+                        <div class="feature-grid">
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <i class="ph-bold ph-books"></i>
+                                </div>
+                                <h4>Smart Library</h4>
+                                <p>Organize and search your entire collection with fuzzy search. Supports PDF, MP4, and MP3 files.</p>
+                            </div>
 
-                        <div class="capability-item">
-                            <h4><i class="ph ph-wifi-slash"></i> Zero-Data Usage</h4>
-                            <p>Once you've downloaded a resource or the app itself, you never need to spend data on it again. It works completely offline, making it perfect for remote areas, travel, or anyone with limited data plans.</p>
-                        </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <i class="ph-bold ph-wifi-slash"></i>
+                                </div>
+                                <h4>Works Offline</h4>
+                                <p>Once downloaded, everything works without internet. Perfect for remote areas or limited data plans.</p>
+                            </div>
 
-                        <div class="capability-item">
-                            <h4><i class="ph ph-share-network"></i> AirShare (P2P)</h4>
-                            <p>Share knowledge with your classmates or students without using the internet. Our Peer-to-Peer technology connects devices directly, allowing you to beam heavy textbooks or video courses from one phone to another in seconds.</p>
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <i class="ph-bold ph-share-network"></i>
+                                </div>
+                                <h4>P2P Transfer</h4>
+                                <p>Share files directly between devices without internet. Transfer large files in seconds.</p>
+                            </div>
+
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <i class="ph-bold ph-file-pdf"></i>
+                                </div>
+                                <h4>Built-in Viewers</h4>
+                                <p>View PDFs, play videos and audio without leaving the app. Everything integrated.</p>
+                            </div>
+
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <i class="ph-bold ph-shield-check"></i>
+                                </div>
+                                <h4>Privacy First</h4>
+                                <p>All data stored locally on your device. No tracking, no analytics, no cloud sync required.</p>
+                            </div>
+
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <i class="ph-bold ph-devices"></i>
+                                </div>
+                                <h4>Progressive Web App</h4>
+                                <p>Install as a native app on any device. Works on phones, tablets, and desktops.</p>
+                            </div>
                         </div>
                     </div>
 
                     <div class="about-block">
-                        <h3>Who is this for?</h3>
-                        <ul style="list-style: none; padding: 0; color: var(--text-muted);">
-                            <li style="margin-bottom: 0.5rem;"><i class="ph ph-student" style="color: var(--primary); margin-right: 8px;"></i> <strong>Students:</strong> Keep your entire curriculum in your pocket.</li>
-                            <li style="margin-bottom: 0.5rem;"><i class="ph ph-chalkboard-teacher" style="color: var(--primary); margin-right: 8px;"></i> <strong>Educators:</strong> Distribute materials to a whole class effortlessly.</li>
-                            <li><i class="ph ph-globe" style="color: var(--primary); margin-right: 8px;"></i> <strong>Remote Learners:</strong> Learn without boundaries or buffering.</li>
-                        </ul>
+                        <div class="block-header">
+                            <i class="ph-bold ph-users-three"></i>
+                            <h3>Who Uses TechBros?</h3>
+                        </div>
+                        <div class="user-types">
+                            <div class="user-type">
+                                <i class="ph-bold ph-student"></i>
+                                <div>
+                                    <strong>Students</strong>
+                                    <p>Carry your entire curriculum in your pocket</p>
+                                </div>
+                            </div>
+                            <div class="user-type">
+                                <i class="ph-bold ph-chalkboard-teacher"></i>
+                                <div>
+                                    <strong>Educators</strong>
+                                    <p>Distribute materials to students effortlessly</p>
+                                </div>
+                            </div>
+                            <div class="user-type">
+                                <i class="ph-bold ph-globe"></i>
+                                <div>
+                                    <strong>Remote Learners</strong>
+                                    <p>Learn without boundaries or buffering</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="about-block">
-                        <h3>Installation</h3>
+                        <div class="block-header">
+                            <i class="ph-bold ph-download"></i>
+                            <h3>Installation</h3>
+                        </div>
                         <p>For the best experience, install TechBros as a native app on your device.</p>
                         <div class="install-action" id="install-container">
-                            <button id="btn-install-pwa" class="btn primary hidden">Install App</button>
+                            <button id="btn-install-pwa" class="btn primary hidden">
+                                <i class="ph ph-download-simple"></i> Install App
+                            </button>
                         </div>
                     </div>
 
-                    <div class="developer-section">
-                        <p>Version 2.0.0 • Developed by <strong>Collins Mwangi</strong></p>
-                        <a href="https://github.com/ny-collins/techbros" target="_blank" class="btn text-btn">
-                            <i class="ph ph-github-logo"></i> View Source
-                        </a>
+                    <div class="about-footer">
+                        <div class="version-info">
+                            <span id="app-version-about">Version 3.0.0</span>
+                            <span class="separator">•</span>
+                            <span>Built with <i class="ph-fill ph-heart" style="color: var(--danger);"></i> by <strong>Collins Mwangi</strong></span>
+                        </div>
+                        <div class="footer-links">
+                            <a href="https://github.com/ny-collins/techbros" target="_blank" rel="noopener noreferrer" class="btn secondary small">
+                                <i class="ph ph-github-logo"></i> View Source
+                            </a>
+                            <a href="https://github.com/ny-collins/techbros/issues" target="_blank" rel="noopener noreferrer" class="btn secondary small">
+                                <i class="ph ph-bug"></i> Report Issue
+                            </a>
+                        </div>
                     </div>
                 </div>
             </section>
 
              <section id="help-view" class="view-section">
                 <div class="header-text">
-                    <h2>Help Center</h2>
-                    <p class="subtitle">Frequently asked questions and guides</p>
+                    <h2><i class="ph ph-question"></i> Help Center</h2>
+                    <p class="subtitle">Quick guides to get you started</p>
                 </div>
+
                 <div class="help-list">
                     <div class="help-item">
-                        <h3><i class="ph ph-books"></i> Library Navigation</h3>
-                        <p><strong>Icons & Controls:</strong></p>
-                        <ul>
-                            <li><i class="ph ph-squares-four"></i> <strong>Grid View:</strong> Displays resources as cards with thumbnails.</li>
-                            <li><i class="ph ph-list-dashes"></i> <strong>List View:</strong> Displays resources as a compact list.</li>
-                            <li><i class="ph ph-magnifying-glass"></i> <strong>Search:</strong> Finds resources by title or type (typo-tolerant).</li>
-                            <li><strong>Filter Chips:</strong> Click "Video", "Audio", or "PDF" to see only that file type.</li>
-                        </ul>
-                        <p class="tip"><strong>Tip:</strong> Click any card to open the resource. Video and Audio play directly; PDFs open in a built-in viewer.</p>
+                        <div class="help-icon">
+                            <i class="ph-bold ph-books"></i>
+                        </div>
+                        <div class="help-content">
+                            <h3>Using the Library</h3>
+                            <p>Your library is the main view where all your resources are displayed. Here's how to navigate:</p>
+                            <ul>
+                                <li><strong>Search:</strong> Use the search bar at the top to find resources instantly. Search works even with typos.</li>
+                                <li><strong>View Modes:</strong> Switch between Grid <i class="ph ph-squares-four"></i> and List <i class="ph ph-list-dashes"></i> views using the toggles.</li>
+                                <li><strong>Filter by Type:</strong> Click the filter chips (All, PDF, Video, Audio) to show specific file types.</li>
+                                <li><strong>Open Resource:</strong> Click any resource card to open it in the built-in viewer.</li>
+                            </ul>
+                        </div>
                     </div>
 
                     <div class="help-item">
-                        <h3><i class="ph ph-share-network"></i> P2P File Sharing</h3>
-                        <p>Transfer files directly between devices without a server.</p>
-                        <p><strong>To Send:</strong> Go to the <strong>P2P Share</strong> tab, click <strong>Send</strong>, enter the receiver's <strong>4-digit PIN</strong>, click <strong>Connect</strong>, then drag & drop your file.</p>
-                        <p><strong>To Receive:</strong> Go to the <strong>P2P Share</strong> tab, share your <strong>My Signal</strong> PIN, wait for the connection, and click <strong>Save to Device</strong> when the file arrives.</p>
+                        <div class="help-icon">
+                            <i class="ph-bold ph-file-pdf"></i>
+                        </div>
+                        <div class="help-content">
+                            <h3>Viewing Resources</h3>
+                            <p>TechBros has built-in viewers for all supported file types:</p>
+                            <ul>
+                                <li><strong>PDFs:</strong> Navigate with arrow keys or page buttons. Zoom in/out with controls.</li>
+                                <li><strong>Videos:</strong> Full video player with play/pause, seeking, and playback speed controls.</li>
+                                <li><strong>Audio:</strong> Audio player with waveform visualization and playback controls.</li>
+                                <li><strong>Close Viewer:</strong> Press ESC or click the X button to return to library.</li>
+                            </ul>
+                        </div>
                     </div>
 
                     <div class="help-item">
-                        <h3><i class="ph ph-wifi-slash"></i> Offline Usage</h3>
-                        <p>The app automatically saves visited pages and resources to your device. Use the <i class="ph ph-trash"></i> button in the header to clear storage if needed. P2P sharing requires a brief internet connection to find the other device, but the transfer is direct.</p>
+                        <div class="help-icon">
+                            <i class="ph-bold ph-share-network"></i>
+                        </div>
+                        <div class="help-content">
+                            <h3>P2P File Sharing</h3>
+                            <p>Share files directly between devices without internet:</p>
+                            
+                            <div class="help-subsection">
+                                <h4>To Receive a File:</h4>
+                                <ol>
+                                    <li>Go to the <strong>P2P Share</strong> page</li>
+                                    <li>Share your <strong>Signal PIN</strong> (4 digits) with the sender</li>
+                                    <li>Wait for the sender to connect</li>
+                                    <li>Accept the incoming file transfer</li>
+                                    <li>Click <strong>Save to Device</strong> when transfer completes</li>
+                                </ol>
+                            </div>
+
+                            <div class="help-subsection">
+                                <h4>To Send a File:</h4>
+                                <ol>
+                                    <li>Go to the <strong>P2P Share</strong> page and click <strong>Send</strong></li>
+                                    <li>Enter the receiver's <strong>Signal PIN</strong></li>
+                                    <li>Click <strong>Connect</strong></li>
+                                    <li>Once connected, drag and drop your file or click to select</li>
+                                    <li>Wait for the transfer to complete</li>
+                                </ol>
+                            </div>
+
+                            <div class="help-tip">
+                                <i class="ph ph-info"></i>
+                                <p><strong>Note:</strong> P2P requires a brief internet connection for the initial handshake between devices. After that, the actual file transfer happens directly without using internet.</p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="help-item">
-                        <h3><i class="ph ph-gear"></i> Settings & Export</h3>
-                        <p><strong>Settings Backup:</strong> Downloads a .json file of your preferences.</p>
-                        <p><strong>Library Catalog:</strong> Exports a list of all files you have available.</p>
-                        <p><strong>Theme:</strong> Toggle between Dark <i class="ph ph-moon"></i> and Light <i class="ph ph-sun"></i> modes in the top right.</p>
+                        <div class="help-icon">
+                            <i class="ph-bold ph-cloud-arrow-up"></i>
+                        </div>
+                        <div class="help-content">
+                            <h3>Adding Resources</h3>
+                            <p>There are two ways to add resources to your library:</p>
+                            <ul>
+                                <li><strong>Cloud Upload:</strong> Requires admin PIN. Contact the administrator to upload files to the cloud library that sync to all devices.</li>
+                                <li><strong>P2P Transfer:</strong> Receive files directly from other users via the P2P Share feature. These are stored locally on your device only.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="help-item">
+                        <div class="help-icon">
+                            <i class="ph-bold ph-wifi-slash"></i>
+                        </div>
+                        <div class="help-content">
+                            <h3>Offline Mode</h3>
+                            <p>TechBros is designed to work completely offline:</p>
+                            <ul>
+                                <li>All resources you've accessed are cached automatically</li>
+                                <li>The app interface works without internet</li>
+                                <li>Resources from P2P transfers are stored locally</li>
+                                <li>Only the initial cloud resource list requires internet</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="help-item">
+                        <div class="help-icon">
+                            <i class="ph-bold ph-gear-six"></i>
+                        </div>
+                        <div class="help-content">
+                            <h3>Settings & Customization</h3>
+                            <ul>
+                                <li><strong>Theme:</strong> Click the moon/sun icon <i class="ph ph-moon"></i> in the top bar to switch between dark and light modes.</li>
+                                <li><strong>Clear Cache:</strong> Use the trash icon <i class="ph ph-trash"></i> in the top bar to clear cached data.</li>
+                                <li><strong>Export Data:</strong> Go to the Export Data page to download your settings or library catalog.</li>
+                                <li><strong>View Layout:</strong> Your preferred view mode (grid/list) is saved automatically.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="help-item">
+                        <div class="help-icon">
+                            <i class="ph-bold ph-keyboard"></i>
+                        </div>
+                        <div class="help-content">
+                            <h3>Keyboard Shortcuts</h3>
+                            <div class="shortcuts-grid">
+                                <div class="shortcut">
+                                    <kbd>ESC</kbd>
+                                    <span>Close viewer or modal</span>
+                                </div>
+                                <div class="shortcut">
+                                    <kbd>←</kbd> <kbd>→</kbd>
+                                    <span>Navigate PDF pages</span>
+                                </div>
+                                <div class="shortcut">
+                                    <kbd>Space</kbd>
+                                    <span>Play/Pause media</span>
+                                </div>
+                                <div class="shortcut">
+                                    <kbd>Ctrl</kbd> + <kbd>F</kbd>
+                                    <span>Focus search</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="help-item">
+                        <div class="help-icon">
+                            <i class="ph-bold ph-warning"></i>
+                        </div>
+                        <div class="help-content">
+                            <h3>Troubleshooting</h3>
+                            <ul>
+                                <li><strong>Resources not loading:</strong> Check your internet connection and refresh the page.</li>
+                                <li><strong>P2P connection failing:</strong> Both devices need internet for the initial connection. Try sharing PINs again.</li>
+                                <li><strong>Video not playing:</strong> Ensure the video format is supported (MP4). Try clearing cache.</li>
+                                <li><strong>App slow or crashing:</strong> Clear cache to free up space. Go to Export Data → Clear All Data.</li>
+                                <li><strong>Still having issues?</strong> Report bugs on <a href="https://github.com/ny-collins/techbros/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>.</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -375,13 +634,15 @@
         <div class="confirmation-dialog">
             <h3>Admin Access</h3>
             <p>Enter PIN to upload files</p>
-            <div class="pin-input-wrapper">
-                <input type="password" id="upload-pin-input" placeholder="****" maxlength="4" class="pin-field">
-            </div>
-            <div class="confirmation-actions">
-                <button id="btn-pin-cancel" class="btn secondary">Cancel</button>
-                <button id="btn-pin-confirm" class="btn primary">Unlock</button>
-            </div>
+            <form id="pin-form">
+                <div class="pin-input-wrapper">
+                    <input type="password" id="upload-pin-input" placeholder="****" maxlength="4" class="pin-field" autocomplete="off">
+                </div>
+                <div class="confirmation-actions">
+                    <button type="button" id="btn-pin-cancel" class="btn secondary">Cancel</button>
+                    <button type="submit" id="btn-pin-confirm" class="btn primary">Unlock</button>
+                </div>
+            </form>
         </div>
     </div>
 

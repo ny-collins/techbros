@@ -13,7 +13,7 @@ export const library = {
         fileInput: null
     },
     activeFilter: 'all',
-    currentFolder: null, // null means "Home" (Dashboard)
+    currentFolder: null,
 
     /* === INITIALIZATION === */
 
@@ -39,6 +39,47 @@ export const library = {
     /* === RENDERING === */
 
     renderHome() {
+        try {
+            this._renderHomeContent();
+        } catch (error) {
+            console.error('[Library] Error rendering home:', error);
+            this._renderErrorState('home', error.message);
+        }
+    },
+    
+    _showLoadingSkeletons() {
+        if (!this.elements.list) return;
+        
+        this.elements.list.innerHTML = '';
+        this.elements.list.className = '';
+        
+        const pinnedSection = document.createElement('section');
+        pinnedSection.className = 'dashboard-section';
+        pinnedSection.innerHTML = `
+            <div class="section-header">
+                <h2>Pinned Files</h2>
+            </div>
+            <div class="pinned-scroll-container">
+                ${Array(3).fill('<div class="resource-card skeleton"></div>').join('')}
+            </div>
+        `;
+        
+        const categoriesSection = document.createElement('section');
+        categoriesSection.className = 'dashboard-section';
+        categoriesSection.innerHTML = `
+            <div class="section-header">
+                <h2>Categories <span class="header-count skeleton-text">Loading...</span></h2>
+            </div>
+            <div class="category-grid">
+                ${Array(6).fill('<div class="category-card skeleton"></div>').join('')}
+            </div>
+        `;
+        
+        this.elements.list.appendChild(pinnedSection);
+        this.elements.list.appendChild(categoriesSection);
+    },
+
+    _renderHomeContent() {
         this.currentFolder = null;
         if (!this.elements.list) return;
 
@@ -48,7 +89,6 @@ export const library = {
         this.elements.list.innerHTML = '';
         this.elements.list.className = ''; 
 
-        // 1. Pinned Section
         const pinnedResources = store.getPinnedResources();
         const pinnedWrapper = document.createElement('section');
         pinnedWrapper.className = 'dashboard-section';
@@ -77,8 +117,32 @@ export const library = {
 
         this.elements.list.appendChild(pinnedWrapper);
 
-        // 2. Categories Section
         const resources = store.getResources();
+        
+        if (resources.length === 0) {
+            const emptyLibrary = document.createElement('div');
+            emptyLibrary.className = 'empty-library-state';
+            emptyLibrary.innerHTML = `
+                <div class="empty-library-icon">
+                    <i class="ph ph-books"></i>
+                </div>
+                <h2>Welcome to TechBros Library</h2>
+                <p>Your library is empty. Get started by adding your first resource!</p>
+                <div class="empty-library-actions">
+                    <button class="btn primary" onclick="document.querySelector('.category-card.special-action')?.click() || this.closest('.empty-library-state').dispatchEvent(new CustomEvent('upload-trigger', {bubbles: true}))">
+                        <i class="ph ph-cloud-arrow-up"></i> Upload File
+                    </button>
+                    <p class="empty-library-hint">
+                        <i class="ph ph-info"></i>
+                        Supported formats: PDF, Video, Audio, Images
+                    </p>
+                </div>
+            `;
+            emptyLibrary.addEventListener('upload-trigger', () => this.triggerUploadFlow());
+            this.elements.list.appendChild(emptyLibrary);
+            return;
+        }
+        
         const stats = this._calculateStats(resources);
         const categoriesWrapper = document.createElement('section');
         categoriesWrapper.className = 'dashboard-section';
@@ -142,10 +206,11 @@ export const library = {
         const nav = document.createElement('div');
         nav.className = 'breadcrumb';
 
-        const home = document.createElement('span');
-        home.className = 'breadcrumb-item';
-        home.innerHTML = '<i class="ph ph-house"></i> Home';
-        home.onclick = () => this.renderHome();
+        const backBtn = document.createElement('button');
+        backBtn.className = 'btn-back';
+        backBtn.innerHTML = '<i class="ph ph-arrow-left"></i> Back to Home';
+        backBtn.onclick = () => this.renderHome();
+        backBtn.setAttribute('aria-label', 'Back to Home');
 
         const separator = document.createElement('span');
         separator.className = 'breadcrumb-separator';
@@ -156,7 +221,7 @@ export const library = {
         current.className = 'breadcrumb-item active';
         current.textContent = currentName === 'Pdf' ? 'Documents' : currentName;
 
-        nav.appendChild(home);
+        nav.appendChild(backBtn);
         nav.appendChild(separator);
         nav.appendChild(current);
 
@@ -229,16 +294,13 @@ export const library = {
             }
         }
 
-        if (data.isCloud) {
-            const cloudBadge = document.createElement('span');
-            cloudBadge.className = 'badge-cloud';
-            cloudBadge.innerHTML = '<i class="ph ph-cloud"></i>';
-            cloudBadge.style.position = 'absolute';
-            cloudBadge.style.top = '10px';
-            cloudBadge.style.right = '40px';
-            cloudBadge.style.color = 'var(--accent-color)';
-            div.appendChild(cloudBadge);
-        }
+        const storageBadge = document.createElement('span');
+        storageBadge.className = data.isCloud ? 'badge-cloud' : 'badge-local';
+        storageBadge.innerHTML = data.isCloud 
+            ? '<i class="ph ph-cloud"></i> Cloud' 
+            : '<i class="ph ph-device-mobile"></i> Local';
+        storageBadge.setAttribute('title', data.isCloud ? 'Stored in cloud' : 'Downloaded locally');
+        div.appendChild(storageBadge);
 
         const iconDiv = document.createElement('div');
         iconDiv.className = 'card-icon';
@@ -255,10 +317,24 @@ export const library = {
 
         const typeName = data.type.toUpperCase();
         const typeSpan = document.createElement('span');
-        typeSpan.textContent = typeName === 'PDF' ? 'DOCUMENT' : typeName;
+        typeSpan.innerHTML = `<i class="ph ph-file"></i> ${typeName === 'PDF' ? 'DOCUMENT' : typeName}`;
 
         const sizeSpan = document.createElement('span');
-        sizeSpan.textContent = common.formatBytes(data.size || 0);
+        sizeSpan.innerHTML = `<i class="ph ph-package"></i> ${common.formatBytes(data.size || 0)}`;
+
+        const dateSpan = document.createElement('span');
+        if (data.added) {
+            const date = new Date(data.added);
+            const now = new Date();
+            const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+            let dateStr;
+            if (diffDays === 0) dateStr = 'Today';
+            else if (diffDays === 1) dateStr = 'Yesterday';
+            else if (diffDays < 7) dateStr = `${diffDays} days ago`;
+            else dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            dateSpan.innerHTML = `<i class="ph ph-clock"></i> ${dateStr}`;
+            meta.appendChild(dateSpan);
+        }
 
         meta.appendChild(typeSpan);
         meta.appendChild(sizeSpan);
@@ -275,12 +351,28 @@ export const library = {
     _createCategoryCard(cat) {
         const div = document.createElement('div');
         div.className = 'category-card';
+        div.setAttribute('tabindex', '0');
+        div.setAttribute('role', 'button');
         
         if (cat.id === 'upload') {
             div.classList.add('special-action');
+            div.setAttribute('aria-label', `Upload new file`);
             div.onclick = () => this.triggerUploadFlow();
+            div.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.triggerUploadFlow();
+                }
+            });
         } else {
+            div.setAttribute('aria-label', `Open ${cat.name} category with ${cat.count} items`);
             div.onclick = () => this.renderFolder(cat.id);
+            div.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.renderFolder(cat.id);
+                }
+            });
         }
 
         div.innerHTML = `
@@ -312,7 +404,10 @@ export const library = {
             this.elements.list.innerHTML = `
                 <div class="empty-state" style="grid-column: 1/-1; text-align:center; padding: 4rem; color: var(--text-muted);">
                     <i class="ph ph-ghost" style="font-size: 64px; margin-bottom: 1rem; opacity: 0.8;"></i>
-                    <p style="color: var(--text-main); font-weight: 500;">No resources found.</p>
+                    <p style="color: var(--text-main); font-weight: 500;">No resources found in this category.</p>
+                    <button class="btn secondary" style="margin-top: 1rem;" onclick="window.library.renderHome()">
+                        <i class="ph ph-arrow-left"></i> Back to Home
+                    </button>
                 </div>`;
             return;
         }
@@ -322,6 +417,43 @@ export const library = {
             fragment.appendChild(this._createResourceCard(resource));
         });
         this.elements.list.appendChild(fragment);
+        
+        this._enableKeyboardNavigation();
+    },
+    
+    _enableKeyboardNavigation() {
+        const cards = this.elements.list.querySelectorAll('.resource-card, .category-card');
+        if (cards.length === 0) return;
+        
+        cards.forEach((card, index) => {
+            card.addEventListener('keydown', (e) => {
+                let targetIndex = index;
+                const cols = getComputedStyle(this.elements.list).gridTemplateColumns?.split(' ').length || 3;
+                
+                switch(e.key) {
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        targetIndex = Math.min(index + 1, cards.length - 1);
+                        break;
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        targetIndex = Math.max(index - 1, 0);
+                        break;
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        targetIndex = Math.min(index + cols, cards.length - 1);
+                        break;
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        targetIndex = Math.max(index - cols, 0);
+                        break;
+                    default:
+                        return;
+                }
+                
+                cards[targetIndex]?.focus();
+            });
+        });
     },
 
     _getIconForType(type) {
@@ -356,11 +488,45 @@ export const library = {
                     return;
                 }
 
-                common.showToast(`Uploading ${file.name}...`, 'info');
-                await store.uploadResource(file, pin);
-                common.showToast('Upload successful!', 'success');
-                this.renderHome(); // Refresh dashboard stats
+                const progressModal = this._createProgressModal(file.name, file.size);
+                document.body.appendChild(progressModal);
+
+                const progressCallback = (percent, uploaded, total) => {
+                    const progressBar = progressModal.querySelector('.upload-progress-fill');
+                    const progressText = progressModal.querySelector('.upload-progress-text');
+                    const progressBytes = progressModal.querySelector('.upload-progress-bytes');
+                    
+                    if (progressBar) progressBar.style.width = `${percent}%`;
+                    if (progressText) progressText.textContent = `${percent}%`;
+                    if (progressBytes) {
+                        const uploadedMB = (uploaded / (1024 * 1024)).toFixed(2);
+                        const totalMB = (total / (1024 * 1024)).toFixed(2);
+                        progressBytes.textContent = `${uploadedMB} MB / ${totalMB} MB`;
+                    }
+                };
+
+                const INSTANT_THRESHOLD = 5 * 1024 * 1024;
+                if (file.size <= INSTANT_THRESHOLD) {
+                    let currentProgress = 0;
+                    const animateInterval = setInterval(() => {
+                        currentProgress += 10;
+                        if (currentProgress <= 90) {
+                            progressCallback(currentProgress, file.size * currentProgress / 100, file.size);
+                        } else {
+                            clearInterval(animateInterval);
+                        }
+                    }, 40);
+                }
+
+                await store.uploadResource(file, pin, progressCallback);
+                
+                this._showUploadSuccess(progressModal, file.name, file.size);
+                
+                this.renderHome();
             } catch (err) {
+                const progressModal = document.querySelector('.upload-progress-modal');
+                if (progressModal) progressModal.remove();
+                
                 if (err !== 'cancelled') {
                     console.error(err);
                     common.showToast('Upload failed: ' + err.message, 'error');
@@ -370,14 +536,141 @@ export const library = {
         });
     },
 
+    _createProgressModal(filename, fileSize) {
+        const modal = document.createElement('div');
+        modal.className = 'modal upload-progress-modal';
+        modal.style.display = 'flex';
+        
+        const sizeMB = (fileSize / (1024 * 1024)).toFixed(2);
+        
+        modal.innerHTML = `
+            <div class="modal-content upload-widget" data-state="uploading">
+                <div class="upload-header">
+                    <h3>Uploading File</h3>
+                    <div class="upload-controls">
+                        <button class="btn-minimize" title="Minimize">
+                            <i class="ph ph-minus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="upload-body">
+                    <p class="upload-filename">${this._escapeHtml(filename)}</p>
+                    <div class="upload-progress-container">
+                        <div class="upload-progress-bar">
+                            <div class="upload-progress-fill"></div>
+                        </div>
+                        <div class="upload-progress-info">
+                            <span class="upload-progress-text">0%</span>
+                            <span class="upload-progress-bytes">0 MB / ${sizeMB} MB</span>
+                        </div>
+                    </div>
+                    <p class="upload-hint">
+                        Please wait while your file is being uploaded...
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        const minimizeBtn = modal.querySelector('.btn-minimize');
+        const widget = modal.querySelector('.upload-widget');
+        
+        minimizeBtn.addEventListener('click', () => {
+            if (modal.classList.contains('minimized')) {
+                modal.classList.remove('minimized');
+                minimizeBtn.innerHTML = '<i class="ph ph-minus"></i>';
+                minimizeBtn.title = 'Minimize';
+            } else {
+                modal.classList.add('minimized');
+                minimizeBtn.innerHTML = '<i class="ph ph-arrows-out-simple"></i>';
+                minimizeBtn.title = 'Expand';
+            }
+        });
+        
+        widget.addEventListener('click', (e) => {
+            if (modal.classList.contains('minimized') && !e.target.closest('.upload-controls')) {
+                minimizeBtn.click();
+            }
+        });
+        
+        return modal;
+    },
+
+    _showUploadSuccess(modal, filename, fileSize) {
+        const widget = modal.querySelector('.upload-widget');
+        const header = modal.querySelector('.upload-header h3');
+        const controls = modal.querySelector('.upload-controls');
+        const body = modal.querySelector('.upload-body');
+        const sizeMB = (fileSize / (1024 * 1024)).toFixed(2);
+        
+        widget.setAttribute('data-state', 'success');
+        header.textContent = 'Upload Complete!';
+        
+        controls.innerHTML = `
+            <button class="btn-close" title="Close">
+                <i class="ph ph-x"></i>
+            </button>
+        `;
+        
+        body.innerHTML = `
+            <div class="upload-success-icon">
+                <i class="ph ph-check-circle"></i>
+            </div>
+            <p class="upload-filename">${this._escapeHtml(filename)}</p>
+            <p class="upload-success-size">${sizeMB} MB uploaded successfully</p>
+        `;
+        
+        const closeBtn = controls.querySelector('.btn-close');
+        closeBtn.addEventListener('click', () => {
+            modal.remove();
+        });
+        
+        setTimeout(() => {
+            if (modal && !modal.classList.contains('minimized')) {
+                modal.classList.add('minimized');
+            }
+        }, 2000);
+        
+        setTimeout(() => {
+            modal.remove();
+        }, 5000);
+    },
+
+    _escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+    
+    /* === Phase 3: Error Boundaries === */
+    
+    _renderErrorState(context, message) {
+        if (!this.elements.list) return;
+        
+        this.elements.list.innerHTML = '';
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-boundary-state';
+        errorDiv.innerHTML = `
+            <div class="error-icon">
+                <i class="ph ph-warning-circle"></i>
+            </div>
+            <h3>Something went wrong</h3>
+            <p>${this._escapeHtml(message)}</p>
+            <button class="btn primary" onclick="location.reload()">
+                <i class="ph ph-arrow-clockwise"></i> Reload Page
+            </button>
+        `;
+        this.elements.list.appendChild(errorDiv);
+    },
+
     requestPin() {
         return new Promise((resolve, reject) => {
             const modal = document.getElementById('pin-modal');
+            const form = document.getElementById('pin-form');
             const input = document.getElementById('upload-pin-input');
             const confirmBtn = document.getElementById('btn-pin-confirm');
             const cancelBtn = document.getElementById('btn-pin-cancel');
 
-            if (!modal || !input) return reject(new Error('Modal missing'));
+            if (!modal || !input || !form) return reject(new Error('Modal missing'));
 
             input.value = '';
             modal.classList.remove('hidden');
@@ -385,12 +678,13 @@ export const library = {
 
             const close = () => {
                 modal.classList.add('hidden');
-                confirmBtn.onclick = null;
+                form.onsubmit = null;
                 cancelBtn.onclick = null;
                 input.onkeydown = null;
             };
 
-            const submit = () => {
+            const submit = (e) => {
+                if (e) e.preventDefault();
                 const val = input.value;
                 if (val) {
                     close();
@@ -398,7 +692,7 @@ export const library = {
                 }
             };
 
-            confirmBtn.onclick = submit;
+            form.onsubmit = submit;
             
             cancelBtn.onclick = () => {
                 close();
@@ -406,7 +700,6 @@ export const library = {
             };
 
             input.onkeydown = (e) => {
-                if (e.key === 'Enter') submit();
                 if (e.key === 'Escape') {
                     close();
                     reject('cancelled');

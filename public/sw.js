@@ -18,7 +18,7 @@ const CRITICAL_ASSETS = [
 
 const OPTIONAL_ASSETS = [
     '/resources.json',
-    '/src/search-worker.js',
+    '/src/search_worker.js',
     '/vendor/phosphor/regular.css',
     '/vendor/phosphor/bold.css',
     '/vendor/phosphor/fill.css',
@@ -167,20 +167,90 @@ self.addEventListener('fetch', event => {
     );
 });
 
-/* === API STRATEGY (Network First) === */
+/* === API STRATEGY (Stale-While-Revalidate with Network First) === */
 
 async function handleApiRequest(request) {
+    const cache = await caches.open(APP_CACHE);
+    const url = new URL(request.url);
+    
+    // Phase 3: Stale-while-revalidate for /api/list
+    if (url.pathname === '/api/list') {
+        return handleStaleWhileRevalidate(request, cache);
+    }
+    
+    // Network-first for other API requests (upload, etc.)
     try {
         const networkResponse = await fetch(request);
         if (networkResponse.status === 200) {
-            const cache = await caches.open(APP_CACHE);
             cache.put(request, networkResponse.clone());
         }
         return networkResponse;
     } catch (error) {
         console.log('[SW] API offline, falling back to cache');
-        const cachedResponse = await caches.match(request);
-        return cachedResponse || new Response(JSON.stringify([]), { 
+        const cachedResponse = await cache.match(request);
+        
+        if (cachedResponse) {
+            return cachedResponse;
+        }
+        
+        // Return empty array for list endpoints
+        return new Response(JSON.stringify([]), { 
+            status: 200,
+            headers: { 'Content-Type': 'application/json' } 
+        });
+    }
+}
+
+/* === Phase 3: Stale-While-Revalidate Strategy === */
+
+async function handleStaleWhileRevalidate(request, cache) {
+    const cachedResponse = await cache.match(request);
+    
+    // Return cached immediately if available
+    const fetchPromise = fetch(request)
+        .then(networkResponse => {
+            if (networkResponse && networkResponse.status === 200) {
+                // Update cache in background
+                cache.put(request, networkResponse.clone());
+            }
+            return networkResponse;
+        })
+        .catch(error => {
+            console.log('[SW] Network fetch failed, cache remains stale');
+            return null;
+        });
+    
+    // If we have cache, return it immediately and update in background
+    if (cachedResponse) {
+        // Check cache age
+        const cachedDate = cachedResponse.headers.get('date');
+        const cacheAge = cachedDate ? Date.now() - new Date(cachedDate).getTime() : Infinity;
+        const MAX_STALE_TIME = 5 * 60 * 1000; // 5 minutes
+        
+        // If cache is fresh enough, return it immediately
+        if (cacheAge < MAX_STALE_TIME) {
+            // Still revalidate in background
+            fetchPromise.catch(() => {});
+            return cachedResponse;
+        }
+    }
+    
+    // If no cache or cache too old, wait for network
+    try {
+        const networkResponse = await fetchPromise;
+        if (networkResponse) return networkResponse;
+        if (cachedResponse) return cachedResponse;
+        
+        // Fallback to empty array
+        return new Response(JSON.stringify([]), { 
+            status: 200,
+            headers: { 'Content-Type': 'application/json' } 
+        });
+    } catch (error) {
+        if (cachedResponse) return cachedResponse;
+        
+        return new Response(JSON.stringify([]), { 
+            status: 200,
             headers: { 'Content-Type': 'application/json' } 
         });
     }
